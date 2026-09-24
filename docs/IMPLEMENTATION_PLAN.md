@@ -6,6 +6,12 @@ Source analysed: `AadidevRaizada/AstroFixxer` at commit `6af76ce` (19 commits). 
 
 **Rule for every phase:** each piece of work that changes code ends with a new entry in `docs/HANDOFF.md` (template at the bottom of that file).
 
+**Offline-first rule:** the app must work in the field with no internet. All sky data (stars, ~94k deep-sky objects, constellations, sky cultures, meteor showers) ships inside the app, and planet positions and planet events are computed on the phone. Only two features may use the network, and both must degrade gracefully:
+- Wikipedia summaries: cached after the first view.
+- Refreshing satellite orbit data: the bundled snapshot is used when offline, with its age shown.
+
+**Data source:** Stellarium's open data files (catalogue, names, sky cultures, meteor showers), converted at build time by `tools/stellarium_import/`. We do **not** call Stellarium's Remote Control API. That needs a computer running Stellarium on the same network, which defeats offline use.
+
 ---
 
 ## 0. Licensing (read before porting)
@@ -16,7 +22,11 @@ The app is a fork of **AstroHopper by Artyom Beilis, GPLv3** (`COPYING.md`, `LIC
 |---|---|---|
 | App code (AstroHopper) | GPLv3 | Port stays GPLv3; keep copyright notice |
 | Constellation data (Atlas of Space) | GPL | Ship as an asset with attribution |
-| OpenNGC catalogue | CC-BY-SA-4.0 | Attribute in About screen; share-alike on the data |
+| OpenNGC catalogue | CC-BY-SA-4.0 | Attribute in About screen; share-alike on the data (replaced by Stellarium data, see Phase 4) |
+| Stellarium DSO catalogue, DSO names, meteor showers | GPL-2.0-or-later | Compatible with GPLv3; credit Stellarium in About |
+| Stellarium sky cultures (modern, indian) text and data | CC BY-SA 4.0 | Attribute; share-alike on the data |
+| Stellarium modern constellation illustrations | Free Art License | Attribute if we ship the artwork |
+| HYG v3 star database (star positions) | CC BY-SA | Attribute |
 | VSOP87 / CPReduce code (Greg Miller) | Public domain | No restriction |
 | `images/qs_*.png` | © Maxim Tonkikh | Ask permission or redraw for the Android onboarding |
 
@@ -124,17 +134,43 @@ This is the riskiest part: a wrong sign or unit here sends the telescope to the 
 
 ---
 
-## 4. Phase 4: Catalogue data pipeline (1–2 days)
+## 4. Phase 4: Offline sky data from Stellarium (2–3 days; importer done)
 
-Today `create_data.py` writes a big JS literal (`allstars`, `allstars_index`, name index, `constellation_lines`) into the HTML.
+Today `create_data.py` builds the data from OpenNGC (about 4,100 deep-sky objects) and HYG, and writes it as a JS literal into the HTML. We replace the deep-sky source, names and constellations with Stellarium's data, which is larger, better cross-referenced and maintained.
 
-- Add an output mode to `create_data.py` that writes the same data as compact assets for Android:
-  - `catalog.bin` (or `catalog.json.gz`): objects sorted by type and magnitude, same fields as today (`RA`, `DE`, `AM`, `name`, `t`, `s`, `n2`).
-  - `names.bin`: normalised names → object index (same `normalize_name` logic, so "M 41", "M041" and "M41" all match).
-  - `constellations.bin`: line segments and label positions.
-- Keep the magnitude limits (`global_dso_mag_limit = 14`, `global_mag_limit = 6`) configurable.
-- `core/catalog` loads the assets once in the background, keeps them in memory (about 10k objects is small), and exposes `search(query)` and `visible(fov, limits)`.
-- Run the generator in Gradle (or commit its output with a checksum test) so the web and Android data can't drift apart.
+### 4.1 Done: `tools/stellarium_import/`
+
+- `fetch_stellarium.sh` sparse-checks-out only the needed Stellarium data at a **pinned commit** (`9910a2f`), so builds are reproducible.
+- `build_sky_data.py` reads:
+  - `nebulae/default/catalog.txt`: 94,899 deep-sky objects with 29 cross-index catalogues
+  - `nebulae/default/names.dat`: common names
+  - `skycultures/modern` and `skycultures/indian`: constellation lines, star names, Indian names in Devanagari
+  - `plugins/MeteorShowers/resources/MeteorShowers.json`
+  - HYG v3 for star positions (Stellarium's own star catalogues are separate binary downloads)
+- It writes:
+
+| Output | Size | Contents |
+|---|---|---|
+| `data/web/jsdb_stellarium.js` | 1.6 MB | Drop-in replacement for the web app's data block. 18,842 objects: 807 open clusters, 9,999 galaxies, 2,731 nebulae, 141 globulars (mag ≤ 14), 8 planets, 88 constellations, 5,068 stars (mag ≤ 6). 16,846 search keys. `--apply-to astrofixxer.html` patches a copy of the app. |
+| `data/android/sky_catalog.json.gz` | 2.5 MB | Full catalogue for Android: 93,997 deep-sky objects (all IDs and names), 8,912 stars with Western and Indian names, modern + Indian constellations. |
+| `data/events/meteor_showers.json` | 62 KB | 43 showers × 2026–2028: peak / start / end in UTC, ZHR, radiant and drift, speed, parent body. |
+
+- Checked:
+  - The patched web app loads in headless Chromium with no new errors.
+  - Search finds M31, "Andromeda Galaxy", "Orion Nebula", NGC7000, "Pleiades", "Trifid", Cr399, Jupiter, and the Indian star name "Lubdhaka" → Sirius.
+  - 7 unit tests pass: Messier types/names, all Messier present, M42 position, meteor peak dates (Perseids 13 Aug, Geminids 14 Dec 2026, Quadrantids activity wraps the new year), and name normalisation identical to the web app.
+
+### 4.2 Remaining
+
+- **Web**: decide whether to replace the embedded data in `astrofixxer.html` (see HANDOFF open question 1). The page grows by about 0.8 MB. The render loop is safe because each type block is sorted by magnitude and skipped at the limit.
+- **Android `core/catalog`**:
+  - Load `sky_catalog.json.gz` once in the background; convert to a compact binary format if parsing is slow on low-end phones.
+  - Build a **spatial index** (RA/Dec grid or HEALPix, level ~4), so only objects in the current field of view and above the magnitude limit are drawn. 94k objects is too many to scan every frame.
+  - Search index with the same `normalize_name` rule. Prefix search over names and all catalogue IDs.
+- **Stars fainter than mag 6**: optional later step. Parse Stellarium's `stars_0`/`stars_1` binary catalogues (mag ≤ 7.5) for a deeper star field when zoomed in.
+- **Constellation artwork**: the modern illustrations (Free Art License) are in `skycultures/modern/illustrations`, with anchor stars in `index.json`. Import them if Stitch keeps the "constellation art" toggle.
+- Run the importer in Gradle (or CI) and fail the build if the committed outputs are out of date.
+- To update the data later: bump `STELLARIUM_COMMIT`, re-run, review the diff, commit. Users get new data with the next app update, and the app never needs the internet for it.
 
 ---
 
@@ -152,7 +188,11 @@ Feed `STITCH_UI_PROMPT.md` to Stitch, export the designs, and convert the token 
 
 | Screen | Replaces (web) | Key work |
 |---|---|---|
-| Sky Map | `#myCanvas` + top buttons + `#status` + `find_status` | Compose `Canvas`, draw at display refresh rate driven by the sensor flow. Object glyphs follow the Stitch component sheet. Hit-testing for taps. Pinch zoom → FOV. Drag → azimuth offset in Manual mode. |
+| Sky View (Stellarium-style) | `#myCanvas` + top buttons + `#status` + `find_status` | Full-screen planetarium: star glow sized by magnitude and coloured by B−V, Milky Way texture, atmosphere colour from the sun's altitude, horizon silhouette + cardinal points, grids, ecliptic/meridian lines, constellation lines/names/boundaries/art. Start with Compose `Canvas` + the spatial index. If it can't hold 60 fps on a mid-range phone, move the sky layer to OpenGL ES (`GLSurfaceView` in `AndroidView`) and keep overlays in Compose. Hit-testing for taps. Pinch zoom → FOV with zoom-dependent magnitude limit. Drag → pan (Free look / Manual). Time travel (display time ≠ now). |
+| Slide-out toolbars | settings buttons | Left bar (Location, Date & Time, Sky options, Search, Settings, Help, Events) and bottom toggle bar with auto-hide. |
+| Info overlay | target label on canvas | Top-left text stack: IDs, type, mag, size, RA/Dec, Alt/Az, rise/transit/set. |
+| Search window | `search_field_main` | Tabs: Object / Position / Lists. Results show "Up now" or rise time. |
+| Events | none (new) | See Phase 5b. |
 | Guidance panel | the `find_status` text line | New: ΔAlt/ΔAz with arrows, progress ring, on-target haptics. |
 | Onboarding & permissions | `qs_1`–`qs_4`, "Enable Device Orientation" | Runtime permissions for location; sensor availability check (rotation-vector present? compass present?). |
 | Settings | config panel | Grouped sections backed by DataStore. "Reset all" with an in-app confirmation. |
@@ -175,6 +215,24 @@ Feed `STITCH_UI_PROMPT.md` to Stitch, export the designs, and convert the token 
 
 ---
 
+## 5b. Phase 5b: Offline events (4–5 days)
+
+Every event source works without internet:
+
+| Event | Source | How |
+|---|---|---|
+| Meteor showers | `data/events/meteor_showers.json` (from Stellarium) | Bundled. For years beyond the file, the app converts the solar longitudes itself; the algorithm is in `build_sky_data.py` (`jd_for_solar_longitude`). Show the radiant on the sky with drift applied (drift is in degrees per degree of solar longitude). |
+| Sunrise/sunset, twilights, moonrise/set, moon phase | `core/astro` | Computed on device from the VSOP87 Sun and the Moon theory already in the web app (`getSolarSystemObject('Moon')`). |
+| Conjunctions, Moon–planet approaches | `core/astro` | Sample planet positions every 6 h over the next 60 days, find minima of angular separation < 5°, refine by bisection. |
+| Oppositions, greatest elongations | `core/astro` | Find where elongation from the Sun is 180° (outer planets) or at a maximum (Mercury, Venus). |
+| Rise/transit/set for any object | `core/astro` | Standard hour-angle calculation. |
+| ISS and bright satellite passes | Bundled TLE snapshot + SGP4 on device | The build step downloads current TLEs from CelesTrak (ISS, Hubble, Tiangong, the brightest satellites) into `data/events/tle.txt`. The app runs SGP4 (port or small library) to predict visible passes: satellite sunlit, observer in darkness, altitude > 10°. **TLEs age**: accuracy is good for about 1–2 weeks. The app shows "Orbit data N days old", greys predictions out after 30 days, and refreshes from CelesTrak only when online (WorkManager, unmetered network). CelesTrak is blocked in this build sandbox, so this download must be tested locally or in CI. |
+| "Tonight" summary | all of the above | Darkest window, planets up, moon, next meteor peak, next ISS pass. |
+
+Tests: compare 10 known 2026 events (for example the Perseid and Geminid peaks, and a known Venus–Jupiter conjunction) against published almanac values: within ±1 day for meteor peaks and ±1 hour for conjunctions.
+
+---
+
 ## 6. Phase 6: AstroGuide voice assistant (4–6 days, after the core app ships)
 
 The README plans Rasa. A simpler route with better multilingual support:
@@ -182,9 +240,8 @@ The README plans Rasa. A simpler route with better multilingual support:
 - Speech in: Android `SpeechRecognizer` (works offline for downloaded languages, including Hindi and English).
 - Understanding: send the transcript plus current sky context (time, location, alignment state, visible bright objects, current target) to an LLM API with **tool calling**. Tools map to app actions: `set_target(name)`, `list_visible(type, min_alt)`, `object_info(name)`, `next_events()`.
 - Speech out: Android `TextToSpeech`.
-- Offline fallback: a small on-device intent matcher for "find X", "what is X" and "align" commands.
+- **Offline first**: an on-device intent matcher handles "find X", "what is X", "align" and "what's up tonight", answered from the bundled catalogue and the Phase 5b events. The LLM is used only for free-form questions when online.
 - Keep API keys off the device: route through a tiny backend (for example a Vercel function).
-- ISS passes and conjunctions need extra data (TLEs from CelesTrak, and a search over planet positions from `core/astro`). Treat these as separate tasks.
 
 ---
 
@@ -204,12 +261,13 @@ The README plans Rasa. A simpler route with better multilingual support:
 | 1. Web bug fixes | 1–2 d | none |
 | 2. Android setup | 2 d | none |
 | 3. Astronomy core port + tests | 4–5 d | 2 |
-| 4. Catalogue pipeline | 1–2 d | 2 |
-| 5. Compose UI | 6–8 d | 3, 4, Stitch designs |
-| 6. AstroGuide | 4–6 d | 5 |
+| 4. Stellarium offline data (importer done) | 2–3 d remaining | 2 |
+| 5. Compose UI, Stellarium-style | 10–12 d | 3, 4, Stitch designs |
+| 5b. Offline events | 4–5 d | 3, 4 |
+| 6. AstroGuide | 4–6 d | 5, 5b |
 | 7. Release | 2 d | 5 |
 
-Roughly 4–5 weeks for one developer to reach a releasable app without AstroGuide, and 5–6 weeks with it.
+Roughly 6–7 weeks for one developer to reach a releasable app without AstroGuide, and 7–8 weeks with it. The Stellarium-style rendering (atmosphere, Milky Way, landscape, art) adds about 4 days over the plain sky map.
 
 ## 9. Risks
 
@@ -220,3 +278,6 @@ Roughly 4–5 weeks for one developer to reach a releasable app without AstroGui
 | VSOP87 port mistakes | Golden tests against the JS app (Phase 3.2) are a merge gate. |
 | Generated Kotlin exceeds JVM method size | Split generated code or load coefficients from an asset. |
 | GPL obligations missed | License screen + public source repo before first release. |
+| 94k objects make the sky view slow | Spatial index + magnitude culling; fall back to OpenGL ES for the sky layer. |
+| Stale satellite predictions offline | Show data age; hide passes when TLEs are older than 30 days. |
+| Stellarium data format changes | Pinned commit; importer tests fail loudly on a bump. |

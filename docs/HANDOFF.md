@@ -21,14 +21,74 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 | 1. Web app bug fixes (B1–B13) | Not started |
 | 2. Android project setup | Not started |
 | 3. Astronomy core port | Not started |
-| 4. Catalogue pipeline | Not started |
-| 5. Compose UI | Waiting on Stitch designs |
+| 4. Stellarium offline data | Importer done and tested; Android loader and web swap not started |
+| 5. Compose UI (Stellarium-style) | Waiting on Stitch designs |
+| 5b. Offline events | Meteor showers done (data); planet events and ISS not started |
 | 6. AstroGuide | Not started |
 | 7. Release | Not started |
 
 ---
 
 ## Entries
+
+### 2026-09-24: Stellarium offline data importer + Stellarium-style UI brief
+
+**What was done**
+- The user asked for Stellarium data for all celestial objects and events, working offline, and a Stellarium-like UI.
+- Decided **not** to use Stellarium's Remote Control API: it needs Stellarium desktop running on the same network and only serves plain HTTP, which an HTTPS web app can't call. Instead, Stellarium's open data files are converted at build time and bundled, so nothing needs the internet in the field.
+- Added `tools/stellarium_import/`:
+  - `fetch_stellarium.sh`: sparse checkout of Stellarium at pinned commit `9910a2f`.
+  - `build_sky_data.py`: converts the deep-sky catalogue, names, sky cultures (modern + Indian) and meteor showers into:
+    - `data/web/jsdb_stellarium.js`: drop-in data for the web app.
+    - `data/android/sky_catalog.json.gz`: full catalogue.
+    - `data/events/meteor_showers.json`: 2026–2028.
+  - `test_build_sky_data.py`: 7 stdlib `unittest` tests.
+- Rewrote `docs/STITCH_UI_PROMPT.md` around a Stellarium-style planetarium UI: full-screen realistic sky, slide-out toolbars, info overlay, time travel, Events screen, Western/Indian sky cultures, offline states. It keeps all AstroFixxer telescope features (Align, guidance panel, watch lists, user objects, Night mode).
+- Updated `docs/IMPLEMENTATION_PLAN.md`:
+  - Offline-first rule.
+  - New licence rows.
+  - Phase 4 rewritten around the importer.
+  - New Phase 5b (offline events: meteor showers, planet events, ISS via bundled TLE + SGP4).
+  - Stellarium-style rendering work in Phase 5.
+  - New timeline (6–7 weeks without AstroGuide).
+
+**Files changed**
+- `tools/stellarium_import/fetch_stellarium.sh`, `build_sky_data.py`, `test_build_sky_data.py` (new)
+- `data/web/jsdb_stellarium.js`, `data/android/sky_catalog.json.gz`, `data/events/meteor_showers.json` (new, generated)
+- `docs/STITCH_UI_PROMPT.md`, `docs/IMPLEMENTATION_PLAN.md`, `docs/HANDOFF.md`
+- `.gitignore`: ignore `.cache/` and `__pycache__/`
+
+**How to verify**
+```bash
+tools/stellarium_import/fetch_stellarium.sh .cache/stellarium
+python3 tools/stellarium_import/build_sky_data.py --stellarium .cache/stellarium \
+  --hyg <AstroFixxer>/western_constellations_atlas_of_space/data/hygdata_v3/hygdata_v3.csv \
+  --out data --years 2026-2028 --apply-to <AstroFixxer>/astrofixxer.html --apply-out /tmp/astrofixxer_stellarium.html
+STELLARIUM_DIR=.cache/stellarium python3 -m unittest tools/stellarium_import/test_build_sky_data.py
+```
+Results in this session:
+- The build takes ~3 s.
+- Web data: 18,842 objects vs 9,759 before.
+- Android catalogue: 93,997 deep-sky objects, 8,912 stars.
+- 129 meteor-shower entries.
+- 7/7 tests pass.
+- The patched `astrofixxer.html` loads in headless Chromium, and search resolves M31, Andromeda Galaxy, Orion Nebula, NGC7000, Pleiades, Trifid, Cr399, Jupiter and Lubdhaka (Sirius). The only console error is the service worker refusing `file://`, which is expected.
+
+**Decisions**
+- Stellarium's catalogue uses SIMBAD-style type codes (`Gx`, `AGx`, `RNe`, `Cl`, ...) that aren't listed in its file header. Missing them silently dropped M31 in the first run; the type map now covers them, and a test checks that every Messier object except M40/M73 has a type.
+- Clusters with nebulosity (`C+N`: Eagle, Trifid) are drawn as nebulae. The Pleiades are overridden to open cluster.
+- Star positions still come from HYG v3. Stellarium's star catalogues are binary downloads and are deferred (Plan 4.2).
+- Generated outputs are committed, following the upstream repo's practice of committing `jsdb.js`, so the app builds without network.
+
+**Known issues / not done**
+- The web app still embeds the old OpenNGC data. The swap is one command (`--apply-to`) but changes the upstream file; waiting on open question 1.
+- 141 globular clusters vs 191 before: Stellarium has no magnitude for some faint globulars, and objects without a magnitude are left out of the web build (they are in the Android catalogue).
+- ISS/satellite passes: CelesTrak is blocked in this sandbox, so TLE download and SGP4 are planned (Phase 5b) and untested.
+- Meteor peak times are the typical solar longitude converted with a low-precision Sun formula (~0.01°). They are accurate to within hours, and outbursts in special years aren't modelled beyond what Stellarium lists.
+
+**Next step**
+- Run the Stitch prompt; save designs under `docs/design/`.
+- Answer the open questions below. The Android project setup (Phase 2) and the astronomy core port (Phase 3) are unblocked.
 
 ### 2026-09-24: Analysis and planning (no code changes)
 

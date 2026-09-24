@@ -1,173 +1,228 @@
-# Stitch UI Prompt: AstroFixxer (Android, Jetpack Compose)
+# Stitch UI Prompt: AstroFixxer (Android, Jetpack Compose), Stellarium-style
 
-Paste everything below the line into Google Stitch. It describes every screen and control that already exists in the web app (`astrofixxer.html`), so the redesign keeps all current functionality and fixes the UX problems we already know about.
+Paste everything below the line into Google Stitch. It keeps every feature the current web app (`astrofixxer.html`) has, and takes its look and interaction model from **Stellarium**: a realistic full-screen planetarium sky with slide-out toolbars.
 
 ---
 
 ## Product
 
-Design a mobile app called **AstroFixxer** for Android phones (Material 3, built with Jetpack Compose). It is a star-hopping assistant for manual telescopes. The user straps the phone flat onto the telescope tube, with the top edge of the phone pointing where the telescope points. The phone's gyroscope, gravity sensor and compass track where the telescope is aimed. The user "aligns" once on a bright star they can see, then picks a faint target, and the app shows which way and how far to move the telescope until they reach it.
+Design a mobile app called **AstroFixxer** for Android phones (Material 3, built with Jetpack Compose). It is a planetarium and a star-hopping assistant for manual telescopes. The user straps the phone flat onto the telescope tube, with the top edge of the phone pointing where the telescope points. The phone's gyroscope, gravity sensor and compass track where the telescope is aimed. The user "aligns" once on a bright star they can see, then picks a faint target, and the app shows which way and how far to move the telescope until they reach it.
 
-Users are students, school astronomy clubs and first-time observers in India. They work **outdoors at night, in the dark, with cold hands, often wearing gloves, holding a telescope with one hand**. The app must work fully offline.
+Users are students, school astronomy clubs and first-time observers in India. They work **outdoors at night, often far from mobile coverage, in the dark, with cold hands, holding a telescope with one hand**.
 
-## Hard design constraints
+## Look and feel: like Stellarium
 
-1. **Dark-sky safe.** Default theme is near-black (#000–#0A0A0A). There must be a **Night (red) mode** where every pixel is deep red (#FF0000 on black, maximum ~60% brightness, no blue or white anywhere, including icons, dialogs, keyboard hint text and toasts). White light ruins the observer's dark adaptation for 20+ minutes. A Night mode toggle must be reachable in one tap from the main screen.
-2. **Big touch targets.** Minimum 56dp for primary controls and 48dp for everything else. The current web app uses 10mm buttons with no labels. Replace unlabeled icon buttons with icon + short label.
-3. **One-handed, glanceable.** The key numbers (how far to move up/down and left/right) must be readable at arm's length. Use large tabular numerals.
-4. **The phone is mounted on a telescope.** It may be upside down or sideways relative to the user. Support portrait and landscape and keep the core controls reachable in both.
-5. **Offline-first.** No loading spinners for core features. Show a small offline indicator only where a feature needs the network (Wikipedia info).
-6. **Multilingual.** English, Hindi (new), Ukrainian, Hungarian, Russian and Hebrew. Hebrew is right-to-left, so layouts must mirror correctly. Leave room for text that is about 40% longer than English.
+Design it to feel like the Stellarium planetarium (desktop and Stellarium Mobile), adapted for a phone mounted on a telescope. Use the interaction model and visual style only. **Do not copy Stellarium's logo, name or icons.**
 
-## Visual direction
+- **The sky is the whole screen.** A realistic planetarium view, edge to edge, with no permanent chrome except a thin info overlay. Controls slide in when needed and hide again after a few seconds.
+- **Realistic sky rendering:**
+  - Stars drawn as soft glowing points, sized and coloured by brightness and colour (blue-white to orange-red), with a subtle twinkle.
+  - A Milky Way band.
+  - Atmosphere: sky colour follows the real sun position (day blue → twilight gradient → night black). It can be toggled off.
+  - **Ground / landscape**: a dark horizon silhouette (for example a low hill line with trees) covering everything below the horizon, with **cardinal points N, NE, E, SE, S, SW, W, NW** on the horizon line in red.
+  - Constellation stick figures, names, faint boundary lines, and optional **constellation artwork**: faint line illustrations over the stars.
+  - Grids: an altitude/azimuth grid, an equatorial (RA/Dec) grid, and the horizon, meridian and ecliptic lines, each toggled separately.
+  - Planets with correct phases and relative brightness, and the Moon with its phase.
+  - Deep-sky objects shown with standard symbols until zoomed in:
+    - Galaxy: red ellipse
+    - Open cluster: yellow dashed circle
+    - Globular cluster: circle with a cross
+    - Nebula: green square or cloud
+    - Planetary nebula: circle with rays
+    - User-added object: diamond
+- **Info overlay (top-left, text only, no card background)**, exactly like Stellarium's object info. When an object is selected, show a stack of small text lines:
+  - Name (large), plus other catalogue IDs (for example "M42 · NGC 1976 · Great Orion Nebula")
+  - Type, magnitude, angular size
+  - RA/Dec (J2000 and of date), Alt/Az, hour angle
+  - Rise / transit / set times, and the constellation it's in
+  - Distance where known
+- **Selected object marker**: a thin animated reticle around the object (four corner brackets that pulse slowly).
+- **Bottom-left slide-out toolbars** (Stellarium's two bars), shown by tapping the screen edge or a small handle:
+  - **Vertical left bar (windows):** Location · Date & Time · Sky & Viewing Options · Search · Settings · Help · Events (new).
+  - **Horizontal bottom bar (quick toggles):**
+    - Constellation lines, constellation names, constellation art, constellation boundaries
+    - Alt/Az grid, equatorial grid
+    - Ground, cardinal points, atmosphere
+    - Deep-sky objects, planet labels
+    - Night mode
+    - Center on selected, sensor/compass tracking
+    - Time controls: fast rewind, rewind, real time (now), forward, fast forward
+    - Full screen
+- **Time travel.** Time controls change the displayed time, and the sky animates. Show the current display date/time and location small in the bottom-right, like Stellarium. Tapping it opens Date & Time. A "Now" button returns to real time.
+- **Zoom**: pinch zoom from a 180° all-sky view down to a 1° eyepiece field. Faint stars and deep-sky objects fade in as you zoom (magnitude-limited by zoom level, like Stellarium). Show the current field of view in degrees in the bottom-right.
+- **Colours**: near-black night sky, light-grey-blue text in the overlays, accent cyan (#00BFFF, the current brand colour) for AstroFixxer's own telescope controls, so they stand apart from the planetarium chrome.
+- **Typography**: a clean condensed sans for overlays and readouts (Stellarium-like small text), with tabular numerals.
 
-- Deep-space black background, cyan accent (#00BFFF, the current brand color) in normal mode; everything turns red in Night mode.
-- Typography: a condensed technical face for numbers and readouts (for example Barlow Condensed or Roboto Condensed), a plain sans for body text.
-- Keep chrome minimal. The sky map is the hero and should fill the screen edge to edge.
-- Replace the current mix of mm-sized square buttons and hand-drawn PNG icons (compass.png, manual.png, settings.png, search.png, wiki.png) with a consistent Material Symbols icon set.
+## Hard constraints (these override the Stellarium look)
+
+1. **Fully offline.** Every screen works with no internet: the star, deep-sky, constellation and event data ship inside the app. Only two things may use the network, and both must show a clear offline state:
+   - Wikipedia summaries (optional)
+   - Refreshing satellite (ISS) orbit data
+   
+   Never show a loading spinner for sky data.
+2. **Dark-sky safe Night mode.** One tap turns every pixel deep red (#FF0000 on black, brightness capped), including the sky rendering, overlays, dialogs, icons and toasts. No white or blue anywhere. Stellarium has the same red "night mode" button in its bottom bar; keep it there and also add it to the telescope controls.
+3. **Big touch targets for gloves.** 56dp for primary telescope controls and 48dp minimum everywhere else. The Stellarium toolbars must use these sizes on the phone, with icon + short label in the expanded state.
+4. **Glanceable telescope guidance.** The ΔAlt/ΔAz numbers must be readable at arm's length.
+5. **Mounted phone.** It may be sideways or upside down relative to the user. Support portrait and landscape.
+6. **Multilingual.** English, Hindi, Ukrainian, Hungarian, Russian and Hebrew (right-to-left). Allow for text about 40% longer than English.
+
+## Data the UI must handle (all bundled offline)
+
+- About **94,000 deep-sky objects** from Stellarium's catalogue, with cross-IDs (M, NGC, IC, Caldwell, Barnard, Sharpless, Collinder, Melotte, Trumpler, Abell, Arp, PGC, UGC and more) and common names.
+- About **9,000 named and bright stars**, with Western names and **Indian (Vedic) names** in Devanagari and transliteration (for example Sirius = लुब्धकः, Lubdhaka).
+- Two **sky cultures**: Western (88 IAU constellations) and **Indian Vedic** (49 constellations, including the 27 nakshatras, in Devanagari). The user can switch between them.
+- **Meteor showers** (43 showers): peak date, active period, ZHR, radiant, parent comet.
+- Planets, Moon and Sun, computed on the phone.
+- Planet events computed on the phone: conjunctions, oppositions, greatest elongations, Moon phases.
+- ISS and bright satellite passes from bundled orbit data. Show how old the data is (for example "Orbit data 9 days old · refresh when online").
 
 ## Screens
 
-### 1. Sky Map (main screen, full screen)
+### 1. Sky View (main screen)
 
-This is where the user spends 95% of their time. Currently a full-screen canvas with a row of small buttons on top.
+The Stellarium-style full-screen sky described above, plus AstroFixxer's telescope layer:
 
-**Sky map canvas (full bleed)** shows:
-- Stars sized by brightness (magnitude), with optional star names.
-- Deep-sky objects drawn with distinct symbols. Keep these standard astronomy symbols:
-  - Galaxy: tilted ellipse with a dot
-  - Globular cluster: dashed circle with a filled centre dot
-  - Open cluster: dashed circle with a dashed inner ring
-  - Nebula: S-shaped curve with a dot
-  - User-added object: diamond
-  - Planets: labelled dots
-- Constellation stick-figure lines and constellation name labels.
-- A crosshair in the centre showing where the telescope is pointing.
-- When a target is selected: a direction line/arrow from the crosshair to the target, and the target highlighted in a target color, with its magnitude (for example "m=6.4"), angular size (for example "12′") and alternate names (for example "Beehive, Praesepe Cluster").
-- The alignment star is highlighted in a separate "align" color.
-- Gestures: tap an object to select it, pinch to zoom (can be disabled in settings), and drag left/right to rotate the view in Manual mode.
+- **Alignment status chip** (top-right): "Not aligned" (warning), "Tap the alignment star" (pulsing), "Aligned ✓" (good), and the time since alignment (for example "Aligned 6 min ago"). The phone's gyroscope drifts, so show a subtle hint after about 10 minutes.
+- **Telescope pointer**: a cyan crosshair showing where the telescope points. Around it, a circle for the current **eyepiece field of view**, set in settings from focal lengths or entered in degrees.
+- **Align button**: large, cyan, bottom-right thumb zone. Tap Align, then tap the star the telescope is pointed at.
+- **Pointing mode toggle**:
+  - Compass: absolute tracking.
+  - Manual: no compass; drag the sky left/right until the alignment star is under the crosshair.
+  - Free look: the sky doesn't follow sensors; normal planetarium panning.
+- **Target guidance panel** (bottom sheet, appears when a target is selected and the app is aligned):
+  - Target name and type.
+  - **ΔAlt** (move up/down) and **ΔAz** (move left/right) in large numerals, with arrows (↑↓←→) and units in degrees and arcminutes (for example "↑ 2°14′", "← 0°38′").
+  - A bullseye that fills as the telescope approaches the target and switches to "On target" when the target is inside the eyepiece circle, with an optional haptic pulse.
+  - A line on the sky from the crosshair to the target.
+- **Watch list navigator**: ‹ previous · object name · next ›, for stepping through tonight's observing list.
+- Gestures:
+  - Tap an object to select it.
+  - Long-press an object for a quick menu: Set as target · Align on this · Add to list · Info.
+  - Pinch to zoom.
+  - Drag to pan (Free look / Manual modes).
 
-**Top bar (overlaid, translucent):**
-- **Alignment status chip**: "Not Aligned" (warning), "Select Star" (waiting for a tap, pulsing), "Aligned ✓" (good). There is also a compact version for small-UI mode.
-- **Search field**: "Search celestial objects…". Expands to full width on focus and shows live results as you type. Matches catalogue IDs like "M41", "NGC869", "IC2391" and common names like "Beehive", "Sirius", "Jupiter".
-- **Pointing mode toggle** with three states:
-  - Compass: the device has an absolute compass.
-  - Manual: no compass, the user drags the map to line up the alignment star.
-  - No-compass: an indicator that the compass is unavailable.
-- **Settings** button.
+### 2. Search (Stellarium-style search window)
 
-**Bottom control bar (thumb zone):**
-- **Align** (primary, most prominent button). Tapping it puts the app into "Select Star" mode; the user then taps the star the telescope is currently pointed at.
-- **FOV − / value / +**: field of view in degrees (for example "30°"). Shown as a stepper.
-- **Watch list navigator**: ‹ previous object · object name · next object ›. Steps through the current observing list.
-- **Object info (Wiki)** button: enabled only when a target is selected.
-- **AstroGuide** mic button (voice assistant, see screen 6). Currently it only shows a "Coming Soon" alert. Design it as a real entry point with a "Beta" badge.
+- One search field with live results as you type. It matches catalogue IDs in any spacing ("M 42", "NGC1976", "Cr 399"), common names ("Orion Nebula", "Beehive"), star names and Indian names ("Lubdhaka"), planets, and constellations.
+- Each result shows name, type icon, magnitude, and whether it's above the horizon now ("Up · 43° alt" / "Rises 21:40").
+- Tabs like Stellarium's search window: **Object** · **Position** (enter RA/Dec) · **Lists** (Messier, Caldwell, Bright stars, Double stars, Nakshatras, My objects).
+- Selecting a result centres the sky on it. A second tap on "Set target" starts telescope guidance.
 
-**Target guidance panel (NEW, replaces the tiny `find_status` text line):** a bottom sheet that appears when a target is selected and the app is aligned:
-- Target name, type and constellation.
-- **ΔAlt** (move up/down) and **ΔAz** (move left/right) in large numerals with direction arrows (↑↓←→) and units in degrees and arcminutes (for example "↑ 2°14′", "← 0°38′").
-- A progress ring or bullseye that fills as the telescope approaches the target, and turns into an "On target" state within the eyepiece field of view.
-- Hint: "Re-align if the target drifts. Phone gyros drift over time."
-- Optional haptic pulse when on target (show a toggle).
+### 3. Events ("Tonight" and upcoming, new)
 
-### 2. First-run / Sensor permission
+A panel from the left bar, and a small badge on the Sky View when something is happening tonight.
 
-- Explains that the app needs motion sensors and location, and why.
-- "Enable device orientation" primary button (this exists today for iOS; on Android it becomes the runtime permission step).
-- "No gyroscope" and "No geolocation" error states with a clear next step (Manual mode; enter latitude/longitude by hand).
+- **Tonight card**:
+  - Sunset, astronomical twilight and moonrise/moonset.
+  - Moon phase and illumination.
+  - Which planets are up, and when.
+  - The darkest window for deep-sky observing.
+- **Meteor showers**:
+  - List with name, peak date (countdown "in 5 days"), active period bar, ZHR (or range, for example "40–85"), and radiant constellation.
+  - Tap to show the radiant on the sky and when it's highest.
+- **Planet events**: conjunctions (for example "Venus 1.2° from Jupiter"), oppositions, greatest elongations, and Moon–planet close approaches, with date/time.
+- **ISS and satellites**:
+  - Next visible passes: start time, max altitude, direction (for example "SW → NE"), brightness.
+  - The data-age indicator and a "Refresh when online" button.
+- Each event has "Show in sky": it jumps the sky view to that date and time, with time travel.
+- Filters: This week / This month / All; types.
 
-### 3. Quick Start Guide (4-step onboarding carousel)
+### 4. Sky & Viewing Options (Stellarium-style tabbed window)
 
-Existing content. Keep the four steps, add illustrations, and use real Next/Back buttons plus page dots:
-1. "Connect the smartphone to the optical tube such that its top points to the viewing direction and it lies flat on the tube."
-2. "Point the telescope to an easily identifiable star or planet **nearby** an object you want to find. For example, to find M41 or M47, point the telescope at Sirius. This is the *alignment star*." Then: "When the telescope is pointing at the alignment star, tap **Align** and tap the alignment star on the map. Once aligned, the app tracks the telescope's movement using the phone's sensors."
-3. "If you can't see the alignment star on the map, there may be a compass accuracy problem. Switch to Manual mode and scroll the map left or right until you see the alignment star. Then tap Align and tap the star as usual."
-4. "Once aligned, tap the object you want to find (for example M41 or M47) and follow the direction line until you reach it. It is recommended to repeat alignment for each new target." Include a link to the video tutorial and to the built-in manual.
-- A "Don't show on startup" checkbox.
+- **Sky tab**:
+  - Star magnitude limit and brightness
+  - Milky Way brightness
+  - Atmosphere on/off
+  - Light pollution (Bortle 1–9 slider)
+  - Twinkle on/off
+- **Deep-sky tab**:
+  - Object types to show: galaxies, open clusters, globular clusters, nebulae, planetary nebulae, dark nebulae, clusters of galaxies, user objects
+  - DSO magnitude limit
+  - Catalogues to show: Messier, NGC, IC, Caldwell, Barnard, Sharpless and so on
+  - Labels on/off
+- **Markings tab**:
+  - Grids (Alt/Az, equatorial)
+  - Horizon, meridian and ecliptic lines
+  - Cardinal points
+  - Constellation lines, names, art and boundaries
+- **Sky culture tab**: Western / Indian (Vedic), with a short description and a preview thumbnail.
+- **Landscape tab**: pick a horizon silhouette (Plain, Hills, Trees, Observatory dome) or none.
 
-### 4. Settings (currently one long modal panel; redesign as grouped sections)
+### 5. Location and Date & Time
 
-**Display**
-- Night mode (red)
-- Small UI (compact controls)
-- Full screen
-- Keep screen on
-- Pinch zoom
-- Font size − / +
-- Language picker (English, Hindi, Ukrainian, Hungarian, Russian, Hebrew)
+- **Location**:
+  - Current GPS latitude/longitude with a refresh button.
+  - Manual override (latitude −90 to 90, longitude −180 to 180).
+  - An **offline city list** of Indian and major world cities.
+  - A small world map with a pin (bundled offline map, low-detail).
+- **Date & Time**: a date and time picker, a "Now" button, and a time-rate display. This mirrors Stellarium's Date/Time window.
 
-**Sky objects: show or hide each layer (all currently checkboxes)**
-- Stars, with a limiting magnitude stepper (− / +)
-- Star names
-- Deep-sky objects (DSO), with a limiting magnitude stepper (− / +)
-- Open clusters
-- Globular clusters
-- Nebulae
-- Galaxies
-- Planets
-- Constellations
-- User objects
+### 6. Object Info (expanded)
 
-**Alignment**
-- Align on DSO (allow aligning on a deep-sky object, not only stars)
-- Field of view stepper
+Opens from the info overlay. It's full catalogue data from the bundled data:
+- All IDs and names, type and morphology.
+- Magnitude and size, and distance.
+- Coordinates.
+- Rise/transit/set times, and an altitude-over-tonight graph.
+- An eyepiece preview circle.
+- Optional "Wikipedia summary" section. It loads only when online and is cached for offline use afterwards.
 
-**Observing lists**
-- Watch list selector: ‹ list name ›
-- Editable list (text area) with Save / Discard
+### 7. Telescope settings (AstroFixxer-specific)
 
-**User objects**
-- Text editor where users paste custom objects as CSV: name, RA, Dec, and optional magnitude. RA accepts "05:35:17", "5h35m17s", "5 35 17" or decimal degrees; Dec accepts "-05:23:28", "-5°23′28″" or decimal. Show inline validation errors per line (currently shown as a numbered error list).
-- Save / Discard
+- Telescope focal length and eyepiece focal lengths/field stops, which give the eyepiece circle size.
+- Align on deep-sky objects (allowed/not).
+- Keep screen on.
+- Haptics when on target.
+- Mount type: Alt-Az / Equatorial. This changes the guidance arrows to RA/Dec for equatorial users.
 
-**Location**
-- Current GPS lat/lon with a refresh button
-- GPS override: manual latitude (−90 to 90) and longitude (−180 to 180)
+### 8. Settings (general)
 
-**Wikipedia info**
-- "Show object info": Always / Day only / Never (this exists today as a select)
+- **Night mode**, with a brightness cap slider.
+- Small UI / compact toolbars.
+- Font size.
+- Language.
+- Show tutorial on startup.
+- **User objects**: a paste-CSV editor with inline per-line validation. RA accepts "05:35:17", "5h35m17s", "5 35 17" or decimal; Dec accepts "-05:23:28", "-5°23′28″" or decimal. Also a simple add form.
+- **Observing lists** (watch lists): create, rename, reorder, Save / Discard.
+- Wikipedia info: Always / Day only / Never.
+- **Data**: shows the bundled data version ("Stellarium catalogue 2026-09, 93,997 deep-sky objects") and the age of the satellite orbit data.
+- Reset all, with an in-app confirmation step.
+- About & licenses: GPLv3 source link, Stellarium data (GPL-2.0-or-later / CC BY-SA 4.0), HYG star database, OpenNGC, VSOP87.
 
-**Other**
-- Show tutorial on startup
-- Reset all (↻). Needs an in-app confirmation step.
-- Help (opens the manual)
+### 9. First run: permissions and quick start
 
-### 5. Object Info sheet
+- **Permissions**:
+  - Motion sensors and location, and why they're needed.
+  - Error states for no gyroscope (go to Manual mode) and no location (pick a city offline).
+- **Quick Start**: a 4-step carousel with illustrations, page dots and Back/Next:
+  1. "Attach the phone flat on the telescope tube, top edge pointing where the telescope points."
+  2. "Point the telescope at a bright star or planet **near** what you want to find. To find M41 or M47, use Sirius. This is your *alignment star*. Tap **Align**, then tap that star on the screen."
+  3. "Can't see the alignment star on screen? The compass may be off. Switch to Manual mode and drag the sky until the star is under the crosshair, then Align."
+  4. "Tap your target and follow the arrows until they reach zero. Re-align for each new target."
+  - "Don't show again" checkbox.
 
-- Opens from the info button for the selected target.
-- Shows the catalogue data we have offline: name, type, RA/Dec, magnitude, size, alternate names, and current altitude/azimuth.
-- An "Open on Wikipedia" section loaded from the network, with an offline placeholder.
-- Close button.
+### 10. AstroGuide (voice assistant, Beta)
 
-### 6. AstroGuide (voice assistant, NEW)
+- Push-to-talk mic, a live transcript, and spoken plus written answers.
+- Suggestion chips: "What's up now?", "Find Saturn", "When is the next meteor shower?", "Is the ISS visible tonight?", "What is M42?"
+- Answers can carry action buttons such as "Set as target" or "Show in sky".
+- **Offline behaviour**: basic commands ("find X", "what is X", "align", "what's up tonight") work offline from the bundled data. Free-form questions show "Needs internet".
+- Follows the app language, with Hindi and English first. Obeys Night mode.
 
-Currently a "Coming Soon" page. Design the real feature:
-- Push-to-talk mic button, a live transcript, and a spoken plus written answer.
-- Example chips: "What's up now?", "Find Saturn", "Is the ISS visible tonight?", "What is M42?", "Next conjunction?"
-- Answers can include an action button such as "Set as target", which selects the object on the sky map.
-- Language follows the app language, with Hindi and English first.
-- Must obey Night mode.
+### 11. Help
 
-### 7. Manual / Help
+- A searchable manual with a table of contents: Operation, Installing, Troubleshooting, Controls, Watch lists, User objects, Equatorial mount users, Known issues. Bundled offline.
 
-- The existing long manual (Operation, Notes, Installing, Troubleshooting, Controls, Controls in small-screen mode, Wikipedia page info, Watch list, User objects, Equatorial mount users, Known issues, Reporting bugs, Copyrights), shown as a searchable, sectioned help screen with a table of contents.
+## States to show
 
-### 8. Landing / About (optional)
-
-- App name, one-line pitch ("Turn any telescope into a guided instrument"), Smart India Hackathon 2025 credit (problem statements SIH25142, SIH25125), links to the Sky Map, AstroGuide and the 3D sky view, plus license credits: GPLv3 (AstroHopper by Artyom Beilis), OpenNGC (CC-BY-SA-4.0), VSOP87 planetary theory (public domain code by Greg Miller), and the Western Constellations Atlas of Space.
-
-### 9. 3D Sky View (optional)
-
-- An orbit-style 3D celestial sphere showing bright stars and planets at their real current positions. Drag to rotate, pinch to zoom, tap for info.
-
-## States to show for each main screen
-
-- Normal (cyan) and Night (red) variants
-- Portrait and landscape
-- Not aligned / selecting alignment star / aligned / on target
-- No compass (manual mode), no gyroscope, no location
-- Hebrew (RTL) sample of the Sky Map top bar and Settings
+- Normal and **Night (red)** variants of screens 1, 2, 3 and 4.
+- Day, twilight and night sky backgrounds on the Sky View.
+- Portrait and landscape of the Sky View.
+- Telescope states: not aligned / tap alignment star / aligned / on target.
+- No compass (Manual mode), no gyroscope, no location, offline.
+- Western and Indian sky culture on the same part of the sky.
+- Hebrew (RTL) sample of Search and Settings.
 
 ## Deliverables
 
-High-fidelity mockups for screens 1–7 in both Normal and Night modes, a component sheet (buttons, steppers, chips, toggles, bottom sheets, the guidance panel, object symbols) and a color and type token sheet that can be translated directly to a Compose `MaterialTheme`.
+High-fidelity mockups for screens 1–11 (Normal and Night), the two slide-out toolbars in collapsed and expanded states, a component sheet (toolbar buttons, toggles, steppers, sliders, chips, bottom sheets, guidance panel, deep-sky symbols, info overlay text styles, the selection reticle), and a colour and type token sheet that maps directly to a Compose `MaterialTheme`, with a separate Night (red) scheme.
