@@ -16,6 +16,7 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 | Stellarium importer | `tools/stellarium_import/` |
 | Android app | `Zenithquonta/astrofixxer-android` (not created yet); until then the repo is saved as `handoff/astrofixxer-android.bundle` |
 | Codebase analysis (web page) | https://claude.ai/artifact/SMf5adtidjB5CsJt5ZrxNW |
+| Bug-hunt and UI proof report | https://claude.ai/artifact/WxJfBipQQCRwaAE9qAkGYb |
 
 ## Current status
 
@@ -35,6 +36,53 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 ---
 
 ## Entries
+
+### 2026-09-28: Bug hunt, UI proven by tests, repo redesign (Hop the mascot)
+
+**What was done** (Android `main` at `c4b194a`, saved in `handoff/astrofixxer-android.bundle`)
+- **Bug hunt:** read the whole app and fixed 22 bugs, each covered by a test. The full list is in the Android commit message and the proof report.
+  - Crashes (3): long numbers in RA/Dec; far off-screen labels when zoomed in; constellation art that fails to decode.
+  - Broken flows:
+    - The Back button closed the app.
+    - An accidental Align lost the alignment.
+    - No hint appeared when a target was picked before aligning.
+    - A target beside the view showed no arrow.
+    - Manual drag ran at half speed.
+    - GPS overwrote a typed location.
+    - Events stayed stuck on the startup location and day.
+    - Time travel had no entry point of its own.
+    - Two AstroGuide misunderstandings.
+    - Watch-list names with spaces broke the list.
+  - Polish: clipped labels, 32 dp switches, night-mode contrast, catalogue codes on the target card, cryptic "?" items, an untranslated chip, an empty Find box.
+- **New UI:**
+  - A clock chip opens time travel (−1 d, −1 h, +1 h, +1 d, Now) and shows the displayed date when not live.
+  - Cancel while picking an alignment star.
+  - An align-first hint.
+  - "Visible now" suggestions in Find, and Enter picks the first result.
+  - Button labels shrink to fit.
+  - The target card shows the friendly name and "55° up · W".
+- **Proof suite** in `tools/desktop-check`: the real Compose screens on the desktop JVM (Compose Multiplatform 1.5.12), added to CI as the `ui-check` job, which keeps the screenshots as an artifact.
+  - `JourneyTest`: 11 user flows driven by simulated finger taps.
+  - `AuditTest`: 96 variants (English and Hindi × day and night × 360 dp and 411 dp × 12 screens) checked for 48 dp targets, no clipped, off-screen or overlapping text, and contrast of 4.5:1 by day and 3:1 at night. No findings.
+  - `StressTest`: about 231k random inputs, `near()` checked against brute force, 160 random renders, and events at the poles.
+- **Repo design:**
+  - Hop the pixel frog mascot and an animated hero GIF, drawn by `tools/repo-art/make_art.py`.
+  - An all-sky map of all 93,997 bundled deep-sky objects (`sky_map.py`), which shows the zone of avoidance.
+  - A new README with screenshots taken by the tests.
+
+**How to verify**
+- `./gradlew test`: 38 app tests pass.
+- `cd tools/desktop-check && ./gradlew test`: 19 tests pass, and `build/screens/audit.txt` reads "No findings".
+- `MainActivity` compiles against the Android 14 classes (a stub-based check).
+- Proof report: https://claude.ai/artifact/WxJfBipQQCRwaAE9qAkGYb
+
+**Known issues / not done**
+- No real Android build has run yet (Google Maven is blocked here), and nothing has been tested on a real phone.
+- The desktop test harness uses Compose 1.5; Android uses the 2024.12 BOM, so small spacing differences are possible.
+- On the desktop, `performClick()` is a mouse click, and a hovering mouse swallows the next touch. Tests press buttons with a simulated finger through `tap()`. This is not an app bug.
+
+**Next step**
+- Owner: approve the report, then create the empty private repo `Zenithquonta/astrofixxer-android`. I'll push and fix whatever the first CI run reports.
 
 ### 2026-09-28: Phase 7 release preparation
 
