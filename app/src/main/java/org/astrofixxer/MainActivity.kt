@@ -35,6 +35,7 @@ import kotlinx.coroutines.withContext
 import org.astrofixxer.astro.Catalog
 import org.astrofixxer.astro.JulianDate
 import org.astrofixxer.astro.MinorBody
+import org.astrofixxer.astro.Sgp4
 import org.astrofixxer.astro.SkyObject
 import org.astrofixxer.ui.AstroGuide
 import org.astrofixxer.ui.EventItem
@@ -45,6 +46,9 @@ import org.astrofixxer.ui.SkyState
 import org.astrofixxer.ui.parseMeteorShowers
 import org.astrofixxer.ui.solarSystem
 import org.astrofixxer.ui.upcomingEvents
+import java.io.File
+import java.net.HttpURLConnection
+import java.net.URL
 import java.util.Locale
 import kotlin.math.PI
 
@@ -135,9 +139,12 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 state.applyUserText(catalog)
                 val showers = withContext(Dispatchers.IO) { parseMeteorShowers(assets.open("meteor_showers.json").bufferedReader().readText()) }
                 val brightStars = catalog!!.objects.filter { it.type == "S" && (it.mag ?: 99.0) <= 3.5 }.map { Triple(it.name, it.ra, it.dec) }
+                val satellites = loadSatellites()
+                val now = JulianDate.fromEpochMillis(System.currentTimeMillis())
                 events = withContext(Dispatchers.Default) {
-                    upcomingEvents(JulianDate.fromEpochMillis(System.currentTimeMillis()), 60, showers, bodies, brightStars, state.lat, state.lon)
-                }
+                    upcomingEvents(now, 60, showers, bodies, brightStars, state.lat, state.lon, satellites)
+                } + if (satellites.isEmpty()) listOf(EventItem(now, "ISS passes",
+                    detailKey = "Connect to the internet once to download satellite orbits; everything else works offline.")) else emptyList()
             }
             // Illustrations for the chosen sky culture, decoded at half size to keep memory near 11 MB.
             LaunchedEffect(catalog, state.skyCulture, state.showArt) {
@@ -169,6 +176,25 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             }
             SkyScreen(state, catalog, moving, events, art, onAsk = if (recognizer != null) ::ask else null)
         }
+    }
+
+    /**
+     * ISS and Tiangong orbits (TLE) from CelesTrak, refreshed at most daily when online and cached for offline use.
+     * This and nothing else in the sky data needs the network.
+     */
+    private suspend fun loadSatellites(): List<Sgp4> = withContext(Dispatchers.IO) {
+        val cache = File(filesDir, "tle.txt")
+        if (!cache.exists() || System.currentTimeMillis() - cache.lastModified() > 24 * 3600 * 1000L) {
+            runCatching {
+                val conn = URL("https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle").openConnection() as HttpURLConnection
+                conn.connectTimeout = 8000
+                conn.readTimeout = 8000
+                val bytes = conn.inputStream.use { it.readBytes() }
+                if (Sgp4.parse(String(bytes)).isNotEmpty()) cache.writeBytes(bytes)
+            }
+        }
+        if (!cache.exists()) return@withContext emptyList()
+        Sgp4.parse(cache.readText()).filter { it.catalogNumber == "25544" || it.catalogNumber == "48274" } // ISS, Tiangong
     }
 
     private fun ask() {

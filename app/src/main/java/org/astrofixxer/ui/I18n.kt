@@ -87,6 +87,35 @@ object I18n {
         "Everything works without internet. The star, deep-sky and constellation data come from Stellarium and ship inside the app." to
             "सब कुछ बिना इंटरनेट के चलता है। तारों, गहन-आकाशीय पिंडों और तारामंडलों का डेटा Stellarium से है और ऐप में ही शामिल है।",
         "Licences and source" to "लाइसेंस और स्रोत कोड",
+        // Events (templates; arguments such as planet names are translated too)
+        "New Moon" to "अमावस्या", "First Quarter" to "शुक्ल पक्ष अष्टमी", "Full Moon" to "पूर्णिमा", "Last Quarter" to "कृष्ण पक्ष अष्टमी",
+        "Lunar eclipse (%s)" to "चंद्र ग्रहण (%s)", "Solar eclipse (%s somewhere on Earth)" to "सूर्य ग्रहण (पृथ्वी पर कहीं %s)",
+        "total" to "पूर्ण", "partial" to "आंशिक", "penumbral" to "उपछाया", "annular" to "वलयाकार",
+        "Umbral magnitude %s. Visible wherever the Moon is up." to "प्रच्छाया परिमाण %s। जहाँ भी चंद्रमा ऊपर है, वहाँ दिखेगा।",
+        "Check the path before travelling; never look at the Sun without a proper filter." to "यात्रा से पहले पथ जाँचें; सही फ़िल्टर के बिना सूर्य को कभी न देखें।",
+        "March equinox" to "मार्च विषुव", "June solstice" to "जून संक्रांति", "September equinox" to "सितंबर विषुव", "December solstice" to "दिसंबर संक्रांति",
+        "%s meteor shower peak" to "%s उल्का वर्षा का चरम", "Up to %s meteors/hour under dark skies" to "अँधेरे आकाश में प्रति घंटे %s तक उल्काएँ",
+        "%s–%s conjunction" to "%s–%s युति", "%s° apart" to "%s° की दूरी", "Moon near %s" to "चंद्रमा %s के पास",
+        "%s° apart (seen from Earth's centre)" to "%s° की दूरी (पृथ्वी के केंद्र से)",
+        "Comet %s" to "धूमकेतु %s", "Magnitude %s now, %s AU from Earth (orbit elements from JD %s)" to "अभी कांतिमान %s, पृथ्वी से %s AU (कक्षा डेटा JD %s का)",
+        "Transit of %s across the Sun" to "सूर्य के आगे से %s का पारगमन",
+        "Only with a solar filter or projection. Never look at the Sun directly." to "केवल सौर फ़िल्टर या प्रक्षेपण से देखें। सूर्य को सीधे कभी न देखें।",
+        "Supermoon" to "सुपरमून", "Full Moon at %s km" to "पूर्णिमा, %s किमी दूर",
+        "Planet gathering" to "ग्रहों का जमावड़ा", "Four or more bright planets within %s°" to "चार या अधिक चमकीले ग्रह %s° के भीतर",
+        "Moon covers %s" to "चंद्रमा %s को ढकेगा",
+        "Disappears %s, reappears %s. Times ±5 min." to "%s पर छिपेगा, %s पर फिर दिखेगा। समय ±5 मिनट।",
+        "Disappears %s, reappears %s (in daylight or twilight). Times ±5 min." to "%s पर छिपेगा, %s पर फिर दिखेगा (दिन या संध्या में)। समय ±5 मिनट।",
+        "%s visible pass" to "%s दिखाई देगा", "Up to %s° high, from %s to %s · orbit data %s days old" to "%s° तक ऊँचा, %s से %s · कक्षा डेटा %s दिन पुराना",
+        "%s crosses the %s" to "%s, %s के सामने से गुज़रेगा",
+        "Lasts under a second, on a narrow strip of ground near you; use a proper solar filter · orbit data %s days old" to
+            "एक सेकंड से कम, आपके पास की एक पतली पट्टी पर; सही सौर फ़िल्टर लगाएँ · कक्षा डेटा %s दिन पुराना",
+        "Lasts under a second, on a narrow strip of ground near you · orbit data %s days old" to
+            "एक सेकंड से कम, आपके पास की एक पतली पट्टी पर · कक्षा डेटा %s दिन पुराना",
+        "ISS passes" to "ISS के दर्शन",
+        "Connect to the internet once to download satellite orbits; everything else works offline." to
+            "उपग्रह कक्षाएँ डाउनलोड करने के लिए एक बार इंटरनेट से जुड़ें; बाकी सब बिना इंटरनेट चलता है।",
+        "Sun" to "सूर्य", "Moon" to "चंद्रमा", "Mercury" to "बुध", "Venus" to "शुक्र", "Mars" to "मंगल",
+        "Jupiter" to "बृहस्पति", "Saturn" to "शनि", "Uranus" to "अरुण", "Neptune" to "वरुण",
         // Cardinal points
         "N" to "उ", "NE" to "उपू", "E" to "पू", "SE" to "दपू", "S" to "द", "SW" to "दप", "W" to "प", "NW" to "उप",
     )

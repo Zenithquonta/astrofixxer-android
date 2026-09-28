@@ -45,12 +45,12 @@ object AstroGuide {
                 return GuideReply(say(if (state.night) "Night mode on." else "Night mode off.", if (state.night) "रात मोड चालू।" else "रात मोड बंद।"))
             }
             lower.contains("meteor") || text.contains("उल्का") -> {
-                val next = events?.firstOrNull { it.title.contains("meteor", ignoreCase = true) }
+                val next = events?.firstOrNull { it.key.contains("meteor") }
                     ?: return GuideReply(say("No meteor shower peaks in the next two months.", "अगले दो महीनों में कोई उल्का वर्षा नहीं है।"))
                 return GuideReply(say("${next.title} on ${formatLocal(next.jd)}. ${next.detail}.", "${next.title}: ${formatLocal(next.jd)}"))
             }
             lower.contains("eclipse") || text.contains("ग्रहण") -> {
-                val next = events?.firstOrNull { it.title.contains("eclipse", ignoreCase = true) }
+                val next = events?.firstOrNull { it.key.contains("eclipse") }
                     ?: return GuideReply(say("No eclipse in the next two months.", "अगले दो महीनों में कोई ग्रहण नहीं है।"))
                 return GuideReply(say("${next.title} on ${formatLocal(next.jd)}.", "${next.title}: ${formatLocal(next.jd)}"))
             }

@@ -3,6 +3,8 @@
 
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Only for the daily satellite orbit refresh; all sky data is bundled. -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <!-- Android 11+: needed to find the speech recogniser and text-to-speech engine. -->
     <queries>
