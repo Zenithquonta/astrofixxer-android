@@ -1,5 +1,5 @@
-<!DOCTYPE>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
 <title>AstroFixxer - SIH 2025</title>
 <link rel="manifest" href="manifest.json">
@@ -11,16 +11,6 @@
 <meta name="twitter:card" content="summary" />
 <meta name="twitter:title" content="AstroFixxer - SIH 2025" />
 <meta name="twitter:description" content="Smart India Hackathon 2025 - Advanced Sky Navigation with AI Voice Assistant" />
-<!-- Global site tag (gtag.js) - Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-5L31YEPT3E"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-5L31YEPT3E');
-</script>
-
 </head>
 <style>
 body, td { margin:3mm 0 0 0; font-size: 5mm ; color:#00bfff ; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color:#0a0a0a }
@@ -153,28 +143,6 @@ input[type=submit] { width:10mm;}
     border-color: #0099ff;
 }
 
-.astro-guide-btn {
-    position: absolute;
-    right: 50mm;
-    top: 3mm;
-    background: linear-gradient(145deg, #00bfff, #0099ff);
-    color: #000;
-    border: none;
-    border-radius: 20px;
-    padding: 8px 16px;
-    font-size: 4mm;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(0,191,255,0.3);
-}
-
-.astro-guide-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0,191,255,0.5);
-    background: linear-gradient(145deg, #0099ff, #00bfff);
-}
-
 .modern-modal {
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
@@ -224,12 +192,6 @@ input[type=submit] { width:10mm;}
 }
 
 @media (max-width: 768px) {
-    .astro-guide-btn {
-        right: 2mm;
-        font-size: 3mm;
-        padding: 6px 12px;
-    }
-    
     .modern-modal {
         left: 2%;
         width: 94%;
@@ -243,9 +205,6 @@ input[type=submit] { width:10mm;}
     <input id="search_field_main" class="search_field modern-input" autocomplete="off" type="text" placeholder="Search celestial objects..." onkeyup="mainSearchDoneCheck(event);" oninput="mainSearchFindTarget(this.value);" onfocus="mainSearchFocus();" onclick="mainSearchFocus();" onfocusout="mainSearchOnFocusChange(false);" onfocusin="mainSearchOnFocusChange(true)" />
     <button class="incdec_but search_background" id="main_search_button" style="display:none; margin-right:1mm;" onclick="reShearchMain();">&nbsp;</button>
     <button id="search_field_main_ok" ></button>
-    <button class="astro-guide-btn" onclick="activateAstroGuide();" title="AstroGuide Voice Assistant">
-        🎤 AstroGuide
-    </button>
 </div>
 <p class="first_line_controls" >
 	<span class="only_full"><button class="ui_but tr" onclick="align();">Align</button></span>
@@ -672,8 +631,8 @@ Issues and PRs are welcome—especially for localizations, observing lists tailo
 </div>
 <table>
 <th><td colspan="2" style="text-align:left" class="tr">GPS Override</td></th>
-<tr><td class="tr">Lat:</td><td><input type="number" min="-90" max=90" value="" id="manual_lat" oninput="updateManualLatLon()"></td></tr>
-<tr><td class="tr">Lon:</td><td><input type="number" min="-180" max=180" value="" id="manual_lon" oninput="updateManualLatLon()"></td></tr>
+<tr><td class="tr">Lat:</td><td><input type="number" min="-90" max="90" value="" id="manual_lat" oninput="updateManualLatLon()"></td></tr>
+<tr><td class="tr">Lon:</td><td><input type="number" min="-180" max="180" value="" id="manual_lon" oninput="updateManualLatLon()"></td></tr>
 </table>
 </div> <!-- RTL div -->
 </div>
@@ -9187,7 +9146,7 @@ function plotStar(star,camRays,highlight)
 		context.fillStyle = 'black';
 	var pix_x = pos.x * canvas.width;
 	var pix_y = pos.y * canvas.height;
-	result = { x: pix_x, y:pix_y , index:-1};
+	var result = { x: pix_x, y:pix_y , index:-1};
 	if(highlight == 0)
 		return result;
 	if(star.t != 'Ca') {
@@ -9206,7 +9165,7 @@ function plotStar(star,camRays,highlight)
 		else if(star.t == 'Gc') {
 			context.lineWidth = 2;
 			context.setLineDash([1,3])
-			context.arc(pix_x,pix_y,size,2*Math.PI,false);
+			context.arc(pix_x,pix_y,size,0,2*Math.PI);
 			context.stroke();
 			context.beginPath();	
 			context.setLineDash([])
@@ -9218,7 +9177,7 @@ function plotStar(star,camRays,highlight)
 		else if(star.t == 'Oc') {
 			context.lineWidth = 2;
 			context.setLineDash([1,3])
-			context.arc(pix_x,pix_y,size,2*Math.PI,false);
+			context.arc(pix_x,pix_y,size,0,2*Math.PI);
 			context.stroke();
 			context.beginPath();	
 			context.setLineDash([1,3])
@@ -9314,7 +9273,7 @@ function plotLines(camRays)
 	if(!global_show_obj.Ca)
 		return;
 	for(var i=0;i<constellation_lines.length;i++) {
-		line = constellation_lines[i];
+		var line = constellation_lines[i];
 		var p1 = projectToCamera(line.r0,line.d0,camRays,false);
 		var p2 = projectToCamera(line.r1,line.d1,camRays,false);
 		if(!p1 || !p2)
@@ -9446,9 +9405,9 @@ function plotStars()
 {
 	var start=Date.now();
 	
-	if(canvas.width != document.body.clientWidth || canvas.height != document.body.clientHeight) {
-		canvas.width = document.body.clientWidth;
-		canvas.height = document.body.clientHeight;
+	if(canvas.width != document.documentElement.clientWidth || canvas.height != document.documentElement.clientHeight) {
+		canvas.width = document.documentElement.clientWidth;
+		canvas.height = document.documentElement.clientHeight;
 	}
 	
 	global_targets_list=[];
@@ -9971,7 +9930,7 @@ function toggleUI(link_id,ui_id)
 
 function htmlEscape(v)
 {
-    return v.replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/&/g,'&amp;').replace(/"/g,"&quot;").replace(/'/g,'&#39;')
+    return v.replace(/&/g,'&amp;').replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,'&#39;')
 }
 
 function discardUserDSO()
@@ -10517,8 +10476,8 @@ setupGyros();
 configSaveMag();
 // global drawing stuff
 var canvas = document.getElementById('myCanvas');
-canvas.width = document.body.clientWidth;
-canvas.height = document.body.clientHeight;
+canvas.width = document.documentElement.clientWidth;
+canvas.height = document.documentElement.clientHeight;
 var context = canvas.getContext('2d');
 loadLatLon();
 setTimeout(getLocation,500)
@@ -10539,14 +10498,9 @@ document.body.addEventListener('touchmove',manualMove);
 dontPropMouseDown(["ui_but","incdec_but","config_div","comp_but","search_field"],["click","touchstart","touchend","touchmove","touchcancel"]);
 global_expecting_select = selectTarget;
 
-// AstroGuide Voice Assistant Placeholder
-function activateAstroGuide() {
-    alert('🎤 AstroGuide Voice Assistant\n\nComing Soon!\n\nThis will integrate with our Rasa-powered AI assistant for voice-guided astronomy navigation.\n\n- Voice commands for object search\n- Spoken directions to celestial objects\n- Interactive astronomy guidance\n\nDeveloped by AstroFix Team for Smart India Hackathon 2025');
-}
-
 window.addEventListener("load", () => {
         if ("serviceWorker" in navigator) {
-            navigator.serviceWorker.register("sw.js?" + Date.now());
+            navigator.serviceWorker.register("sw.js");
         }
 });
 

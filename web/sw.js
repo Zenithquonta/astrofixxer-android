@@ -3,7 +3,7 @@
  *  AstroFixxer Copyright 2021 Artyom Beilis
  *
  *  Adopted from AirHorner
- * 
+ *
  *  Copyright 2015 Google Inc. All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,46 +20,36 @@
  *
  */
 
+// VERSION is replaced with the commit SHA by the Vercel build (vercel.json), so each deploy gets a new cache.
 const version = "VERSION";
 const cacheName = `astrofixxer-${version}`;
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(cacheName).then(cache => {
-      return cache.addAll([
-        `./astrofixxer.html`
-      ]).catch(err => console.log('Cache addAll failed:', err))
-      .then(() => self.skipWaiting());
-    })
+    caches.open(cacheName)
+      .then(cache => cache.addAll([
+        './astrofixxer.html',
+        './index.html',
+        './manifest.json',
+        './images/qs_1_1.png'
+      ]))
+      .then(() => self.skipWaiting())
   );
 });
 
 self.addEventListener('activate', event => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches.keys()
+      .then(names => Promise.all(
+        names.filter(name => name.startsWith('astrofixxer') && name != cacheName)
+             .map(name => caches.delete(name))))
+      .then(() => self.clients.claim())
+  );
 });
-
-self.addEventListener('activate', function(event) {
-  event.waitUntil(caches.keys().then(function(names) {
-      return Promise.all(
-            names.filter(function(name) {
-                let delName =  name.startsWith('astrofixxer') && name != cacheName;
-                if(delName) {
-                    console.log("delete from cache " + name)
-                }
-                return delName;
-            }).map(function(name) {
-                return caches.delete(name);
-            })
-      );
-  }));
-});
-
 
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.open(cacheName)
       .then(cache => cache.match(event.request, {ignoreSearch: true}))
-      .then(response => {
-      return response || fetch(event.request);
-    })
+      .then(response => response || fetch(event.request))
   );
 });

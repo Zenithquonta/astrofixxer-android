@@ -2,7 +2,7 @@
   "git": {
     "deploymentEnabled": { "main": true }
   },
-  "buildCommand": "python3 create_data.py && python3 po/tojson.py",
+  "buildCommand": "sed -i \"s/VERSION/${VERCEL_GIT_COMMIT_SHA:-dev}/\" sw.js",
   "outputDirectory": ".",
   "headers": [
     {
