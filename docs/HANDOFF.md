@@ -23,10 +23,10 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 | 0. Analysis, UI prompt, plan | Done |
 | 1. Web app fixes + Stellarium data | Done (`web/`); needs a Vercel project with Root Directory `web` |
 | 2. Android project setup | Done; waiting for the GitHub repo `Zenithquonta/astrofixxer-android` (saved as `handoff/astrofixxer-android.bundle`) |
-| 3. Astronomy core | Done: 31 JVM tests pass |
+| 3. Astronomy core | Done: 36 JVM tests pass |
 | 4. Stellarium offline data | Done: catalogue, comets/asteroids, meteor showers, constellation artwork |
 | 5. Compose UI (Stellarium-style) | Done: sky view, atmosphere, Milky Way, landscapes, light pollution, artwork, alignment, guidance, search, events, lists, onboarding, help, night mode, Hindi. Not yet built for Android (no CI until the repo exists) |
-| 5b. Offline events | Done except ISS/satellite passes and ISS transits (need TLE data; CelesTrak blocked here) |
+| 5b. Offline events | Done, including ISS/Tiangong passes and Sun/Moon transits (SGP4). The live TLE download is untested here (CelesTrak blocked) |
 | 6. AstroGuide v1 (offline voice) | Done: English and Hindi commands, speech in/out |
 | 7. Release | Not started: needs the owner's signing key and Play account |
 
@@ -44,6 +44,37 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 ---
 
 ## Entries
+
+### 2026-09-28: ISS passes and transits; event titles in Hindi
+
+**What was done** (Android `main` at `b279c17`, saved in `handoff/astrofixxer-android.bundle`)
+- **`Sgp4.kt`: near-Earth SGP4** (Vallado 2006, WGS-72), plus TLE parsing and GMST. Deep-space SDP4 is not ported (`ponytail:`); satellites with periods of 225 min or more are skipped.
+- **`Satellites.kt`:**
+  - Observer geometry, TEME→Earth-fixed, alt/az, and a cylindrical Earth-shadow test.
+  - Passes above 10°. A pass is *visible* when the satellite is sunlit and the Sun is below −6°.
+  - Sun/Moon transits: closest approach refined by golden section.
+- **Events:**
+  - Visible ISS and Tiangong passes for 3 days, with max height, directions and orbit-data age.
+  - Transits only when the data is under 2 days old; nothing when it's over 30 days old.
+  - An info item appears when no orbit data has been downloaded yet.
+- **`MainActivity`:** fetches CelesTrak `GROUP=stations` at most daily when online, caches it in `filesDir/tle.txt`, and adds the `INTERNET` permission (only for this).
+- **Event titles and details** are now English templates plus arguments, translated at display time (Hindi table added). AstroGuide matches events by template key, not by English text.
+
+**How to verify**
+- `Sgp4Test`:
+  - Vanguard 1 (00005) matches Vallado's published r/v at t = 0 and t = 360 min to 1 m and 1 mm/s.
+  - The 2008 ISS TLE gives 320-380 km altitude and 7.5-7.9 km/s.
+  - A point 400 km overhead is at the zenith.
+  - 2-8 ISS passes per day over Delhi, each under 8 min.
+- Events with the 2008 ISS TLE list a visible pass on 2008-09-20 13:42 UTC (19:12 IST), 23° high, W to N.
+- 36 JVM tests pass. The UI compiles with Compose Desktop, and all renders still work.
+
+**Known issues / not done**
+- The CelesTrak download and the Android build have never run here (both hosts blocked).
+- Transits need an accurate location; the ground strip is a few km wide.
+
+**Next step**
+- Owner: create `Zenithquonta/astrofixxer-android`. I'll push, then fix whatever CI reports.
 
 ### 2026-09-28: Phases 5-6 completed (scenery, artwork, rare events, lists, AstroGuide, Hindi)
 
