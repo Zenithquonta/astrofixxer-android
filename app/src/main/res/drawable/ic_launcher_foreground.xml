@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Finder reticle around a star. 108 dp canvas; everything stays inside the 66 dp safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:strokeColor="#E8A33D" android:strokeWidth="3"
+        android:pathData="M54,30 A24,24 0 1,1 53.99,30 Z" />
+    <path android:strokeColor="#E8A33D" android:strokeWidth="3" android:strokeLineCap="round"
+        android:pathData="M54,23 L54,30 M54,78 L54,85 M23,54 L30,54 M78,54 L85,54" />
+    <path android:fillColor="#FFF4DC"
+        android:pathData="M54,40 L57,51 L68,54 L57,57 L54,68 L51,57 L40,54 L51,51 Z" />
+</vector>

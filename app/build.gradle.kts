@@ -16,10 +16,23 @@ android {
         versionName = "0.1.0"
     }
 
+    // Release signing comes from the environment (CI secrets), never from the repo. Without it, release builds are unsigned.
+    val keystore = System.getenv("ASTROFIXXER_KEYSTORE")
+    signingConfigs {
+        if (keystore != null) create("release") {
+            storeFile = file(keystore)
+            storePassword = System.getenv("ASTROFIXXER_KEYSTORE_PASSWORD")
+            keyAlias = System.getenv("ASTROFIXXER_KEY_ALIAS")
+            keyPassword = System.getenv("ASTROFIXXER_KEY_PASSWORD")
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+            if (keystore != null) signingConfig = signingConfigs.getByName("release")
         }
     }
 

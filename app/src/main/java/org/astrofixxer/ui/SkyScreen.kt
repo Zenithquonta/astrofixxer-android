@@ -351,7 +351,10 @@ private fun ListsSheet(state: SkyState, catalog: Catalog?, onClose: () -> Unit) 
     }
 }
 
-private const val LICENCES = "AstroFixxer is free software under the GNU GPL v3; its source code is available from the project's repository. " +
+/** Must be publicly reachable before the app is published: the GPL requires offering the source with the binary. */
+const val SOURCE_URL = "https://github.com/Zenithquonta/astrofixxer-android"
+
+private const val LICENCES = "AstroFixxer is free software under the GNU GPL v3. Source code: $SOURCE_URL. " +
     "Based on AstroHopper by Artyom Beilis (GPLv3). Deep-sky catalogue, names, meteor showers and comet orbits from Stellarium " +
     "(GPL-2.0-or-later). Sky cultures from Stellarium (CC BY-SA 4.0); constellation artwork under the Free Art License. " +
     "Star positions from the HYG database (CC BY-SA). Planet theory VSOP87 and position reduction by Greg Miller (public domain)."
