@@ -21,6 +21,17 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 | Phase (see plan) | Status |
 |---|---|
 | 0. Analysis, UI prompt, plan | Done |
+| 1. Web app fixes + Stellarium data | Done (`web/`); needs a Vercel project with Root Directory `web` |
+| 2. Android project setup | Done; waiting for the GitHub repo `Zenithquonta/astrofixxer-android` (saved as `handoff/astrofixxer-android.bundle`) |
+| 3. Astronomy core | Done: 31 JVM tests pass |
+| 4. Stellarium offline data | Done: catalogue, comets/asteroids, meteor showers, constellation artwork |
+| 5. Compose UI (Stellarium-style) | Done: sky view, atmosphere, Milky Way, landscapes, light pollution, artwork, alignment, guidance, search, events, lists, onboarding, help, night mode, Hindi. Not yet built for Android (no CI until the repo exists) |
+| 5b. Offline events | Done except ISS/satellite passes and ISS transits (need TLE data; CelesTrak blocked here) |
+| 6. AstroGuide v1 (offline voice) | Done: English and Hindi commands, speech in/out |
+| 7. Release | Not started: needs the owner's signing key and Play account |
+
+---|---|
+| 0. Analysis, UI prompt, plan | Done |
 | 1. Web app fixes + Stellarium data | Done (`web/`); needs a Vercel project with root `web` |
 | 2. Android project setup | Done locally; waiting for the GitHub repo to push and run CI |
 | 3. Astronomy core | Done: reduction, pointing, alignment, parser; golden tests pass on the JVM |
@@ -33,6 +44,40 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 ---
 
 ## Entries
+
+### 2026-09-28: Phases 5-6 completed (scenery, artwork, rare events, lists, AstroGuide, Hindi)
+
+**What was done** (Android repo `main` at `40299ec`, saved in `handoff/astrofixxer-android.bundle`)
+- **Rare events:**
+  - Mercury/Venus transits (tested: 2032-11-13 Mercury transit within 1 h; none in 2026)
+  - supermoons (tested: all 2026 full moons 355-407 thousand km; 2026 has 13 full moons including the 31 May blue moon)
+  - planet gatherings
+  - lunar occultations of stars brighter than mag 3.5 for the observer (synthetic test: a star on the Moon's path is occulted for 40-120 min)
+  - All appear in Events with ★.
+- **Scenery:**
+  - Atmosphere colour from the Sun's altitude, with stars fading in twilight.
+  - Milky Way band along the galactic plane (conversion tested: galactic centre at RA 266.40°, Dec −28.94°).
+  - Five landscapes; Bortle 1-9 light pollution.
+  - Stellarium constellation artwork: 85 modern + 27 Indian, placed by three anchor stars (affine solve tested). Decoded at half size, only for the chosen culture.
+- **Lists:** user objects and watch lists in the web app's formats (parsers tested), a ‹ › navigator, saved with SharedPreferences.
+- **Onboarding and help:** 4-step onboarding on first launch; Help includes the GPL/data licences.
+- **AstroGuide v1:** offline keyword understanding in English and Hindi, answers from the catalogue and events, platform speech recognition (prefers offline) and text-to-speech.
+- **Hindi UI:** translation table keyed by English text, following the phone language, with a switch in Sky & viewing.
+
+**How to verify**
+- 31 JVM tests pass for `astro/`.
+- The `ui/` package compiles against Compose Multiplatform 1.5.12 (desktop). Headless renders are in `docs/screens/`: guidance, night, wide, Milky Way, dusk/city, constellation art, watch list, onboarding, AstroGuide, Hindi.
+
+**Known issues / not done**
+- **Android build never run**: Google Maven is blocked here. `MainActivity` (sensors, location, speech, art loading) is reviewed by hand only. Expect to fix small compile issues on the first CI run.
+- ISS and satellite passes, and ISS transits: need a TLE download plus SGP4. Not started.
+- Events titles are still English in Hindi mode. Ukrainian, Hungarian, Russian and Hebrew UI translations (the web app had them) are not ported yet.
+- Release signing, the Play listing and the device field test need the owner.
+- A commit mistake happened this session: `d7f8d6d` did not compile (a command chain committed despite a compile error). It was fixed in the next commit `40299ec`. Later commits only happen after the checks pass.
+
+**Next step**
+- Owner: create `Zenithquonta/astrofixxer-android` (private, empty) and say so. I'll push `main`, then fix whatever the first CI build reports.
+- Then: ISS passes (TLE + SGP4), remaining translations, device testing.
 
 ### 2026-09-28: Phases 4-5 v1 (catalogue, comets, events, sky view)
 
