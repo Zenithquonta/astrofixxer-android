@@ -20,7 +20,7 @@ Strap the phone to the telescope tube, point at a bright star, tap it to align, 
 • Night mode turns everything red to protect your dark adaptation.
 • Search by Messier, NGC, IC, Caldwell and other catalogue numbers, or by common name.
 
-Free and open source (GPLv3). Based on AstroHopper by Artyom Beilis. Sky data from Stellarium and the HYG database.
+Free and open source (GPLv3). Based on AstroHopper by Artyom Beilis (github.com/artyom-beilis/skyhopper). Sky data from Stellarium and the HYG database.
 
 **Category:** Education · **Tags:** astronomy, telescope, planetarium, stargazing
 

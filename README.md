@@ -17,6 +17,18 @@
   <a href="../../actions/workflows/android.yml"><img alt="Build" src="../../actions/workflows/android.yml/badge.svg"></a>
 </p>
 
+<p align="center">
+  <a href="../../releases/download/latest-build/AstroFixxer.apk"><img alt="Download the APK" src="https://img.shields.io/badge/Download-AstroFixxer.apk-E8A33D?style=for-the-badge&logo=android&logoColor=white"></a>
+</p>
+
+## Download
+
+1. On your Android phone (Android 8 or newer), tap **[AstroFixxer.apk](../../releases/download/latest-build/AstroFixxer.apk)**. It is always the newest build of `main`.
+2. Open the downloaded file. If Android asks, allow your browser or Files app to **install unknown apps**.
+3. Open AstroFixxer and allow location, so the sky matches where you are.
+
+New builds install over the old one and keep your lists. Numbered versions are on the [Releases](../../releases) page.
+
 ---
 
 ## How it works
@@ -88,13 +100,35 @@ Every push runs:
 
 The screenshots in this README are produced by those tests.
 
-## Build
+## Build it yourself
+
+You don't need any accounts, keys or secrets.
+
+**With Android Studio (easiest):** install [Android Studio](https://developer.android.com/studio), choose *File → New → Project from
+Version Control*, paste this repository's URL, and press ▶ Run with your phone plugged in (USB debugging on) or an emulator.
+
+**From the command line:** you need JDK 17 and the Android SDK (Android Studio installs both; otherwise set `ANDROID_HOME`).
 
 ```sh
-./gradlew test assembleDebug                 # JDK 17 and Android SDK 35; APK in app/build/outputs/apk/debug
-(cd tools/desktop-check && ./gradlew test)   # UI journeys and audit; screenshots in tools/desktop-check/build/screens
+git clone <this repository's URL> astrofixxer-android
+cd astrofixxer-android
+./gradlew assemblePreview    # installable APK: app/build/outputs/apk/preview/app-preview.apk
+./gradlew installPreview     # or put it straight onto a connected phone
+./gradlew test               # astronomy and data tests
+(cd tools/desktop-check && ./gradlew test)   # UI journeys, audit and stress tests; screenshots in build/screens
 python3 tools/repo-art/make_art.py           # regenerates the pixel art (needs Pillow)
 ```
+
+The `preview` build is optimised like a release and signed with the public key in `app/preview.keystore`, so anyone's build
+installs and updates the same way. It has its own application ID (`org.astrofixxer.preview`), so it sits next to a Play Store
+copy instead of replacing it.
+
+## Make it your own
+
+AstroFixxer is free software under the GNU GPL v3. You may download it, study it, change it, and share your own version, including
+selling it, as long as your version is also GPLv3 with its source available, and it keeps the credits below. Fork this repository,
+change what you like, and your fork's Actions build and publish its own `AstroFixxer.apk` automatically. See `CONTRIBUTING.md` to
+send changes back.
 
 The planning docs, the Stitch UI brief and the handoff log live in `Zenithquonta/astrofixer-baby` under `docs/`.
 
@@ -112,7 +146,7 @@ For a signed build on your own machine, set `ASTROFIXXER_KEYSTORE`, `ASTROFIXXER
 
 GPLv3 (see `LICENSE`), as AstroHopper requires. Made for Smart India Hackathon 2025.
 
-- Based on [AstroHopper](https://artyom-beilis.github.io/astrohopper.html) by Artyom Beilis (GPLv3), by way of the AstroFixxer web app.
+- Based on **AstroHopper** by Artyom Beilis (GPLv3): source at [github.com/artyom-beilis/skyhopper](https://github.com/artyom-beilis/skyhopper), app at [artyom-beilis.github.io/astrohopper.html](https://artyom-beilis.github.io/astrohopper.html). AstroFixxer started as a fork of it for Smart India Hackathon 2025, and the pointing, alignment and position maths follow its design.
 - Deep-sky catalogue, names, meteor showers and comet orbits come from Stellarium (GPL-2.0-or-later). The sky cultures come from Stellarium (CC BY-SA 4.0), and the constellation artwork is under the Free Art License. Star positions come from the HYG database (CC BY-SA).
 - The planet series (VSOP87, via vsop87-multilang) and the position reduction (CPReduce) are by Greg Miller and are in the public domain (`app/src/main/java/org/astrofixxer/astro/vsop87/`).
 - The golden test values in `app/src/test/resources/golden.json` were generated from the web app's own code.

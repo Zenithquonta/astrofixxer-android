@@ -460,7 +460,7 @@ private fun ListsSheet(state: SkyState, catalog: Catalog?, onClose: () -> Unit) 
 const val SOURCE_URL = "https://github.com/Zenithquonta/astrofixxer-android"
 
 private const val LICENCES = "AstroFixxer is free software under the GNU GPL v3. Source code: $SOURCE_URL. " +
-    "Based on AstroHopper by Artyom Beilis (GPLv3). Deep-sky catalogue, names, meteor showers and comet orbits from Stellarium " +
+    "Based on AstroHopper by Artyom Beilis (GPLv3, source: github.com/artyom-beilis/skyhopper). Deep-sky catalogue, names, meteor showers and comet orbits from Stellarium " +
     "(GPL-2.0-or-later). Sky cultures from Stellarium (CC BY-SA 4.0); constellation artwork under the Free Art License. " +
     "Star positions from the HYG database (CC BY-SA). Planet theory VSOP87 and position reduction by Greg Miller (public domain)."
 

@@ -6,6 +6,9 @@ on:
   push:
     tags: ["v*"]
 
+permissions:
+  contents: write # to create the GitHub Release
+
 jobs:
   bundle:
     runs-on: ubuntu-latest
@@ -28,8 +31,15 @@ jobs:
           ASTROFIXXER_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           ASTROFIXXER_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           ASTROFIXXER_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: ./gradlew test bundleRelease
+        run: ./gradlew test bundleRelease assembleRelease
       - uses: actions/upload-artifact@v4
         with:
           name: app-release-aab
           path: app/build/outputs/bundle/release/app-release.aab
+      # A GitHub Release with the signed APK, so anyone can download and install this version directly.
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp app/build/outputs/apk/release/app-release.apk "AstroFixxer-${GITHUB_REF_NAME}.apk"
+          gh release create "$GITHUB_REF_NAME" "AstroFixxer-${GITHUB_REF_NAME}.apk" --title "AstroFixxer $GITHUB_REF_NAME" --generate-notes

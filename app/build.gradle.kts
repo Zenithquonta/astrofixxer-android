@@ -25,6 +25,14 @@ android {
             keyAlias = System.getenv("ASTROFIXXER_KEY_ALIAS")
             keyPassword = System.getenv("ASTROFIXXER_KEY_PASSWORD")
         }
+        // Public key for the free-download preview build only, so each new preview installs over the last.
+        // Google Play releases use the private upload key above; the preview has its own application ID.
+        create("preview") {
+            storeFile = file("preview.keystore")
+            storePassword = "astrofixxer-preview"
+            keyAlias = "preview"
+            keyPassword = "astrofixxer-preview"
+        }
     }
 
     buildTypes {
@@ -33,6 +41,14 @@ android {
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
             if (keystore != null) signingConfig = signingConfigs.getByName("release")
+        }
+        // Optimised like a release, installable by anyone from GitHub Releases (./gradlew assemblePreview).
+        create("preview") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".preview"
+            versionNameSuffix = "-preview"
+            signingConfig = signingConfigs.getByName("preview")
+            matchingFallbacks += listOf("release")
         }
     }
 
