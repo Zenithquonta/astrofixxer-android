@@ -1,0 +1,95 @@
+package org.astrofixxer.astro
+
+import org.json.JSONArray
+import org.json.JSONObject
+import org.junit.Assert.assertEquals
+import org.junit.Test
+import kotlin.math.PI
+import kotlin.math.acos
+
+/** Compares the Kotlin port with values produced by the web app's own JS (tools/golden/golden_from_web.js). */
+class GoldenTest {
+    private val golden = JSONObject(javaClass.getResource("/golden.json")!!.readText())
+
+    private fun JSONArray.doubles() = DoubleArray(length()) { getDouble(it) }
+    private fun JSONObject.xyz() = doubleArrayOf(getDouble("x"), getDouble("y"), getDouble("z"))
+    private fun assertVec(msg: String, expected: DoubleArray, actual: DoubleArray, tol: Double) {
+        for (i in expected.indices) assertEquals("$msg[$i]", expected[i], actual[i], tol)
+    }
+
+    @Test fun reduceMatchesWebApp() {
+        val cases = golden.getJSONArray("reduce")
+        for (i in 0 until cases.length()) {
+            val c = cases.getJSONObject(i)
+            val d = c.getJSONArray("date")
+            val jd = JulianDate.fromGregorian(d.getInt(0), d.getInt(1), d.getInt(2), d.getInt(3), d.getInt(4), d.getDouble(5))
+            assertEquals("jd", c.getDouble("jd"), jd, 1e-9)
+            val r = ApparentPosition.reduce(c.getInt("body"), jd, c.getDouble("lat") * PI / 180, c.getDouble("lon") * PI / 180)
+            val msg = "${c.getString("place")} ${d} body ${c.getInt("body")}"
+            assertVec(msg, c.getJSONArray("result").doubles(), doubleArrayOf(r.raJ2000, r.decJ2000, r.ra, r.dec, r.az, r.alt), 1e-9)
+        }
+    }
+
+    @Test fun starRaysMatchWebApp() {
+        val cases = golden.getJSONArray("rays")
+        for (i in 0 until cases.length()) {
+            val c = cases.getJSONObject(i)
+            val ray = Pointing.rayFromPos(c.getDouble("ra"), c.getDouble("de"), c.getLong("time"), c.getDouble("lat"), c.getDouble("lon"))
+            assertVec("ray $i", c.getJSONArray("ray").doubles(), ray, 1e-12)
+        }
+    }
+
+    @Test fun rotationMatrixMatchesWebApp() {
+        val cases = golden.getJSONArray("rotations")
+        for (i in 0 until cases.length()) {
+            val c = cases.getJSONObject(i)
+            val m = Pointing.rotationMatrix(c.getDouble("alpha"), c.getDouble("beta"), c.getDouble("gamma"))
+            assertVec("rotation $i", c.getJSONArray("matrix").doubles(), m, 1e-12)
+        }
+    }
+
+    @Test fun alignmentFlowMatchesWebApp() {
+        val cases = golden.getJSONArray("alignment")
+        for (i in 0 until cases.length()) {
+            val c = cases.getJSONObject(i)
+            val time = c.getLong("time")
+            val lat = c.getDouble("lat")
+            val lon = c.getDouble("lon")
+            val star = c.getJSONArray("star")
+            val target = c.getJSONArray("target")
+
+            val device = Pointing.rotationMatrix(c.getDouble("alpha"), c.getDouble("beta"), c.getDouble("gamma"))
+            val uncorrected = Pointing.cameraRays(device)
+            val expectedUnc = c.getJSONArray("uncorrected")
+            for (k in 0..2) assertVec("uncorrected $i/$k", expectedUnc.getJSONArray(k).doubles(), uncorrected[k], 1e-12)
+
+            val starRay = Pointing.rayFromPos(star.getDouble(0), star.getDouble(1), time, lat, lon)
+            val matrix = Pointing.alignMatrix(uncorrected, starRay)
+            assertVec("align matrix $i", c.getJSONArray("matrix").doubles(), matrix, 1e-12)
+
+            val corrected = Pointing.cameraRays(device, matrix)
+            val starBearing = Pointing.bearing(starRay, corrected)
+            assertVec("star bearing $i", c.getJSONObject("starBearing").xyz(), starBearing, 1e-12)
+            assertVec("star centred $i", doubleArrayOf(0.0, 0.0, 1.0), starBearing, 1e-9)
+
+            val targetRay = Pointing.rayFromPos(target.getDouble(0), target.getDouble(1), time, lat, lon)
+            assertVec("target bearing $i", c.getJSONObject("targetBearing").xyz(), Pointing.bearing(targetRay, corrected), 1e-12)
+        }
+    }
+
+    @Test fun deltaAltAzReachesZeroOnTargetAndMatchesSeparation() {
+        val c = golden.getJSONArray("alignment").getJSONObject(0) // Vega -> M57
+        val time = c.getLong("time")
+        val star = c.getJSONArray("star")
+        val target = c.getJSONArray("target")
+        val s = Pointing.rayFromPos(star.getDouble(0), star.getDouble(1), time, c.getDouble("lat"), c.getDouble("lon"))
+        val t = Pointing.rayFromPos(target.getDouble(0), target.getDouble(1), time, c.getDouble("lat"), c.getDouble("lon"))
+        val (zeroAlt, zeroAz) = Pointing.deltaAltAz(t, t)
+        assertEquals(0.0, zeroAlt, 1e-12)
+        assertEquals(0.0, zeroAz, 1e-12)
+        val (dAlt, _) = Pointing.deltaAltAz(s, t)
+        val separation = acos(Pointing.dot(s, t)) * 180 / PI
+        assertEquals(6.67, separation, 0.01)
+        assert(kotlin.math.abs(dAlt) <= separation)
+    }
+}
