@@ -1,0 +1,23 @@
+{
+  "git": {
+    "deploymentEnabled": { "main": true }
+  },
+  "buildCommand": "python3 create_data.py && python3 po/tojson.py",
+  "outputDirectory": ".",
+  "headers": [
+    {
+      "source": "/(.*)\\.js",
+      "headers": [
+        { "key": "Content-Type", "value": "application/javascript" }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-XSS-Protection", "value": "1; mode=block" }
+      ]
+    }
+  ]
+}

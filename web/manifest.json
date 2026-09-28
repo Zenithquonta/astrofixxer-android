@@ -1,0 +1,20 @@
+{
+    "name": "AstroFixxer - Open-Source Star-Hopping Tracker",
+    "short_name": "AstroFixxer",
+    "start_url": "/astrofixxer.html",
+    "display": "standalone",
+    "background_color": "#000000",
+    "theme_color": "#00bfff",
+    "description": "Turn your smartphone into digital setting circles for any telescope. Free PWA for accurate star hopping and sky navigation. Smart India Hackathon 2025 project.",
+    "categories": ["education", "utilities", "science"],
+    "lang": "en",
+    "orientation": "portrait",
+    "icons": [
+        {
+            "src": "images/qs_1_1.png",
+            "sizes": "any",
+            "type": "image/png",
+            "purpose": "maskable any"
+        }
+    ]
+}
