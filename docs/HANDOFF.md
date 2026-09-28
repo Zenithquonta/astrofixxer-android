@@ -37,6 +37,15 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 
 ## Entries
 
+### 2026-09-28: README with the new design, published in this repository
+
+**What was done**
+- Added a root `README.md` here with the Android README's design: Hop's hero animation, how it works, features, the all-sky map and Meet Hop. The images are in `docs/readme/`, and a "Where things are" section covers this repository.
+- Why: the Claude GitHub app still can't reach `Zenithquonta/astrofixxer-android` (`add_repo` says "not found"), so the Android repository's README can't be pushed yet.
+
+**Next step**
+- Owner: give the Claude GitHub app access to `astrofixxer-android` (github.com/apps/claude/installations/select_target → Repository access). Then push `main` from `handoff/astrofixxer-android.bundle`.
+
 ### 2026-09-28: Bug hunt, UI proven by tests, repo redesign (Hop the mascot)
 
 **What was done** (Android `main` at `c4b194a`, saved in `handoff/astrofixxer-android.bundle`)
