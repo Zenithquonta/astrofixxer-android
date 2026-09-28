@@ -11,6 +11,9 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 | Local clone of upstream (not committed, 4.7 GB) | `AstroFixxer/` (gitignored) |
 | Stitch UI prompt | `docs/STITCH_UI_PROMPT.md` |
 | Implementation plan | `docs/IMPLEMENTATION_PLAN.md` |
+| Fixed web app (deploy root) | `web/` |
+| Stellarium importer | `tools/stellarium_import/` |
+| Android app | New repo (name to be confirmed) |
 | Codebase analysis (web page) | https://claude.ai/artifact/SMf5adtidjB5CsJt5ZrxNW |
 
 ## Current status
@@ -18,18 +21,73 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 | Phase (see plan) | Status |
 |---|---|
 | 0. Analysis, UI prompt, plan | Done |
-| 1. Web app bug fixes (B1–B13) | Not started |
-| 2. Android project setup | Not started |
-| 3. Astronomy core port | Not started |
-| 4. Stellarium offline data | Importer done and tested; Android loader and web swap not started |
+| 1. Web app fixes + Stellarium data | Done (`web/`); needs a Vercel project with root `web` |
+| 2. Android project setup | Blocked: new repo not created yet |
+| 3. Astronomy core | Not started |
+| 4. Stellarium offline data | Importer done; comets, artwork and Android loader remaining |
 | 5. Compose UI (Stellarium-style) | Waiting on Stitch designs |
-| 5b. Offline events | Meteor showers done (data); planet events and ISS not started |
-| 6. AstroGuide | Not started |
+| 5b. Offline events | Meteor data done; transits, occultations, comets, eclipses/rare events, ISS not started |
+| 6. AstroGuide v1 (offline voice) | Not started |
 | 7. Release | Not started |
 
 ---
 
 ## Entries
+
+### 2026-09-28: Ponytail review approved; Phase 1 done (web fixes + Stellarium data)
+
+**What was done**
+- Reviewed the plan with the ponytail method ([DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail)). The owner approved all cuts:
+  - 1 Android module instead of 12.
+  - No Hilt, Navigation Compose, Room, Ktor/Retrofit, kotlinx.serialization or Paparazzi.
+  - Copy the upstream VSOP87 Java files instead of porting ~6,000 lines.
+  - Grid index instead of HEALPix.
+  - No OpenGL fallback unless measured.
+  - Offline-only AstroGuide v1.
+- The owner kept four UI features: constellation art, several landscapes, the light-pollution slider and time travel.
+- The owner added four features: transit tracker, occultations, comets and rare celestial events. All are in plan Phase 5b.
+- Copied the web app into `web/` (commit `89d082d`, verbatim), then fixed it:
+  - Commit `4599a30`: B1 service worker versioning/precache, B3 doctype + viewport-sized canvas, B4, B5, B6, B7, B8 (AstroGuide alert removed), B12 (Analytics removed).
+  - Not copied: B2 `pyserver.py`/`cert.pem`, B9 `celestial-3d.html`, B10 `__pycache__`.
+- Embedded Stellarium data in `web/astrofixxer.html` (commit `93159d4`).
+- Importer fixes:
+  - Dark nebulae store an opacity class in the magnitude column, which put ~1,900 dark clouds under the default DSO limit and cluttered the map. They now have no magnitude; opacity is kept as its own field.
+  - Web build keeps only objects named in commonly searched catalogues.
+  - The swap preserves the file's CRLF line endings.
+- Ponytail cuts in the importer: removed the `--no-indian-star-names` flag and the duplicate `mag` field in the Android output.
+- Rewrote `docs/IMPLEMENTATION_PLAN.md` with the approved cuts, the new features and the new-repo decision.
+
+**Files changed**
+- `web/` (new): `astrofixxer.html`, `index.html`, `astroguide.html`, `sw.js`, `manifest.json`, `vercel.json`, `sitemap.xml`, `images/`, `LICENSE`, `COPYING.md`
+- `tools/stellarium_import/build_sky_data.py`, `test_build_sky_data.py`
+- `data/android/sky_catalog.json.gz` (regenerated); `data/web/` is now untracked (its content is embedded in `web/astrofixxer.html`)
+- `docs/IMPLEMENTATION_PLAN.md`, `docs/HANDOFF.md`, `.gitignore`
+
+**How to verify**
+- `STELLARIUM_DIR=.cache/stellarium python3 -m unittest tools/stellarium_import/test_build_sky_data.py`: 8 tests pass.
+- Build-stamped copy served on `localhost` in headless Chromium:
+  - Service worker cache `astrofixxer-<sha>` created, and the page is controlled.
+  - Offline reload works, and the manifest loads offline.
+  - Standards mode (`CSS1Compat`).
+  - Search finds M31, Pleiades → M45, Lubdhaka → Sirius, Jupiter.
+  - `htmlEscape('<b>&"\'')` gives the correct entities; no leaked globals.
+  - User-object error shows "Invalid RA value 99:99:99".
+  - No AstroGuide button; no console errors.
+- Phone-size (412×860) screenshot matches the original layout, with Stellarium star names and no label clutter.
+
+**Decisions**
+- The web data only includes objects whose main ID is from M, NGC, IC, Caldwell, Barnard, Sharpless, Collinder, Melotte, Trumpler, Stock, Ruprecht, Arp, Abell or HCG. The full set stays in the Android catalogue.
+- Service worker versioning uses a one-line `sed` of `VERCEL_GIT_COMMIT_SHA` instead of upstream's `deploy.py`, which needs the OpenNGC submodule and `markdown`.
+
+**Known issues / not done**
+- Globular clusters in the web build: 130 (was 191 from OpenNGC). Some Stellarium globulars have no magnitude or have a main ID outside the searched catalogues.
+- `web/` isn't deployed. Someone with Vercel access must create a project with Root Directory `web`.
+- `astroguide.html` (the "Coming Soon" page) is still linked from `index.html`; only the in-app alert button was approved for removal.
+- Stellarium has comet orbits in `data/ssystem_minor.ini` (115 comets + asteroids); not imported yet.
+
+**Next step**
+- Owner: create the Android repo (or approve me creating `Zenithquonta/astrofixxer-android`, private) and add it to this session.
+- Then Phase 2 (project skeleton) and Phase 3 (astronomy core, starting with copying the VSOP87 Java files and building the golden-value tests).
 
 ### 2026-09-24: Stellarium offline data importer + Stellarium-style UI brief
 
