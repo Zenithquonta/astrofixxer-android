@@ -1,9 +1,14 @@
 package org.astrofixxer.ui
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.lerp
 import org.astrofixxer.astro.Pointing
 import kotlin.math.PI
@@ -69,6 +74,57 @@ fun DrawScope.drawMilkyWay(state: SkyState, proj: Projector, tint: Color, streng
         val glow = (0.35 + 0.65 * exp(-fromCentre / 60.0)).toFloat()
         drawCircle(tint.copy(alpha = 0.012f * glow * strength), halfWidth * 1.6f, p)
         drawCircle(tint.copy(alpha = 0.02f * glow * strength), halfWidth * 0.8f, p)
+    }
+}
+
+/**
+ * Affine map (2x3, row-major a,b,c / d,e,f) taking three source points to three target points,
+ * or null when the source points are collinear.
+ */
+fun affineFrom3(src: List<Offset>, dst: List<Offset>): FloatArray? {
+    val (p0, p1, p2) = src
+    val det = (p1.x - p0.x) * (p2.y - p0.y) - (p2.x - p0.x) * (p1.y - p0.y)
+    if (abs(det) < 1e-6f) return null
+    fun solve(v0: Float, v1: Float, v2: Float): Triple<Float, Float, Float> {
+        val a = ((v1 - v0) * (p2.y - p0.y) - (v2 - v0) * (p1.y - p0.y)) / det
+        val b = ((p1.x - p0.x) * (v2 - v0) - (p2.x - p0.x) * (v1 - v0)) / det
+        return Triple(a, b, v0 - a * p0.x - b * p0.y)
+    }
+    val (a, b, c) = solve(dst[0].x, dst[1].x, dst[2].x)
+    val (d, e, f) = solve(dst[0].y, dst[1].y, dst[2].y)
+    return floatArrayOf(a, b, c, d, e, f)
+}
+
+/**
+ * Stellarium constellation illustrations, placed by their three anchor stars and blended so the black
+ * background disappears. [images] maps "culture/file" to the decoded picture (may be downscaled).
+ */
+fun DrawScope.drawConstellationArt(
+    state: SkyState, catalog: org.astrofixxer.astro.Catalog, proj: Projector, images: Map<String, ImageBitmap>, tint: Color,
+) {
+    for (c in catalog.constellations[state.skyCulture].orEmpty()) {
+        val art = c.art ?: continue
+        val img = images["${state.skyCulture}/${art.file}"] ?: continue
+        val screen = art.anchors.map { (_, _, hip) ->
+            val star = catalog.starsByHip[hip] ?: return@map null
+            proj.project(state.ray(star))
+        }
+        if (screen.any { it == null }) continue
+        val dst = screen.filterNotNull()
+        if (dst.all { it.x < -size.width || it.x > 2 * size.width || it.y < -size.height || it.y > 2 * size.height }) continue
+        val sx = img.width.toFloat() / art.width
+        val sy = img.height.toFloat() / art.height
+        val src = art.anchors.map { (x, y, _) -> Offset(x.toFloat() * sx, y.toFloat() * sy) }
+        val m = affineFrom3(src, dst) ?: continue
+        val values = floatArrayOf(
+            m[0], m[3], 0f, 0f,
+            m[1], m[4], 0f, 0f,
+            0f, 0f, 1f, 0f,
+            m[2], m[5], 0f, 1f,
+        )
+        withTransform({ transform(Matrix(values)) }) {
+            drawImage(img, alpha = 0.35f, colorFilter = ColorFilter.tint(tint, BlendMode.Modulate), blendMode = BlendMode.Screen)
+        }
     }
 }
 

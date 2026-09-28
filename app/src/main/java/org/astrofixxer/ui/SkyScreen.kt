@@ -33,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -66,12 +67,13 @@ fun SkyScreen(
     catalog: Catalog?,
     moving: List<MovingObject>,
     events: List<EventItem>?,
+    art: Map<String, ImageBitmap> = emptyMap(),
 ) {
     var sheet by remember { mutableStateOf(Sheet.NONE) }
     val colors: ColorScheme = if (state.night) NightColors else DayColors
     MaterialTheme(colorScheme = colors) {
         Box(Modifier.fillMaxSize().background(Color.Black)) {
-            SkyCanvas(state, catalog, moving, Modifier.fillMaxSize())
+            SkyCanvas(state, catalog, moving, Modifier.fillMaxSize(), art)
             InfoOverlay(state, Modifier.align(Alignment.TopStart).padding(12.dp).widthIn(max = 260.dp))
             AlignChip(state, Modifier.align(Alignment.TopEnd).padding(12.dp))
             Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -239,6 +241,7 @@ private fun SkyOptionsSheet(state: SkyState, onClose: () -> Unit) {
             item { Toggle("Constellation lines and names", state.showConstellations) { state.showConstellations = it } }
             item { Toggle("Deep-sky objects", state.showDeepSky) { state.showDeepSky = it } }
             item { Toggle("Milky Way", state.showMilkyWay) { state.showMilkyWay = it } }
+            item { Toggle("Constellation artwork", state.showArt) { state.showArt = it } }
             item { Toggle("Atmosphere (daylight and twilight)", state.showAtmosphere) { state.showAtmosphere = it } }
             item { Toggle("Alt/Az grid", state.showGrid) { state.showGrid = it } }
             item {

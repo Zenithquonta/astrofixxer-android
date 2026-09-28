@@ -45,6 +45,7 @@ class SkyState(nowMillis: Long, lat: Double, lon: Double) {
     var showGrid by mutableStateOf(false)
     var showAtmosphere by mutableStateOf(true)
     var showMilkyWay by mutableStateOf(true)
+    var showArt by mutableStateOf(false)
     var landscape by mutableStateOf(Landscape.HILLS)
     /** Bortle dark-sky scale 1 (pristine) .. 9 (inner city); dims faint stars like Stellarium's light pollution. */
     var bortle by mutableStateOf(4)

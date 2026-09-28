@@ -8,6 +8,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -81,6 +82,7 @@ fun SkyCanvas(
     catalog: Catalog?,
     moving: List<MovingObject>,
     modifier: Modifier = Modifier,
+    art: Map<String, ImageBitmap> = emptyMap(),
 ) {
     val text = rememberTextMeasurer()
     val hits = remember { mutableListOf<Pair<Offset, SkyObject>>() }
@@ -103,7 +105,7 @@ fun SkyCanvas(
             },
     ) {
         hits.clear()
-        drawSky(state, catalog, moving, text, hits)
+        drawSky(state, catalog, moving, text, hits, art)
     }
 }
 
@@ -117,6 +119,7 @@ private fun DrawScope.safeText(tm: TextMeasurer, s: String, at: Offset, style: T
 
 private fun DrawScope.drawSky(
     state: SkyState, catalog: Catalog?, moving: List<MovingObject>, text: TextMeasurer, hits: MutableList<Pair<Offset, SkyObject>>,
+    art: Map<String, ImageBitmap>,
 ) {
     val pal = if (state.night) NightPalette else DayPalette
     val cam = state.camera()
@@ -138,6 +141,7 @@ private fun DrawScope.drawSky(
         drawMilkyWay(state, proj, if (state.night) pal.star else Color(0xFFC8D4F0), dark)
     }
     if (state.showGrid) drawAltAzGrid(proj, pal)
+    if (state.showArt && catalog != null) drawConstellationArt(state, catalog, proj, art, if (state.night) pal.star else Color(0xFF9FB8E0))
 
     val center = Pointing.rayToRaDec(cam[2], state.timeMillis, state.lat, state.lon)
     val radius = hypot(proj.fovH, proj.fovV) / 2 * 1.1

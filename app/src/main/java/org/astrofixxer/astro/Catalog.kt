@@ -23,7 +23,13 @@ class SkyObject(
     val otherNames: List<String> = emptyList(),
 )
 
-class Constellation(val id: String, val name: String, val otherNames: List<String>, val ra: Double, val dec: Double, val lines: List<IntArray>)
+class Constellation(
+    val id: String, val name: String, val otherNames: List<String>, val ra: Double, val dec: Double, val lines: List<IntArray>,
+    val art: ConstellationArt? = null,
+)
+
+/** Stellarium illustration placed on the sky by three anchor stars: (x, y) pixel in a [width]×[height] image -> HIP. */
+class ConstellationArt(val file: String, val width: Int, val height: Int, val anchors: List<Triple<Double, Double, Int>>)
 
 /**
  * Stars, deep-sky objects and constellations, with a 10°×10° RA/Dec grid for field-of-view queries and a name index.
@@ -146,12 +152,20 @@ class Catalog(val objects: List<SkyObject>, val constellations: Map<String, List
                 List(arr.length()) { k ->
                     val c = arr.getJSONObject(k)
                     val lines = c.getJSONArray("lines")
+                    val art = c.optJSONObject("art")?.let { a ->
+                        val size = a.getJSONArray("size")
+                        val anchors = a.getJSONArray("anchors")
+                        ConstellationArt(a.getString("file"), size.getInt(0), size.getInt(1), List(anchors.length()) { i ->
+                            val p = anchors.getJSONArray(i)
+                            Triple(p.getDouble(0), p.getDouble(1), p.getInt(2))
+                        })
+                    }
                     Constellation(c.getString("id"), c.getString("name"), c.getJSONArray("n2").strings(),
                         c.getDouble("RA"), c.getDouble("DE"),
                         List(lines.length()) { l ->
                             val poly = lines.getJSONArray(l)
                             IntArray(poly.length()) { p -> poly.optInt(p, -1) } // non-integers break the line, as in Stellarium
-                        })
+                        }, art)
                 }
             }
             return Catalog(objects, constellations, byHip)

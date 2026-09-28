@@ -2,6 +2,8 @@ package org.astrofixxer
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -18,6 +20,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -64,6 +68,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             var catalog by remember { mutableStateOf<Catalog?>(null) }
             var comets by remember { mutableStateOf<List<MinorBody>>(emptyList()) }
             var events by remember { mutableStateOf<List<EventItem>?>(null) }
+            var art by remember { mutableStateOf<Map<String, ImageBitmap>>(emptyMap()) }
             val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
                 if (granted) updateLocation()
             }
@@ -84,6 +89,19 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                     upcomingEvents(JulianDate.fromEpochMillis(System.currentTimeMillis()), 60, showers, bodies, brightStars, state.lat, state.lon)
                 }
             }
+            // Illustrations for the chosen sky culture, decoded at half size to keep memory near 11 MB.
+            LaunchedEffect(catalog, state.skyCulture, state.showArt) {
+                val cat = catalog ?: return@LaunchedEffect
+                if (!state.showArt) return@LaunchedEffect
+                val culture = state.skyCulture
+                val missing = cat.constellations[culture].orEmpty().mapNotNull { it.art?.file }.filter { "$culture/$it" !in art }
+                if (missing.isEmpty()) return@LaunchedEffect
+                val loaded = withContext(Dispatchers.IO) {
+                    val opts = BitmapFactory.Options().apply { inSampleSize = 2; inPreferredConfig = Bitmap.Config.RGB_565 }
+                    missing.associate { f -> "$culture/$f" to assets.open("art/$culture/$f").use { BitmapFactory.decodeStream(it, null, opts)!!.asImageBitmap() } }
+                }
+                art = art + loaded
+            }
             val minute = state.timeMillis / 60000
             val moving = remember(minute, comets, state.lat, state.lon) {
                 val jd = JulianDate.fromEpochMillis(state.timeMillis)
@@ -94,7 +112,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                     else MovingObject(SkyObject("Comet ${c.name}", p.ra * 180 / PI, p.dec * 180 / PI, mag, "C"), MovingObject.Kind.COMET)
                 }
             }
-            SkyScreen(state, catalog, moving, events)
+            SkyScreen(state, catalog, moving, events, art)
         }
     }
 
