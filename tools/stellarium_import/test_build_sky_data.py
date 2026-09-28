@@ -51,6 +51,11 @@ class WithStellariumData(unittest.TestCase):
         # M40 is a double star and M73 an asterism; neither is a DSO type the app draws.
         self.assertTrue(set(missing) <= {'M40', 'M73'}, missing)
 
+    def test_dark_nebulae_have_no_magnitude(self):
+        dark = [o for o in self.dso if o['stype'] in b.DARK_TYPES]
+        self.assertTrue(dark)
+        self.assertTrue(all(o['mag'] is None for o in dark))
+
     def test_m42_position(self):
         o = self.by['M42']
         self.assertAlmostEqual(o['ra'], 83.82, delta=0.1)

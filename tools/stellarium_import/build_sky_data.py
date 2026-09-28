@@ -33,6 +33,7 @@ DSO_TYPE_MAP = {
 }
 # Clusters with nebulosity are drawn as nebulae, except where the cluster is what people see.
 TYPE_OVERRIDES = {'M45': 'Oc'}
+DARK_TYPES = {'DN', 'DNe', 'MoC'}
 
 # (catalog.txt column, names.dat prefix, display format, searchable in the web app)
 DESIGNATIONS = [
@@ -138,7 +139,11 @@ def read_dso_catalog(path, names):
                     if n not in common:
                         common.append(n)
             vmag, bmag = _mag(c[4]), _mag(c[3])
+            opacity = None
+            if stype in DARK_TYPES:  # the magnitude column holds an opacity class (1-6), not a brightness
+                opacity, vmag, bmag = vmag, None, None
             objects.append({
+                'opacity': opacity,
                 'id': int(c[0]),
                 'ra': float(c[1]),
                 'dec': float(c[2]),
@@ -260,12 +265,14 @@ def _fmt(v):
 
 
 def build_web(dsos, stars_rows, star_names, indian_names, con_labels, segments,
-              dso_mag_limit, star_mag_limit, indian_star_names):
+              dso_mag_limit, star_mag_limit):
     blocks = {t: [] for t in WEB_TYPE_ORDER}
     search = {t: [] for t in WEB_TYPE_ORDER}
 
     for o in dsos:
-        if o['t'] is None or o['mag'] is None or o['mag'] > dso_mag_limit or not o['designations']:
+        # Web keeps objects named in catalogues people search by, so the map isn't labelled with PGC/LDN numbers.
+        if o['t'] is None or o['mag'] is None or o['mag'] > dso_mag_limit or not o['searchable'] \
+                or o['designations'][0] != o['searchable'][0]:
             continue
         e = {'RA': o['ra'], 'DE': o['dec'], 'AM': o['mag'], 'name': o['designations'][0], 't': o['t']}
         if o['major'] > 0:
@@ -297,7 +304,7 @@ def build_web(dsos, stars_rows, star_names, indian_names, con_labels, segments,
             if n and n != primary and n not in alt:
                 alt.append(n)
         n2 = []
-        if indian_star_names and hip in indian_names:
+        if hip in indian_names:
             for x in indian_names[hip]:
                 label = x.get('pronounce') or x.get('english')
                 n2.append('%s (%s)' % (label, x['native']) if x.get('native') and label else (label or x.get('native')))
@@ -305,7 +312,7 @@ def build_web(dsos, stars_rows, star_names, indian_names, con_labels, segments,
             e['n2'] = n2
         blocks['S'].append(e)
         search['S'].append(alt + [x.get('pronounce') for x in indian_names.get(hip, [])
-                                  if indian_star_names and x.get('pronounce')])
+                                  if x.get('pronounce')])
 
     allstars, index, names, poss = [], {}, [], []
     for t in WEB_TYPE_ORDER:
@@ -347,14 +354,17 @@ def write_web_js(path, allstars, index, nindex, segments, source_note):
 
 
 def apply_to_html(html_in, js_path, html_out):
-    """Swap the data block (var allstars_index ... var allstars_db_specs) in astrofixxer.html."""
-    with open(html_in, encoding='utf-8') as f:
+    """Swap the data block (its // header comments through var allstars_db_specs) in astrofixxer.html."""
+    with open(html_in, encoding='utf-8', newline='') as f:
         lines = f.readlines()
+    eol = '\r\n' if lines[0].endswith('\r\n') else '\n'
     start = next(i for i, l in enumerate(lines) if l.startswith('var allstars_index ='))
+    while start > 0 and lines[start - 1].startswith('//'):
+        start -= 1
     end = next(i for i, l in enumerate(lines) if l.startswith('var allstars_db_specs'))
     with open(js_path, encoding='utf-8') as f:
-        block = [l for l in f.readlines() if l.startswith('var ')]
-    with open(html_out, 'w', encoding='utf-8') as f:
+        block = [l.rstrip('\n') + eol for l in f]
+    with open(html_out, 'w', encoding='utf-8', newline='') as f:
         f.writelines(lines[:start] + block + lines[end + 1:])
 
 
@@ -455,7 +465,6 @@ def main():
     ap.add_argument('--sky-culture', choices=['modern', 'indian'], default='modern')
     ap.add_argument('--dso-mag-limit', type=float, default=14.0)
     ap.add_argument('--star-mag-limit', type=float, default=6.0)
-    ap.add_argument('--no-indian-star-names', action='store_true')
     ap.add_argument('--years', default=None, help='e.g. 2026-2028 (default: this year and next two)')
     ap.add_argument('--apply-to', help='astrofixxer.html to read')
     ap.add_argument('--apply-out', help='where to write the patched html (default: next to --out web js)')
@@ -477,13 +486,13 @@ def main():
             'star positions: HYG v3 (CC BY-SA)' % (rev, args.sky_culture))
     allstars, index, nindex, segs = build_web(
         dsos, star_rows, star_names, indian_names, con_labels, segments,
-        args.dso_mag_limit, args.star_mag_limit, not args.no_indian_star_names)
+        args.dso_mag_limit, args.star_mag_limit)
     web_js = os.path.join(args.out, 'web', 'jsdb_stellarium.js')
     write_web_js(web_js, allstars, index, nindex, segs, note)
 
     android = {
         'source': {'stellarium_commit': rev, 'note': note},
-        'dso': [{k: v for k, v in o.items() if k != 'searchable'} for o in dsos if o['t']],
+        'dso': [{k: v for k, v in o.items() if k not in ('searchable', 'mag')} for o in dsos if o['t']],
         'stars': [
             {'hip': h, 'ra': ra, 'dec': de, 'mag': mag,
              'names': [x.get('english') or x.get('native') for x in star_names.get(h, [])] or ([p] if p else []),
