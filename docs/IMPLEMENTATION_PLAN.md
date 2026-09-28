@@ -1,0 +1,230 @@
+# AstroFixxer Implementation Plan
+
+Goal: fix the web app, then rebuild AstroFixxer as a native Android app in Kotlin + Jetpack Compose, with a Stellarium-style UI (see `STITCH_UI_PROMPT.md`) and offline data from Stellarium.
+
+Source analysed: `AadidevRaizada/AstroFixxer` at commit `6af76ce`. Line numbers refer to the original `astrofixxer.html` unless stated otherwise.
+
+**Rules for every phase**
+- Each piece of work that changes code ends with a new entry in `docs/HANDOFF.md`.
+- **Ponytail method** ([DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail)): before writing code, climb the ladder and stop at the first rung that holds:
+  1. Does it need to exist?
+  2. Is it already in the codebase?
+  3. Does the standard library do it?
+  4. Does a native platform feature cover it?
+  5. Does an already-installed dependency solve it?
+  6. Can it be one line?
+  7. Only then, write the minimum code that works.
+  
+  Plan changes that come out of a ponytail review are shown to the owner for approval first. The 2026-09-28 review was approved in full.
+- **Offline first:** everything works in the field with no internet. Sky data, events data and comet orbits ship inside the app, and positions and events are computed on the phone. Only these may use the network, and each must degrade gracefully:
+  - Wikipedia summaries: cached after first view.
+  - Refreshing satellite orbits and comet elements: the bundled snapshot is used offline, and its age is shown.
+- **Data source:** Stellarium's open data files, converted at build time by `tools/stellarium_import/`. We don't call Stellarium's Remote Control API: it needs Stellarium running on a computer on the same network.
+
+---
+
+## 0. Licensing
+
+The app is a fork of **AstroHopper by Artyom Beilis, GPLv3**. The Android port is a derivative work, so it **must be GPLv3**, publish its source, and keep these credits.
+
+| Component | License | What it means |
+|---|---|---|
+| App code (AstroHopper) | GPLv3 | Port stays GPLv3; keep copyright notice |
+| Stellarium DSO catalogue, names, meteor showers, minor-body orbits | GPL-2.0-or-later | Compatible with GPLv3; credit Stellarium |
+| Stellarium sky cultures (modern, indian) | CC BY-SA 4.0 | Attribute; share-alike on the data |
+| Stellarium modern constellation illustrations | Free Art License | Attribute |
+| HYG v3 star database | CC BY-SA | Attribute |
+| VSOP87 Java series + CPReduce (Greg Miller) | Public domain | No restriction |
+| NASA eclipse tables (Espenak) | Public domain | Credit NASA GSFC |
+| `images/qs_*.png` | © Maxim Tonkikh | Ask permission or redraw for Android onboarding |
+
+---
+
+## 1. Phase 1: Web app fixes (done)
+
+The web app now lives in `web/`, copied from upstream `6af76ce`. The original repo isn't touched.
+
+| # | Status | What was done |
+|---|---|---|
+| B1 | Fixed | Service worker version stamped by the Vercel build (`sed` in `vercel.json`, commit SHA). Precaches page, landing page, manifest and icon. One `activate` handler. Registered as plain `sw.js`. |
+| B2 | Deleted | `pyserver.py` and empty `cert.pem` not copied. Vercel serves HTTPS, and desktop browsers treat `localhost` as secure. |
+| B3 | Fixed | `<!DOCTYPE html>`. The canvas is now sized from the viewport (`documentElement.client*`); quirks mode used to provide that implicitly, and without the change the map collapsed. |
+| B4 | Fixed | `max="90"` / `max="180"`. The range was already validated in JS. |
+| B5 | Fixed | `htmlEscape` escapes `&` first. |
+| B6, B7 | Fixed | No implicit globals; correct `arc()` arguments. |
+| B8 | Deleted | AstroGuide "Coming Soon" alert button. |
+| B9 | Deleted | `celestial-3d.html` not copied. |
+| B10 | Deleted | `__pycache__` not copied. |
+| B11 | Kept | `UT1-UTC = 0` is negligible for visual use. |
+| B12 | Deleted | Google Analytics. |
+| B13 | Later | Dead i18n strings are dropped when strings move to Android resources. |
+| Data | Done | Stellarium data embedded: 10,438 objects vs 9,759 before, with Indian star names searchable. |
+
+**Owner action:** point a Vercel project at this repo with **Root Directory = `web`**.
+
+---
+
+## 2. Phase 2: Android project setup (0.5 day)
+
+**The Android app lives in a new repository** (owner decision). Name and visibility are to be confirmed; see HANDOFF.
+
+| Concern | Choice | Ponytail note |
+|---|---|---|
+| Language / UI | Kotlin 2.x, Jetpack Compose, Material 3 | |
+| SDK | minSdk 26, targetSdk latest | |
+| Structure | **One `app` module**. Astronomy code in `app/src/main/.../astro`, tested on the JVM from `src/test`. | 12 modules cut |
+| State | One `ViewModel` per screen, `StateFlow<UiState>`, built directly | Hilt cut |
+| Navigation | Screen state + `BackHandler`, bottom sheets | Navigation Compose cut |
+| Storage | DataStore for settings, user objects and watch lists (small text lists, like the web app's localStorage) | Room cut |
+| Network | `HttpURLConnection` (Wikipedia, orbit refresh) | Ktor/Retrofit cut |
+| JSON | `android.util.JsonReader` + `org.json` | kotlinx.serialization cut |
+| Sky rendering | Compose `Canvas` | OpenGL only if profiling demands it |
+| Location | Fused Location Provider + manual override + offline city list | |
+| Sensors | `TYPE_ROTATION_VECTOR` (compass), `TYPE_GAME_ROTATION_VECTOR` (no compass) | |
+| Tests | JUnit4 | Truth, Paparazzi, Compose UI tests cut |
+| CI | GitHub Actions: `./gradlew test assembleDebug` | |
+
+---
+
+## 3. Phase 3: Astronomy core (2–3 days)
+
+| Web source | Kotlin target | Notes |
+|---|---|---|
+| `vsop87a_xsmall` + velocities (lines 1218–7622) | **Copy** `vsop87a_xsmall*.java` from `vsop87-multilang/Languages/Java` | Same series as the web app, public domain, called from Kotlin as-is. No port, no generator. |
+| `CPReduce` (7876–8329) | `ApparentPosition.reduce(body, jdUtc, observer)` | Light-time, precession, nutation, topocentric. ~450 lines. |
+| `Vec`, `JulianDate` (8330–8506) | `Vec3`/`Mat3`, `JulianDate` | ~170 lines. |
+| Moon position (`getSolarSystemObject('Moon')`) | `Moon` | Port whatever theory the web app uses. Check its accuracy against Horizons first: occultations (Phase 5b) need ~1′. |
+| Projection (`cameraBearing`, `xyzTo2d`, `getFOV`) | `SkyProjection` | Both projection modes. |
+| `align()` (~8861–8960) | `Alignment` | Keep sensor smoothing and drift thresholds adjustable (real sensors drift). |
+| `parseRA`/`parseDEC`, `parseUserDSO` | `CoordinateParser` | All accepted formats, per-line errors. |
+
+**Gate:**
+- Golden values from the JS (8 planets + Moon × 5 dates × 3 locations: Delhi, Bengaluru, Leh) match to 1e-9 rad.
+- Spot-check against JPL Horizons.
+- Parser table test.
+- Alignment round-trip test.
+
+---
+
+## 4. Phase 4: Offline data from Stellarium (importer done; 1–2 days remaining)
+
+**Done** (`tools/stellarium_import/`, pinned Stellarium commit `9910a2f`):
+
+| Output | Contents |
+|---|---|
+| web data (embedded in `web/astrofixxer.html`) | 10,438 objects, only those named in commonly searched catalogues |
+| `data/android/sky_catalog.json.gz` (2.4 MB) | 93,997 deep-sky objects with all IDs, names and dark-nebula opacity; 8,912 stars with Western + Indian names; modern + Indian constellations |
+| `data/events/meteor_showers.json` | 43 showers × 2026–2028 |
+
+8 importer tests pass.
+
+**Remaining:**
+- **Comets and bright asteroids:** import `data/ssystem_minor.ini` (115 comets + asteroids, orbital elements with epoch) into `data/events/minor_bodies.json`.
+- **Constellation artwork:** import `skycultures/modern/illustrations` + anchor stars (owner kept this feature).
+- **Android loader:** load the gzipped JSON in the background. Use a 10°×10° RA/Dec grid (648 cells) to pick objects in view. `ponytail:` upgrade to HEALPix or a binary format only if profiling shows the need.
+- Deleted from the plan: faint-star import (Stellarium `stars_1`). Add it when someone asks for stars below mag 6.
+
+---
+
+## 5. Phase 5: Compose UI, Stellarium-style (9–10 days)
+
+Build from the Stitch designs (`STITCH_UI_PROMPT.md`).
+
+- **Theme:** `AstroTheme(Normal | Night)`. Night mode is a full red colour scheme plus a brightness cap. Condensed tabular numerals for readouts.
+- **Sky View:**
+  - Star glow by magnitude and colour, Milky Way, atmosphere from the sun's altitude.
+  - **Several landscape silhouettes** (owner kept this).
+  - Cardinal points, grids, ecliptic/meridian lines.
+  - Constellation lines, names, boundaries and **artwork**.
+  - **Light-pollution (Bortle) slider** (owner kept this).
+  - Pinch zoom with a zoom-dependent magnitude limit. Tap to select; long-press menu.
+- **Time travel** (owner kept this): displayed time ≠ now; rewind/forward controls. Used by "Show in sky" on events.
+- **Telescope layer:** crosshair, eyepiece circle, Align, pointing modes (Compass / Manual / Free look), the guidance panel (ΔAlt/ΔAz, bullseye, haptics), and the watch-list navigator.
+- **Other screens:**
+  - Slide-out toolbars
+  - Info overlay
+  - Search (Object / Position / Lists)
+  - Events
+  - Sky & Viewing options
+  - Location (with offline city list)
+  - Date & Time
+  - Object info (Wikipedia, cached)
+  - Telescope settings
+  - Settings (user objects, watch lists, data age, reset with confirmation)
+  - Onboarding
+  - Help
+- **Sensors:** rotation-vector sensors, `remapCoordinateSystem`, adjustable low-pass filter, drift hint, `FLAG_KEEP_SCREEN_ON`.
+- **Localisation:** move `i18n_dicts` / `po/` to `values-*/strings.xml` (`uk`, `hu`, `ru`, `iw`, new `hi`). Test RTL with Hebrew.
+
+---
+
+## 5b. Phase 5b: Offline events (7–9 days)
+
+Every event is computed or bundled on the phone.
+
+| Event | How |
+|---|---|
+| Meteor showers | Bundled JSON. Beyond 2028, convert solar longitudes on the phone (`jd_for_solar_longitude`). Radiant with drift. |
+| Sun/Moon rise/set, twilights, moon phase | `core/astro`. |
+| Conjunctions, Moon–planet approaches, oppositions, greatest elongations | Sample every 6 h over the next 60 days, find separation minima or elongation extremes, refine by bisection. |
+| Rise/transit/set for any object | Hour-angle formula. |
+| **Transit tracker** (new, owner request) | **Planet transits of the Sun** (Mercury, Venus): inferior conjunction with separation < Sun radius, from VSOP87. The next is Mercury on 2032-11-13, so it's usually a countdown. **ISS transits of the Sun/Moon**: SGP4 ground track vs the Sun/Moon disc for the observer; needs orbit data under ~2 days old. When the data is older, show "Refresh orbit data when online to predict transits". |
+| **Occultations** (new, owner request) | **Moon occulting bright stars (mag ≤ 6 from the bundled catalogue) and planets**: topocentric Moon position, separation < Moon's apparent radius, with disappearance/reappearance times. Needs ~1′ Moon accuracy (see Phase 3). Asteroid occultations: `ponytail:` skipped; they need precise external predictions. |
+| **Comets** (new, owner request) | Bundled elements from Stellarium `ssystem_minor.ini`. Two-body Kepler orbit + the existing Earth position gives RA/Dec. Brightness from the comet magnitude model (H, G/k). Show on the sky and in a "Comets visible tonight" list with an "elements from <date>" note. New comets appear often, so refresh elements from the MPC when online, with the bundled data as the offline fallback. |
+| **Rare celestial events** (new, owner request) | **Solar and lunar eclipses**: bundled NASA eclipse table (2026–2040, public domain) plus local visibility and times computed on the phone. **Also:** supermoons (full moon within ~360,000 km), planet gatherings (≥ 4 planets within a 30° span), great conjunctions, planet transits (above), and **meteor outbursts** (Stellarium's year-specific ZHR entries). Rare events get a highlighted card and optional reminders (`AlarmManager` local notification; no server). |
+| ISS and bright satellite passes | Bundled TLE snapshot + SGP4 on the phone. Refreshed when the app opens and is online (`ponytail:` no background WorkManager job). Shows the data age and hides passes when TLEs are more than 30 days old. The CelesTrak download must be tested outside this sandbox. |
+| "Tonight" summary | Darkest window, planets up, moon, next meteor peak, next ISS pass, and any rare event this week. |
+
+**Gate:** check against published values:
+- Perseid/Geminid peaks: ±1 day
+- a 2026 conjunction: ±1 h
+- the 2026-08-12 total solar eclipse and 2026-03-03 total lunar eclipse from the NASA tables: contact times ±2 min
+- one listed lunar occultation: ±2 min
+- one comet position vs JPL Horizons: ±5′ near its element epoch
+
+---
+
+## 6. Phase 6: AstroGuide v1, offline voice (2 days)
+
+- `SpeechRecognizer` (offline for downloaded languages; Hindi and English) → the existing search and events → `TextToSpeech`.
+- Commands: "find X", "what is X", "align", "what's up tonight", "next meteor shower", "next eclipse".
+- `ponytail:` the LLM backend is skipped; add it when free-form questions are actually needed.
+
+---
+
+## 7. Phase 7: Release (1 day)
+
+- Signing, R8 rules.
+- "Licenses & source" screen linking the GPL repo.
+- Store screenshots taken by hand on a phone.
+- Field test: 3 phones (with/without magnetometer), 2 telescopes, 10 Messier objects from alignment stars 5–20° away. Record time-to-target and misses.
+
+---
+
+## 8. Timeline
+
+| Phase | Effort | Depends on |
+|---|---|---|
+| 1. Web fixes + Stellarium data | done | |
+| 2. Android setup (new repo) | 0.5 d | repo created |
+| 3. Astronomy core | 2–3 d | 2 |
+| 4. Remaining data (comets, artwork, loader) | 1–2 d | 2 |
+| 5. Compose UI, Stellarium-style | 9–10 d | 3, 4, Stitch designs |
+| 5b. Offline events incl. transits, occultations, comets, rare events | 7–9 d | 3, 4 |
+| 6. AstroGuide v1 (offline voice) | 2 d | 5, 5b |
+| 7. Release | 1 d | 5 |
+
+About 5 weeks for one developer. The ponytail cuts saved about 2 weeks, and the four new event features added about 1 week.
+
+## 9. Risks
+
+| Risk | Mitigation |
+|---|---|
+| Compass error near a metal tube | Manual mode when compass accuracy is low. |
+| Gyro drift | Re-align per target; show time since alignment. |
+| Astronomy port mistakes | Golden tests against the JS are a merge gate. |
+| Moon theory too coarse for occultations | Measure in Phase 3; port a fuller lunar series only if > 1′. |
+| 94k objects slow the sky view | Grid index + magnitude culling; OpenGL only if measured. |
+| Stale satellite/comet data offline | Show data age; hide ISS transits when orbit data is > 2 days old, and passes when > 30 days old. |
+| Stellarium data format changes | Pinned commit; importer tests fail on a bump. |
+| GPL obligations missed | Licence screen + public source before release. |
