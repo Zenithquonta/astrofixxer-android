@@ -24,7 +24,7 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 |---|---|
 | 0. Analysis, UI prompt, plan | Done |
 | 1. Web app fixes + Stellarium data | Done (`web/`); needs a Vercel project with Root Directory `web` |
-| 2. Android project setup | Done; `MainActivity` compiles against the Android 14 framework (stub check). Waiting for the GitHub repo `Zenithquonta/astrofixxer-android` (saved as `handoff/astrofixxer-android.bundle`) |
+| 2. Android project setup | Done; builds and passes its unit tests in GitHub Actions (real Android SDK). Waiting for the GitHub repo `Zenithquonta/astrofixxer-android` (saved as `handoff/astrofixxer-android.bundle`) |
 | 3. Astronomy core | Done: 36 JVM tests pass |
 | 4. Stellarium offline data | Done: catalogue, comets/asteroids, meteor showers, constellation artwork |
 | 5. Compose UI (Stellarium-style) | Done: sky view, atmosphere, Milky Way, landscapes, light pollution, artwork, alignment, guidance, search, events, lists, onboarding, help, night mode, Hindi. Not yet built for Android (no CI until the repo exists) |
@@ -36,6 +36,18 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 ---
 
 ## Entries
+
+### 2026-09-28: First real Android build passes on GitHub
+
+**What was done**
+- Actions run #2 of "Android APK" in this repository (https://github.com/Zenithquonta/astrofixer-baby/actions/runs/36414493679) built the app from `handoff/astrofixxer-android.bundle` with the real Android SDK and Gradle plugin.
+  - Result: `./gradlew test assemblePreview` gave BUILD SUCCESSFUL (99 tasks). The unit tests pass, and the R8-optimised preview APK (about 6.5 MB) is kept as the `AstroFixxer-apk` artifact.
+  - The `secret-scan` (gitleaks) job passed.
+  - Publishing was skipped as designed, because the preview signing secrets are not set yet.
+- This is the first time the app has built outside the sandbox. It clears the "never built for real" caveat for the build, but not for testing on a phone.
+
+**Next step**
+- Owner: add `PREVIEW_KEYSTORE_BASE64` and `PREVIEW_KEYSTORE_PASSWORD` to this repository's Actions secrets to publish the public `AstroFixxer.apk`, then install it on a phone and run `docs/FIELD_TEST.md`.
 
 ### 2026-09-28: Keys secured; changelog
 
