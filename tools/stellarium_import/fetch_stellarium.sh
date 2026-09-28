@@ -15,7 +15,8 @@ git -C "$TARGET" sparse-checkout set \
   nebulae/default \
   skycultures/modern \
   skycultures/indian \
-  plugins/MeteorShowers/resources
+  plugins/MeteorShowers/resources \
+  data/ssystem_minor.ini
 git -C "$TARGET" fetch --quiet --depth 1 origin "$STELLARIUM_COMMIT" 2>/dev/null \
   || git -C "$TARGET" fetch --quiet origin
 git -C "$TARGET" checkout --quiet "$STELLARIUM_COMMIT"

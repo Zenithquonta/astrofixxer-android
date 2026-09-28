@@ -61,6 +61,16 @@ class WithStellariumData(unittest.TestCase):
         self.assertAlmostEqual(o['ra'], 83.82, delta=0.1)
         self.assertAlmostEqual(o['dec'], -5.39, delta=0.1)
 
+    def test_minor_bodies(self):
+        bodies = b.minor_bodies(os.path.join(ST, 'data/ssystem_minor.ini'))
+        by = {x['name']: x for x in bodies}
+        self.assertNotIn('artificial', {x['type'] for x in bodies})
+        comets = [x for x in bodies if x['type'] == 'comet']
+        self.assertGreater(len(comets), 50)
+        self.assertTrue(all({'q', 'e', 'tp_jd', 'h'} <= x.keys() for x in comets))
+        ceres = by['Ceres']
+        self.assertAlmostEqual(ceres['a'], 2.77, delta=0.02)
+
     def test_meteor_showers(self):
         s = b.meteor_showers(os.path.join(ST, 'plugins/MeteorShowers/resources/MeteorShowers.json'), [2026])
         by = {x['code']: x for x in s}

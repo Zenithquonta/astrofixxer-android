@@ -11,6 +11,7 @@ Outputs (under --out)
   web/jsdb_stellarium.js       same variables as the data block in astrofixxer.html
   android/sky_catalog.json.gz  full catalogue for the Android app
   events/meteor_showers.json   meteor shower calendar with dates for --years
+  events/minor_bodies.json     comets and asteroids with orbital elements
 """
 import argparse
 import csv
@@ -447,6 +448,43 @@ def meteor_showers(path, years):
     return out
 
 
+# ---------------------------------------------------------------- comets and asteroids
+
+MINOR_KEYS = {  # ssystem_minor.ini key -> output key; angles in degrees, J2000 ecliptic, distances in AU
+    'orbit_Epoch': 'epoch_jd', 'orbit_Eccentricity': 'e', 'orbit_Inclination': 'i',
+    'orbit_AscendingNode': 'node', 'orbit_ArgOfPericenter': 'peri',
+    'orbit_PericenterDistance': 'q', 'orbit_TimeAtPericenter': 'tp_jd',
+    'orbit_SemiMajorAxis': 'a', 'orbit_MeanAnomaly': 'm', 'orbit_MeanMotion': 'n',
+    'absolute_magnitude': 'h', 'slope_parameter': 'slope',
+}
+
+
+def minor_bodies(path):
+    """Stellarium ssystem_minor.ini -> comets, asteroids and other small bodies with osculating elements."""
+    sections, cur = [], None
+    with open(path, encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if line.startswith('['):
+                cur = {}
+                sections.append(cur)
+            elif cur is not None and '=' in line and not line.startswith(('#', ';')):
+                k, _, v = line.partition('=')
+                cur[k.strip()] = v.strip()
+    out = []
+    for s in sections:
+        if s.get('type') in (None, 'artificial') or 'name' not in s:
+            continue
+        body = {'name': s['name'], 'type': s['type'], 'designation': s.get('iau_designation')}
+        for k, v in MINOR_KEYS.items():
+            if k in s:
+                body[v] = float(s[k])
+        if 'q' not in body and 'a' not in body:
+            continue
+        out.append(body)
+    return out
+
+
 # ---------------------------------------------------------------- main
 
 def git_rev(path):
@@ -506,8 +544,9 @@ def main():
         },
     }
     os.makedirs(os.path.join(args.out, 'android'), exist_ok=True)
-    with gzip.open(os.path.join(args.out, 'android', 'sky_catalog.json.gz'), 'wt', encoding='utf-8') as f:
-        json.dump(android, f, ensure_ascii=False, separators=(',', ':'))
+    payload = json.dumps(android, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
+    with open(os.path.join(args.out, 'android', 'sky_catalog.json.gz'), 'wb') as f:
+        f.write(gzip.compress(payload, mtime=0))  # mtime=0: identical input gives an identical file
 
     if args.years:
         a, _, b = args.years.partition('-')
@@ -521,6 +560,15 @@ def main():
         json.dump({'source': 'Stellarium %s plugins/MeteorShowers (GPL-2.0-or-later)' % rev,
                    'times': 'UTC, rounded to the hour; peak dates are typical and can shift by a day',
                    'years': years, 'showers': showers}, f, ensure_ascii=False, indent=1)
+
+    bodies = minor_bodies(os.path.join(st, 'data/ssystem_minor.ini'))
+    with open(os.path.join(args.out, 'events', 'minor_bodies.json'), 'w', encoding='utf-8') as f:
+        json.dump({'source': 'Stellarium %s data/ssystem_minor.ini (GPL-2.0-or-later)' % rev,
+                   'elements': 'heliocentric osculating, J2000 ecliptic; angles in degrees, distances in AU',
+                   'magnitude': 'comets: h + 5 log10(delta) + 2.5 slope log10(r); others: H-G with slope = G',
+                   'bodies': bodies}, f, ensure_ascii=False, indent=1)
+    print('minor bodies', len(bodies), dict(sorted({b['type']: sum(x['type'] == b['type'] for x in bodies)
+                                                     for b in bodies}.items())))
 
     if args.apply_to:
         out_html = args.apply_out or os.path.join(args.out, 'web', 'astrofixxer_stellarium.html')
