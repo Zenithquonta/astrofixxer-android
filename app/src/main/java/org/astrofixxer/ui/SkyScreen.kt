@@ -348,11 +348,14 @@ private fun SkyOptionsSheet(state: SkyState, onClose: () -> Unit, onLists: () ->
     SheetFrame(t("Sky & viewing"), onClose) {
         LazyColumn(Modifier.fillMaxWidth()) {
             item {
+                // Own row for the long label: in Hindi it doesn't fit a third of a narrow phone in every font.
                 val pad = PaddingValues(horizontal = 8.dp)
-                Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = onLists, modifier = Modifier.weight(1.5f).heightIn(min = 48.dp), contentPadding = pad) { Label(t("My objects & lists")) }
-                    OutlinedButton(onClick = onHelp, modifier = Modifier.weight(0.8f).heightIn(min = 48.dp), contentPadding = pad) { Label(t("Help")) }
-                    OutlinedButton(onClick = onTutorial, modifier = Modifier.weight(0.9f).heightIn(min = 48.dp), contentPadding = pad) { Label(t("Tutorial")) }
+                Column(Modifier.fillMaxWidth().padding(bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = onLists, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp), contentPadding = pad) { Label(t("My objects & lists")) }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = onHelp, modifier = Modifier.weight(1f).heightIn(min = 48.dp), contentPadding = pad) { Label(t("Help")) }
+                        OutlinedButton(onClick = onTutorial, modifier = Modifier.weight(1f).heightIn(min = 48.dp), contentPadding = pad) { Label(t("Tutorial")) }
+                    }
                 }
             }
             item { Toggle(t("Constellation lines and names"), state.showConstellations) { state.showConstellations = it } }

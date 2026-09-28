@@ -40,7 +40,7 @@ Each fix is covered by a test in `app/src/test` or `tools/desktop-check`.
 - A watch list named with spaces ("Autumn galaxies:") was split into a list called "galaxies" and an item called "Autumn".
 
 **Polish**
-- The "Compass" and "My objects & lists" labels were cut off on 360 dp phones. Button labels now shrink to fit.
+- The "Compass" and "My objects & lists" labels were cut off on 360 dp phones. Button labels now shrink to fit, and "My objects & lists" has its own row, because in Hindi it was still cut off in some fonts (caught by the UI audit on GitHub's machines).
 - Settings switches had 32 dp touch targets. Whole rows are now 56 dp switches.
 - Night-mode text was too dim (1.9–2.9:1 contrast). It is now at least 3:1 and still pure red.
 - The target card listed catalogue codes such as "PGC3517795 · PK063+13.1". It now shows the name ("Ring Nebula") and "55° up · W".
