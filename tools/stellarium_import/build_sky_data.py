@@ -21,6 +21,7 @@ import json
 import math
 import os
 import re
+import shutil
 import subprocess
 
 # The data uses SIMBAD-style codes (Gx, AGx, RNe, ...) as well as the ones in the file header.
@@ -248,8 +249,12 @@ def constellations(culture, by_hip, culture_id):
             label = cn.get('native') or cn.get('english')
             extra = [x for x in (cn.get('english'),) if x and x != label]
         ra, de = centre(pts)
-        labels.append({'id': con['id'], 'RA': ra, 'DE': de, 'name': label, 'n2': extra,
-                       'lines': con.get('lines', [])})
+        entry = {'id': con['id'], 'RA': ra, 'DE': de, 'name': label, 'n2': extra, 'lines': con.get('lines', [])}
+        if 'image' in con:  # illustration placed by three anchor stars (pixel position -> HIP)
+            img = con['image']
+            entry['art'] = {'file': os.path.basename(img['file']), 'size': img['size'],
+                            'anchors': [[a['pos'][0], a['pos'][1], a['hip']] for a in img['anchors']]}
+        labels.append(entry)
     return labels, segments, missing
 
 
@@ -538,12 +543,19 @@ def main():
             for h, ra, de, mag, p in star_rows if mag <= args.star_mag_limit + 0.5
         ],
         'constellations': {
-            cid: [{k: c[k] for k in ('id', 'name', 'n2', 'RA', 'DE', 'lines')}
+            cid: [{k: c[k] for k in ('id', 'name', 'n2', 'RA', 'DE', 'lines', 'art') if k in c}
                   for c in constellations(cult, by_hip, cid)[0]]
             for cid, cult in (('modern', modern), ('indian', indian))
         },
     }
     os.makedirs(os.path.join(args.out, 'android'), exist_ok=True)
+    for cid in ('modern', 'indian'):
+        art_dir = os.path.join(args.out, 'android', 'art', cid)
+        os.makedirs(art_dir, exist_ok=True)
+        for c in android['constellations'][cid]:
+            if 'art' in c:
+                shutil.copyfile(os.path.join(st, 'skycultures', cid, 'illustrations', c['art']['file']),
+                                os.path.join(art_dir, c['art']['file']))
     payload = json.dumps(android, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
     with open(os.path.join(args.out, 'android', 'sky_catalog.json.gz'), 'wb') as f:
         f.write(gzip.compress(payload, mtime=0))  # mtime=0: identical input gives an identical file
