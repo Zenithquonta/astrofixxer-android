@@ -37,6 +37,23 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 
 ## Entries
 
+### 2026-09-28: Keys secured; changelog
+
+**What was done** (Android `main` at `fc996f3`, saved in `handoff/astrofixxer-android.bundle`)
+- **Secret scan:** gitleaks, detect-secrets and a regex sweep over the full history of both repos found no API keys, tokens or passwords.
+  - The Google Analytics ID in old web-app commits (`G-5L31YEPT3E`) is public by design and was already removed.
+- **Retired the preview signing key** that had been committed an hour earlier (`app/preview.keystore`), and cancelled the build that would have published an APK signed with it.
+  - Preview signing now comes from the secrets `PREVIEW_KEYSTORE_BASE64` and `PREVIEW_KEYSTORE_PASSWORD`.
+  - Without the secrets, the app still builds and tests, but nothing is published.
+- **Guard rails (both repos):**
+  - `.gitignore` for keystores, `.env` and credential files;
+  - a `secret-scan` job (gitleaks) in CI;
+  - `SECURITY.md` in the Android repo.
+- **`CHANGELOG.md`** in both repos lists every update and fix, and is linked from the READMEs.
+
+**Next step**
+- Owner: add the two preview secrets to this repository (and later to `astrofixxer-android`) under Settings → Secrets and variables → Actions. The values were generated in the session scratchpad (`signing/`), not in any repo. Then run the "Android APK" workflow again to publish `AstroFixxer.apk`.
+
 ### 2026-09-28: Anyone can download, build and fork; credit to skyhopper
 
 **What was done** (Android `main` at `e5b9079`, saved in `handoff/astrofixxer-android.bundle`)
