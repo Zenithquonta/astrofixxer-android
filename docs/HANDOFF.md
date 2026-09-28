@@ -24,15 +24,73 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 | 1. Web app fixes + Stellarium data | Done (`web/`); needs a Vercel project with root `web` |
 | 2. Android project setup | Done locally; waiting for the GitHub repo to push and run CI |
 | 3. Astronomy core | Done: reduction, pointing, alignment, parser; golden tests pass on the JVM |
-| 4. Stellarium offline data | Importer done; comets, artwork and Android loader remaining |
-| 5. Compose UI (Stellarium-style) | Waiting on Stitch designs |
-| 5b. Offline events | Meteor data done; transits, occultations, comets, eclipses/rare events, ISS not started |
+| 4. Stellarium offline data | Done except constellation artwork: importer, comets/asteroids, Android catalogue loader with grid index and search |
+| 5. Compose UI (Stellarium-style) | v1 done: sky view, alignment, guidance, search, events, night mode. Missing: atmosphere, Milky Way, landscapes, light-pollution slider, constellation art, settings, onboarding, help, localisation |
+| 5b. Offline events | Moon phases, eclipses, equinoxes/solstices, rise/set, conjunctions, meteor peaks, bright comets done. Missing: occultations, transits, ISS passes, supermoons, planet gatherings |
 | 6. AstroGuide v1 (offline voice) | Not started |
 | 7. Release | Not started |
 
 ---
 
 ## Entries
+
+### 2026-09-28: Phases 4-5 v1 (catalogue, comets, events, sky view)
+
+**What was done** (all in the Android repo, saved as `handoff/astrofixxer-android.bundle`, `main` at `98906c5`)
+- **Comets and asteroids.**
+  - Importer: `minor_bodies.json` has 461 bodies (115 comets) from Stellarium `data/ssystem_minor.ini`.
+  - Kotlin: `MinorBody` solves elliptic, parabolic and hyperbolic two-body orbits, with light time. Magnitudes use Stellarium's comet formula and the asteroid H–G system.
+- **Offline events** (`Events.kt`): moon phases, lunar/solar eclipses, equinoxes/solstices (of date), J2000 solar longitude (meteors), rise/set, conjunctions.
+- **Catalogue** (`Catalog.kt`): loads `sky_catalog.json.gz` (102,907 objects) with a 10°×10° grid for field-of-view queries and a name index. Uses the same normalisation as the web app, plus Indian names and HIP numbers.
+- **Sky view** (`ui/`, no Android imports):
+  - Stellarium-style canvas: zoom-dependent magnitude limits, deep-sky symbols, constellation lines and names (modern or Indian), Sun/Moon/planets, comets brighter than mag 11, horizon, cardinal points, optional alt/az grid.
+  - Pinch zoom, tap to target, Manual-mode drag.
+  - One-star alignment and the ΔAlt/ΔAz guidance panel.
+  - Info overlay, Find, Events list (tap an event to jump the sky to that time; "Now" returns), red-only Night mode.
+- **`MainActivity`**: rotation-vector sensor (game rotation vector plus Manual mode when there's no compass), smoothed with an adjustable factor. Also last known location with a permission request, background asset loading, a 1 s clock, portrait only.
+- **Importer**: the gzip output is now reproducible (mtime 0).
+
+**How to verify**
+- JVM harness (astro package + tests), **24 tests pass**:
+  - golden values vs the web app
+  - parser
+  - orbits vs VSOP87 using JPL J2000 elements
+  - events vs published 2026 dates
+  - catalogue search and `near()`
+- Measured errors against published 2026 values:
+
+  | Event | Error |
+  |---|---|
+  | Full moon | +0.2 min |
+  | Lunar eclipse maximum | +0.9 min |
+  | New moon | +5.6 min |
+  | Equinox | −5.8 min |
+  | Delhi sunrise / sunset | −0.5 / +2.9 min |
+  | Lunar eclipse umbral magnitude | 1.136 (published 1.151) |
+- UI: `ui/` + `astro/` were compiled against **Compose Multiplatform 1.5.12 (desktop)** and rendered headlessly with `ImageComposeScene`. Screens are in `docs/screens/`.
+  - The first render caught a real crash: `drawText` throws for labels past the right edge. Fixed with `safeText`.
+  - Renders also showed wrapped toolbar labels, clutter from obscure IDs, and grey outlines in Night mode. All fixed.
+- Catalogue load time: 2.6 s on this machine's JVM (cold). It loads in the background on the phone; measure on a device.
+- **Not compiled here:** `MainActivity` and the Gradle Android build (Google Maven blocked). They were reviewed by hand. First real build: GitHub Actions after the repo is pushed.
+
+**Decisions**
+- Kept (ponytail):
+  - `LocationManager` last-known fix instead of Play Services.
+  - Magnetic declination not applied; alignment absorbs it.
+  - Element-wise sensor smoothing.
+  - Events computed once after loading.
+- Deep-sky labels only for M/NGC/IC/Caldwell objects. All objects are still drawn and searchable.
+
+**Known issues / not done**
+- Rendering: atmosphere, Milky Way, landscapes, light-pollution slider, constellation artwork.
+- Screens: settings (user objects, watch lists, manual location), onboarding, help, Hindi and other translations.
+- Events: occultations, transits (Mercury/Venus, ISS), ISS passes (needs TLE download; CelesTrak blocked here), supermoons, planet gatherings.
+- `String.format` uses the default locale; check digits for Hindi.
+- The repo `Zenithquonta/astrofixxer-android` still doesn't exist, so CI hasn't run.
+
+**Next step**
+- Owner: create the repo (see the previous entry for the push commands).
+- Me: occultations/transits/rare events (testable on the JVM), then the remaining Stellarium rendering features, checked with desktop renders.
 
 ### 2026-09-28: Phase 2 (Android skeleton) and Phase 3 (astronomy core)
 
