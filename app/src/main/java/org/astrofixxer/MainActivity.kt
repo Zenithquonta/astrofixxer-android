@@ -48,7 +48,7 @@ import org.astrofixxer.ui.solarSystem
 import org.astrofixxer.ui.upcomingEvents
 import java.io.File
 import java.net.HttpURLConnection
-import java.net.URL
+import java.net.URI
 import java.util.Locale
 import kotlin.math.PI
 
@@ -186,7 +186,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         val cache = File(filesDir, "tle.txt")
         if (!cache.exists() || System.currentTimeMillis() - cache.lastModified() > 24 * 3600 * 1000L) {
             runCatching {
-                val conn = URL("https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle").openConnection() as HttpURLConnection
+                val conn = URI("https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle").toURL().openConnection() as HttpURLConnection
                 conn.connectTimeout = 8000
                 conn.readTimeout = 8000
                 val bytes = conn.inputStream.use { it.readBytes() }
