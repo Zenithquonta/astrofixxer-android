@@ -148,7 +148,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             LaunchedEffect(Unit) {
                 val bodies = withContext(Dispatchers.IO) { MinorBody.parse(assets.open("minor_bodies.json").bufferedReader().readText()) }
                 comets = bodies.filter { it.isComet }
-                catalog = withContext(Dispatchers.IO) { assets.open("sky_catalog.json.gz").use { Catalog.load(it) } }
+                catalog = withContext(Dispatchers.IO) { openCatalog().use { Catalog.load(it) } }
                 state.applyUserText(catalog)
                 val showers = withContext(Dispatchers.IO) { parseMeteorShowers(assets.open("meteor_showers.json").bufferedReader().readText()) }
                 val brightStars = catalog!!.objects.filter { it.type == "S" && (it.mag ?: 99.0) <= 3.5 }.map { Triple(it.name, it.ra, it.dec) }
@@ -220,6 +220,9 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         if (!cache.exists()) return@withContext emptyList()
         Sgp4.parse(cache.readText()).filter { it.catalogNumber == "25544" || it.catalogNumber == "48274" } // ISS, Tiangong
     }
+
+    /** The packager stores sky_catalog.json.gz unzipped as sky_catalog.json; accept either so a build-tool change can't break startup. */
+    private fun openCatalog() = runCatching { assets.open("sky_catalog.json") }.getOrElse { assets.open("sky_catalog.json.gz") }
 
     private fun ask() {
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) listen()

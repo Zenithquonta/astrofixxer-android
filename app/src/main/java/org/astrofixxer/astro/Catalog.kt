@@ -2,6 +2,7 @@ package org.astrofixxer.astro
 
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.BufferedInputStream
 import java.io.InputStream
 import java.util.zip.GZIPInputStream
 import kotlin.math.PI
@@ -113,9 +114,16 @@ class Catalog(val objects: List<SkyObject>, val constellations: Map<String, List
 
         private fun JSONArray.strings() = List(length()) { getString(it) }
 
-        /** Loads sky_catalog.json.gz written by tools/stellarium_import/build_sky_data.py. */
-        fun load(gz: InputStream, dsoMagLimit: Double = 99.0): Catalog {
-            val root = JSONObject(GZIPInputStream(gz).bufferedReader().readText())
+        /**
+         * Loads the catalogue written by tools/stellarium_import/build_sky_data.py, gzipped or not: Android's asset packager
+         * unzips `.gz` assets and drops the extension, so on a phone it arrives as plain `sky_catalog.json`.
+         */
+        fun load(input: InputStream, dsoMagLimit: Double = 99.0): Catalog {
+            val buffered = BufferedInputStream(input)
+            buffered.mark(2)
+            val gzipped = buffered.read() == 0x1f && buffered.read() == 0x8b
+            buffered.reset()
+            val root = JSONObject((if (gzipped) GZIPInputStream(buffered) else buffered).bufferedReader().readText())
             val objects = mutableListOf<SkyObject>()
             val byHip = HashMap<Int, SkyObject>()
             val stars = root.getJSONArray("stars")

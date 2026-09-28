@@ -30,6 +30,12 @@ jobs:
       - run: ./gradlew test assembleDebug assembleRelease assemblePreview
         env:
           ASTROFIXXER_PREVIEW_PASSWORD: ${{ secrets.PREVIEW_KEYSTORE_PASSWORD }}
+      # The app can't start without its data: fail if the packaged APK is missing any of it.
+      - name: Check the APK carries the sky data
+        run: |
+          for f in assets/sky_catalog.json assets/minor_bodies.json assets/meteor_showers.json assets/art/modern/ assets/art/indian/; do
+            unzip -l app/build/outputs/apk/preview/app-preview.apk | grep -q " $f" || { echo "::error::$f is missing from the APK"; exit 1; }
+          done
       - uses: actions/upload-artifact@v4
         with:
           name: app-debug

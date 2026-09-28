@@ -55,4 +55,11 @@ class CatalogTest {
         assertTrue(hips.isNotEmpty())
         assertTrue(hips.count { it in catalog.starsByHip } > hips.size / 2)
     }
+
+    @Test fun loadsTheUnzippedCatalogueThatAndroidPackages() {
+        val plain = java.util.zip.GZIPInputStream(File("src/main/assets/sky_catalog.json.gz").inputStream()).use { it.readBytes() }
+        val fromPlain = Catalog.load(plain.inputStream())
+        assertEquals(catalog.objects.size, fromPlain.objects.size)
+        assertEquals("M31", fromPlain.find("Andromeda Galaxy")?.name)
+    }
 }

@@ -22,6 +22,7 @@ The first Android version: a Kotlin + Jetpack Compose port of the AstroFixxer we
 Each fix is covered by a test in `app/src/test` or `tools/desktop-check`.
 
 **Crashes**
+- On a real phone the app would crash at launch: Android's packager unzips `.gz` assets and renames them, so `sky_catalog.json.gz` could not be found. Found by inspecting the first APK built on GitHub; the catalogue now loads either way, and CI checks every APK carries its sky data.
 - Typing an over-long number as a coordinate in My objects (for example `99999999999:00`) closed the app on Save. Declinations past the pole (`90:30`) were also accepted.
 - Zoomed in, labels of stars far off the screen broke text layout and closed the app.
 - A constellation picture that failed to load closed the app.
