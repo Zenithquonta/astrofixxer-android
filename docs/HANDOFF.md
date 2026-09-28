@@ -37,6 +37,22 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 
 ## Entries
 
+### 2026-09-28: Direct APK download live; launch crash fixed; README animations
+
+**What was done** (Android `main` at `3cca8cb`, saved in `handoff/astrofixxer-android.bundle`)
+- **Direct download:** the "Android APK" workflow now publishes `AstroFixxer.apk` as this repository's *Latest* GitHub Release on every push.
+  - Link: https://github.com/Zenithquonta/astrofixer-baby/releases/download/android-latest/AstroFixxer.apk
+  - Verified by downloading it anonymously: HTTP 200, a signed APK with package `org.astrofixxer.preview`, version `0.1.0-preview`.
+  - Signing: with no preview secrets set, each build is signed with that run's throwaway debug key (private and never reused), so installing a newer build means uninstalling the old one. Adding the secrets switches to the permanent key.
+- **Launch crash fixed:**
+  - Found by inspecting that APK: Android's packager unzips `.gz` assets and drops the extension, so `assets.open("sky_catalog.json.gz")` would have crashed every phone at startup.
+  - Fix: `Catalog.load` now sniffs gzip or plain JSON, and `MainActivity` opens whichever name exists. There is a new unit test (39 in total).
+  - CI in both repositories now fails if the APK is missing its sky data.
+- **README:** new pixel animations from `tools/repo-art/cosmos.py`, used in both READMEs:
+  - a turning spiral galaxy, in a new "A galaxy in your pocket" section;
+  - a planets strip: Moon phases, Jupiter's Great Red Spot, Saturn's rings, and Mars;
+  - twinkling star dividers between sections.
+
 ### 2026-09-28: First real Android build passes on GitHub
 
 **What was done**
