@@ -37,6 +37,24 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 
 ## Entries
 
+### 2026-09-28: Anyone can download, build and fork; credit to skyhopper
+
+**What was done** (Android `main` at `e5b9079`, saved in `handoff/astrofixxer-android.bundle`)
+- **Downloads:**
+  - Android repo: every push to `main` publishes `AstroFixxer.apk` to a rolling `latest-build` release; `v*` tags publish a release with the signed APK.
+  - This repo: `.github/workflows/android-apk.yml` builds the app from the bundle and publishes `AstroFixxer.apk` as the `android-latest` release, so there is a public download link now.
+- **Preview build type:** optimised like a release, signed with the public `app/preview.keystore`, application ID `org.astrofixxer.preview`. Anyone can build it with no secrets, and updates install over each other.
+- **Docs:**
+  - READMEs (both repos): Download section with a direct link, "Build it yourself", and the GPL terms for forks.
+  - `CONTRIBUTING.md` in the Android repo.
+- **Credits:** AstroHopper's source, github.com/artyom-beilis/skyhopper, is credited in both READMEs, the in-app licences and the store listing.
+
+**How to verify**
+- The Actions run "Android APK" in this repository is the first real Android build. It runs the app's tests and `assemblePreview`.
+
+**Known issues / not done**
+- The Android repo is private and still unreachable from this session, so its own release links only work once it is public and pushed.
+
 ### 2026-09-28: README with the new design, published in this repository
 
 **What was done**
