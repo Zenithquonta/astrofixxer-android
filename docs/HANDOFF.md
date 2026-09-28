@@ -11,6 +11,7 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 | Local clone of upstream (not committed, 4.7 GB) | `AstroFixxer/` (gitignored) |
 | Stitch UI prompt | `docs/STITCH_UI_PROMPT.md` |
 | Implementation plan | `docs/IMPLEMENTATION_PLAN.md` |
+| Field test protocol | `docs/FIELD_TEST.md` |
 | Fixed web app (deploy root) | `web/` |
 | Stellarium importer | `tools/stellarium_import/` |
 | Android app | `Zenithquonta/astrofixxer-android` (not created yet); until then the repo is saved as `handoff/astrofixxer-android.bundle` |
@@ -28,12 +29,39 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 | 5. Compose UI (Stellarium-style) | Done: sky view, atmosphere, Milky Way, landscapes, light pollution, artwork, alignment, guidance, search, events, lists, onboarding, help, night mode, Hindi. Not yet built for Android (no CI until the repo exists) |
 | 5b. Offline events | Done, including ISS/Tiangong passes and Sun/Moon transits (SGP4). The live TLE download is untested here (CelesTrak blocked) |
 | 6. AstroGuide v1 (offline voice) | Done: English and Hindi commands, speech in/out |
-| 7. Release | Not started: needs the owner's signing key and Play account |
+| 7. Release | Prepared: signing via CI secrets, signed-bundle workflow on tags, R8 in CI, launcher icon, privacy policy, store listing, field-test protocol. Needs the owner: upload key, Play account, repo made public, field test, screenshots |
 
 
 ---
 
 ## Entries
+
+### 2026-09-28: Phase 7 release preparation
+
+**What was done** (Android `main` at `e2f786d`, saved in `handoff/astrofixxer-android.bundle`)
+- **Signing:**
+  - `app/build.gradle.kts` reads the upload key from `ASTROFIXXER_KEYSTORE`, `ASTROFIXXER_KEYSTORE_PASSWORD`, `ASTROFIXXER_KEY_ALIAS` and `ASTROFIXXER_KEY_PASSWORD`. Without them, release builds are unsigned. No key is in git.
+  - `.github/workflows/release.yml` builds a signed `app-release.aab` when a `v*` tag is pushed, using the secrets `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS` and `KEY_PASSWORD`.
+- **R8:** CI now also runs `assembleRelease`, so R8 and release lint run on every push. No keep rules were needed: there is no reflection or serialization, `org.json` is part of the platform, and Compose and Kotlin ship their own rules. Resource shrinking is on.
+- **Launcher icon** (there was none): an adaptive vector icon (a finder reticle around a star, with a themed monochrome layer) and `store/icon-512.png` for Play.
+- **Licence screen:** the Help text now gives the source URL (`SOURCE_URL` in `SkyScreen.kt`). The GPL requires offering the source, so **the repo must be public before publishing**.
+- **`PRIVACY.md`:**
+  - Covers location (used on the phone, not saved), the microphone (the phone's speech service, which may be online) and the internet (the CelesTrak download only).
+  - States that there are no accounts, ads or analytics.
+- **`store/listing.md`:** short and full description (each feature claim checked against the code), category, data-safety answers and the graphics still needed.
+- **Planning repo:** `docs/FIELD_TEST.md` gives the protocol, record sheet and pass criteria for the plan's field test.
+- **README:** added the release steps.
+
+**How to verify**
+- `MainActivity` still compiles against the Android 14 classes, and the UI render tests pass.
+- The Gradle signing block and both workflows have not run yet (the Android plugin comes from Google Maven, which is blocked here). The first CI run checks them.
+
+**Known issues / not done**
+- There is no feature graphic and there are no screenshots: they need a real phone at night.
+- `versionCode` has to be bumped by hand for each release.
+
+**Next step**
+- Owner: create the repo, then generate the upload key (README, "Releasing to Google Play") and add the 4 secrets. Run the field test using `docs/FIELD_TEST.md`.
 
 ### 2026-09-28: MainActivity checked against the Android framework
 
