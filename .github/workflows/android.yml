@@ -17,8 +17,19 @@ jobs:
           distribution: temurin
           java-version: 17
       - uses: gradle/actions/setup-gradle@v4
+      # The preview signing key lives only in the PREVIEW_KEYSTORE_BASE64 / PREVIEW_KEYSTORE_PASSWORD secrets.
+      - name: Restore preview signing key
+        env:
+          PREVIEW_KEYSTORE_BASE64: ${{ secrets.PREVIEW_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$PREVIEW_KEYSTORE_BASE64" ]; then
+            echo "$PREVIEW_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/preview.jks"
+            echo "ASTROFIXXER_PREVIEW_KEYSTORE=$RUNNER_TEMP/preview.jks" >> "$GITHUB_ENV"
+          fi
       # assembleRelease runs R8 and release lint on every push, so shrinking problems show up before a release.
       - run: ./gradlew test assembleDebug assembleRelease assemblePreview
+        env:
+          ASTROFIXXER_PREVIEW_PASSWORD: ${{ secrets.PREVIEW_KEYSTORE_PASSWORD }}
       - uses: actions/upload-artifact@v4
         with:
           name: app-debug
@@ -26,7 +37,7 @@ jobs:
       # Every push to main refreshes the "latest-build" release, so
       # https://github.com/<owner>/<repo>/releases/download/latest-build/AstroFixxer.apk always has the newest app.
       - name: Publish latest build
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && env.ASTROFIXXER_PREVIEW_KEYSTORE != ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -53,3 +64,14 @@ jobs:
         with:
           name: ui-screens
           path: tools/desktop-check/build/screens
+
+  # Fails the build if a key, token or password is committed.
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}

@@ -29,6 +29,8 @@
 
 New builds install over the old one and keep your lists. Numbered versions are on the [Releases](../../releases) page.
 
+What changed in each update, including every bug fix, is in **[CHANGELOG.md](CHANGELOG.md)**.
+
 ---
 
 ## How it works
@@ -119,9 +121,9 @@ cd astrofixxer-android
 python3 tools/repo-art/make_art.py           # regenerates the pixel art (needs Pillow)
 ```
 
-The `preview` build is optimised like a release and signed with the public key in `app/preview.keystore`, so anyone's build
-installs and updates the same way. It has its own application ID (`org.astrofixxer.preview`), so it sits next to a Play Store
-copy instead of replacing it.
+The `preview` build is optimised like a release and has its own application ID (`org.astrofixxer.preview`), so it sits
+next to a Play Store copy instead of replacing it. Your own build is signed with your computer's debug key. The official
+downloads are signed with a key kept in GitHub Secrets, so only this repository can publish updates to them (see `SECURITY.md`).
 
 ## Make it your own
 

@@ -18,6 +18,7 @@ android {
 
     // Release signing comes from the environment (CI secrets), never from the repo. Without it, release builds are unsigned.
     val keystore = System.getenv("ASTROFIXXER_KEYSTORE")
+    val previewKeystore = System.getenv("ASTROFIXXER_PREVIEW_KEYSTORE")
     signingConfigs {
         if (keystore != null) create("release") {
             storeFile = file(keystore)
@@ -25,13 +26,13 @@ android {
             keyAlias = System.getenv("ASTROFIXXER_KEY_ALIAS")
             keyPassword = System.getenv("ASTROFIXXER_KEY_PASSWORD")
         }
-        // Public key for the free-download preview build only, so each new preview installs over the last.
-        // Google Play releases use the private upload key above; the preview has its own application ID.
-        create("preview") {
-            storeFile = file("preview.keystore")
-            storePassword = "astrofixxer-preview"
+        // Key for the downloadable preview build, also from the environment (a CI secret), so official downloads
+        // update each other and nobody else can sign a look-alike update. Without it, preview builds use the debug key.
+        if (previewKeystore != null) create("preview") {
+            storeFile = file(previewKeystore)
+            storePassword = System.getenv("ASTROFIXXER_PREVIEW_PASSWORD")
             keyAlias = "preview"
-            keyPassword = "astrofixxer-preview"
+            keyPassword = System.getenv("ASTROFIXXER_PREVIEW_PASSWORD")
         }
     }
 
@@ -47,7 +48,7 @@ android {
             initWith(getByName("release"))
             applicationIdSuffix = ".preview"
             versionNameSuffix = "-preview"
-            signingConfig = signingConfigs.getByName("preview")
+            signingConfig = signingConfigs.getByName(if (previewKeystore != null) "preview" else "debug")
             matchingFallbacks += listOf("release")
         }
     }

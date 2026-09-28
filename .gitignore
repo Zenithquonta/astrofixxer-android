@@ -6,3 +6,13 @@ local.properties
 *.iml
 captures/
 __pycache__/
+# Keys and credentials never go in git (they live in GitHub Secrets).
+*.jks
+*.keystore
+*.p12
+*.pem
+*.key
+.env
+.env.*
+google-services.json
+secrets.properties
