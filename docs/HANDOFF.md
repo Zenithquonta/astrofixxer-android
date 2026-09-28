@@ -13,7 +13,7 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 | Implementation plan | `docs/IMPLEMENTATION_PLAN.md` |
 | Fixed web app (deploy root) | `web/` |
 | Stellarium importer | `tools/stellarium_import/` |
-| Android app | New repo (name to be confirmed) |
+| Android app | `Zenithquonta/astrofixxer-android` (not created yet); until then the repo is saved as `handoff/astrofixxer-android.bundle` |
 | Codebase analysis (web page) | https://claude.ai/artifact/SMf5adtidjB5CsJt5ZrxNW |
 
 ## Current status
@@ -22,8 +22,8 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 |---|---|
 | 0. Analysis, UI prompt, plan | Done |
 | 1. Web app fixes + Stellarium data | Done (`web/`); needs a Vercel project with root `web` |
-| 2. Android project setup | Blocked: new repo not created yet |
-| 3. Astronomy core | Not started |
+| 2. Android project setup | Done locally; waiting for the GitHub repo to push and run CI |
+| 3. Astronomy core | Done: reduction, pointing, alignment, parser; golden tests pass on the JVM |
 | 4. Stellarium offline data | Importer done; comets, artwork and Android loader remaining |
 | 5. Compose UI (Stellarium-style) | Waiting on Stitch designs |
 | 5b. Offline events | Meteor data done; transits, occultations, comets, eclipses/rare events, ISS not started |
@@ -33,6 +33,63 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 ---
 
 ## Entries
+
+### 2026-09-28: Phase 2 (Android skeleton) and Phase 3 (astronomy core)
+
+**What was done**
+- Tried to create `Zenithquonta/astrofixxer-android` (private) as approved. The session's GitHub integration can't create repositories (403 "Resource not accessible by integration"), so the owner must create it. Until then, the repo is saved as a git bundle in this branch: `handoff/astrofixxer-android.bundle` (branch `main`, commit `758dd8d`).
+- Android project (ponytail stack):
+  - One `app` module, Kotlin 2.1.0, AGP 8.7.3, Compose BOM 2024.12.01, minSdk 26 / target 35, JUnit4.
+  - No Hilt, Room, Navigation, Ktor or kotlinx.serialization.
+  - Gradle wrapper 8.11.1, GPLv3 `LICENSE`, README, CI workflow `.github/workflows/android.yml` (`./gradlew test assembleDebug`, uploads the debug APK).
+  - `MainActivity` is a placeholder screen with live Alt/Az for the Sun, Moon and planets over New Delhi, proving the core runs on device. It gets replaced by the sky view in Phase 5.
+- Astronomy core in `app/src/main/java/org/astrofixxer/astro/`:
+  - `ApparentPosition` (`CPReduce` port) and `JulianDate`.
+  - `Pointing`: `rayFromPos`, W3C rotation matrix, camera rays, one-star `alignMatrix`, `bearing`, plus new `deltaAltAz`.
+  - `CoordinateParser`.
+- VSOP87: copied the public-domain Java series from `vsop87-multilang` (`package` line added).
+  - Planets use `xsmall`, as in the web app.
+  - **Earth and the Earth–Moon barycentre use `large`**. Checked by term count (earth_x 417, emb_x 398, earth_z 85), so the embedded "xsmall" class in the web app is actually a mix. A small public adapter `Vsop87LargeEarth.java` exposes the package-private `large` methods.
+  - Earth velocity uses `milli_velocities`.
+- Golden values: `tools/golden/golden_from_web.js` runs the web app's own JS in Node and writes `app/src/test/resources/golden.json`:
+  - 135 reductions: 9 bodies × 5 dates × Delhi/Bengaluru/Leh
+  - 15 star rays
+  - 4 rotation matrices
+  - 3 full alignment flows: Vega→M57, Altair→M11, Deneb→NGC 7000, with the phone 5–12° off the star
+
+**Files changed**
+- New repo (bundle): `settings.gradle.kts`, `build.gradle.kts`, `gradle.properties`, `gradlew*`, `gradle/wrapper/*`, `app/build.gradle.kts`, `app/src/main/AndroidManifest.xml`, `app/src/main/res/values/strings.xml`, `MainActivity.kt`, `astro/*.kt`, `astro/vsop87/*.java` (22 files), `app/src/test/...`, `.github/workflows/android.yml`, `README.md`, `LICENSE`, `.gitignore`
+- This repo: `tools/golden/golden_from_web.js`, `handoff/astrofixxer-android.bundle`, `.gitignore`, `docs/HANDOFF.md`
+
+**How to verify**
+- This sandbox can't build Android: Google's Maven repository (`dl.google.com`) is blocked and there's no Android SDK. The astro package and its tests were compiled and run on the JVM with a throwaway Kotlin/JVM Gradle project over the same source files: **8/8 tests pass**.
+  - All 135 reductions match the web app to 1e-9 rad.
+  - Rays, rotations and alignment match to 1e-12.
+  - After alignment the star bearing is exactly [0, 0, 1].
+  - Parser table tests pass.
+- The first full Android build (`./gradlew test assembleDebug`) will run in GitHub Actions after the push.
+
+**Decisions**
+- Default location before GPS is New Delhi (the web app defaults to 31.9°N 34.8°E, inherited from upstream).
+- Pre-1972 fractional leap-second formulas were dropped from `leapSeconds` (`ponytail:` comment); the golden dates are 2024–2030.
+
+**Known issues / not done**
+- Found, not fixed, in the web app:
+  - Decimal Dec with a Unicode minus ("−5.3") parses to NaN, because `[+-−]` is a character range. Fixed in the Kotlin parser.
+  - `CPReduce`'s doc comment lists outputs as Dec, RA, …, Alt, Az; the code actually returns RA, Dec, …, Az, Alt. The web app uses them correctly; the Kotlin `Result` names the fields.
+- The web app uses J2000 star positions with a plain sidereal time (no precession), about 0.36° off in 2026. The effect largely cancels with one-star alignment near the target, and the Kotlin port keeps the same behaviour for now. Revisit in Phase 5.
+- JPL Horizons spot-check not done (network).
+
+**Next step**
+- Owner: create the empty private repo `Zenithquonta/astrofixxer-android`. Then:
+  ```bash
+  git clone handoff/astrofixxer-android.bundle astrofixxer-android
+  cd astrofixxer-android
+  git remote set-url origin git@github.com:Zenithquonta/astrofixxer-android.git
+  git push -u origin main
+  ```
+  Or add the repo to this session and I'll push it.
+- Then Phase 4 remaining (comets/minor bodies import, constellation art, Android catalogue loader) and the Phase 5b event calculations in `core/astro`.
 
 ### 2026-09-28: Ponytail review approved; Phase 1 done (web fixes + Stellarium data)
 
