@@ -6,7 +6,9 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import org.astrofixxer.astro.ApparentPosition
+import org.astrofixxer.astro.Catalog
 import org.astrofixxer.astro.JulianDate
+import org.astrofixxer.astro.UserLists
 import org.astrofixxer.astro.Pointing
 import org.astrofixxer.astro.SkyObject
 import kotlin.math.PI
@@ -50,6 +52,43 @@ class SkyState(nowMillis: Long, lat: Double, lon: Double) {
     /** Bortle dark-sky scale 1 (pristine) .. 9 (inner city); dims faint stars like Stellarium's light pollution. */
     var bortle by mutableStateOf(4)
     var skyCulture by mutableStateOf("modern")
+
+    /** Raw text the user typed; the host persists these. */
+    var userObjectsText by mutableStateOf("")
+    var watchListText by mutableStateOf("")
+    var userObjects by mutableStateOf<List<SkyObject>>(emptyList())
+    var watchLists by mutableStateOf<List<UserLists.WatchList>>(emptyList())
+    var listIndex by mutableStateOf(-1)
+    var itemIndex by mutableStateOf(0)
+    var showOnboarding by mutableStateOf(false)
+
+    /** Re-parses the user's objects and watch lists; returns the errors to show. */
+    fun applyUserText(catalog: Catalog?): List<String> {
+        val parsed = UserLists.parseObjects(userObjectsText) { catalog?.find(it) != null }
+        userObjects = parsed.objects
+        watchLists = UserLists.parseWatchLists(watchListText)
+        if (listIndex >= watchLists.size) listIndex = -1
+        return parsed.errors
+    }
+
+    fun resolve(name: String, catalog: Catalog?): SkyObject? {
+        val key = Catalog.normalizeName(name)
+        return userObjects.firstOrNull { Catalog.normalizeName(it.name) == key } ?: catalog?.find(name) ?: catalog?.search(name)?.firstOrNull()
+    }
+
+    /** Selects watch list [index] (-1 = none) and targets its first item. */
+    fun selectList(index: Int, catalog: Catalog?) {
+        listIndex = if (index in watchLists.indices) index else -1
+        itemIndex = 0
+        if (listIndex >= 0) target = watchLists[listIndex].items.firstOrNull()?.let { resolve(it.name, catalog) }
+    }
+
+    fun stepWatch(delta: Int, catalog: Catalog?) {
+        val items = watchLists.getOrNull(listIndex)?.items ?: return
+        if (items.isEmpty()) return
+        itemIndex = (itemIndex + delta).mod(items.size)
+        target = resolve(items[itemIndex].name, catalog)
+    }
 
     /** Phone orientation with the manual azimuth offset applied (rotation about the up axis). */
     fun worldDevice(): DoubleArray {

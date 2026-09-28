@@ -186,6 +186,19 @@ private fun DrawScope.drawSky(
         }
     }
 
+    for (u in state.userObjects) {
+        val ray = state.ray(u)
+        if (hideBelowHorizon && ray[2] < 0) continue
+        val p = proj.project(ray) ?: continue
+        val d = 6f
+        val diamond = androidx.compose.ui.graphics.Path().apply {
+            moveTo(p.x - d, p.y); lineTo(p.x, p.y + d); lineTo(p.x + d, p.y); lineTo(p.x, p.y - d); close()
+        }
+        drawPath(diamond, pal.deepSky, style = Stroke(2f))
+        label(u.name, p, pal.deepSky)
+        hits += p to u
+    }
+
     for (m in moving) {
         val ray = state.ray(m.obj)
         if (hideBelowHorizon && ray[2] < 0) continue

@@ -73,6 +73,9 @@ class Catalog(val objects: List<SkyObject>, val constellations: Map<String, List
         return out
     }
 
+    /** Object with exactly this name or catalogue ID (after normalisation), if any. */
+    fun find(name: String): SkyObject? = names[normalizeName(name.trim())]?.firstOrNull()?.let { objects[it] }
+
     /** Exact name match first, then unique-prefix matches, ordered by brightness. */
     fun search(query: String, limit: Int = 20): List<SkyObject> {
         val key = normalizeName(query.trim())

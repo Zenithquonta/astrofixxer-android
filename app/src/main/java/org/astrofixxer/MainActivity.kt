@@ -20,6 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import kotlinx.coroutines.Dispatchers
@@ -63,6 +64,10 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             state.mode = PointingMode.MANUAL
         }
         updateLocation()
+        val prefs = getSharedPreferences("astrofixxer", MODE_PRIVATE)
+        state.userObjectsText = prefs.getString("user_objects", "") ?: ""
+        state.watchListText = prefs.getString("watch_list", "") ?: ""
+        state.showOnboarding = !prefs.getBoolean("onboarding_done", false)
 
         setContent {
             var catalog by remember { mutableStateOf<Catalog?>(null) }
@@ -74,6 +79,12 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             }
             LaunchedEffect(Unit) { permission.launch(Manifest.permission.ACCESS_COARSE_LOCATION) }
             LaunchedEffect(Unit) {
+                snapshotFlow { Triple(state.userObjectsText, state.watchListText, state.showOnboarding) }.collect { (objects, lists, onboarding) ->
+                    prefs.edit().putString("user_objects", objects).putString("watch_list", lists)
+                        .putBoolean("onboarding_done", prefs.getBoolean("onboarding_done", false) || !onboarding).apply()
+                }
+            }
+            LaunchedEffect(Unit) {
                 while (true) {
                     if (state.live) state.timeMillis = System.currentTimeMillis()
                     delay(1000)
@@ -83,6 +94,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 val bodies = withContext(Dispatchers.IO) { MinorBody.parse(assets.open("minor_bodies.json").bufferedReader().readText()) }
                 comets = bodies.filter { it.isComet }
                 catalog = withContext(Dispatchers.IO) { assets.open("sky_catalog.json.gz").use { Catalog.load(it) } }
+                state.applyUserText(catalog)
                 val showers = withContext(Dispatchers.IO) { parseMeteorShowers(assets.open("meteor_showers.json").bufferedReader().readText()) }
                 val brightStars = catalog!!.objects.filter { it.type == "S" && (it.mag ?: 99.0) <= 3.5 }.map { Triple(it.name, it.ra, it.dec) }
                 events = withContext(Dispatchers.Default) {

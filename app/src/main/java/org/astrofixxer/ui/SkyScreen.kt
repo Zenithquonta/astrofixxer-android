@@ -53,9 +53,9 @@ private val NightColors = darkColorScheme(
     outline = Color(0xFF5A0707), outlineVariant = Color(0xFF3A0505), surfaceVariant = Color.Black, onSurfaceVariant = Color(0xFFB00C0C),
 )
 
-private enum class Sheet { NONE, SEARCH, EVENTS, SKY }
+private enum class Sheet { NONE, SEARCH, EVENTS, SKY, LISTS, HELP }
 
-private val TYPE_NAMES = mapOf("S" to "Star", "Ga" to "Galaxy", "Oc" to "Open cluster", "Gc" to "Globular cluster", "Ne" to "Nebula", "P" to "Solar system", "C" to "Comet")
+private val TYPE_NAMES = mapOf("S" to "Star", "Ga" to "Galaxy", "Oc" to "Open cluster", "Gc" to "Globular cluster", "Ne" to "Nebula", "P" to "Solar system", "C" to "Comet", "U" to "My object")
 
 /**
  * The main screen: Stellarium-style sky, info overlay, alignment chip, guidance panel and toolbar.
@@ -78,6 +78,7 @@ fun SkyScreen(
             AlignChip(state, Modifier.align(Alignment.TopEnd).padding(12.dp))
             Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (state.target != null && state.align == AlignState.ALIGNED) GuidancePanel(state)
+                if (state.listIndex >= 0) WatchNavigator(state, catalog)
                 if (catalog == null) Text("Loading sky catalogue…", color = colors.onSurface, modifier = Modifier.padding(start = 8.dp))
                 Toolbar(state,
                     onSearch = { sheet = Sheet.SEARCH },
@@ -87,9 +88,13 @@ fun SkyScreen(
             when (sheet) {
                 Sheet.SEARCH -> SearchSheet(state, catalog, moving) { sheet = Sheet.NONE }
                 Sheet.EVENTS -> EventsSheet(state, events) { sheet = Sheet.NONE }
-                Sheet.SKY -> SkyOptionsSheet(state) { sheet = Sheet.NONE }
+                Sheet.SKY -> SkyOptionsSheet(state, onClose = { sheet = Sheet.NONE }, onLists = { sheet = Sheet.LISTS },
+                    onHelp = { sheet = Sheet.HELP }, onTutorial = { sheet = Sheet.NONE; state.showOnboarding = true })
+                Sheet.LISTS -> ListsSheet(state, catalog) { sheet = Sheet.NONE }
+                Sheet.HELP -> HelpSheet { sheet = Sheet.NONE }
                 Sheet.NONE -> {}
             }
+            if (state.showOnboarding) Onboarding { state.showOnboarding = false }
         }
     }
 }
@@ -191,7 +196,7 @@ private fun SearchSheet(state: SkyState, catalog: Catalog?, moving: List<MovingO
     val results = remember(query, catalog) {
         val q = query.trim()
         if (q.isEmpty()) emptyList()
-        else moving.map { it.obj }.filter { it.name.startsWith(q, ignoreCase = true) } + (catalog?.search(q).orEmpty())
+        else (moving.map { it.obj } + state.userObjects).filter { it.name.startsWith(q, ignoreCase = true) } + (catalog?.search(q).orEmpty())
     }
     SheetFrame("Find", onClose) {
         OutlinedTextField(value = query, onValueChange = { query = it }, singleLine = true, modifier = Modifier.fillMaxWidth(),
@@ -235,9 +240,16 @@ private fun EventsSheet(state: SkyState, events: List<EventItem>?, onClose: () -
 }
 
 @Composable
-private fun SkyOptionsSheet(state: SkyState, onClose: () -> Unit) {
+private fun SkyOptionsSheet(state: SkyState, onClose: () -> Unit, onLists: () -> Unit, onHelp: () -> Unit, onTutorial: () -> Unit) {
     SheetFrame("Sky & viewing", onClose) {
         LazyColumn(Modifier.fillMaxWidth()) {
+            item {
+                Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = onLists, modifier = Modifier.weight(1.4f).heightIn(min = 48.dp)) { Label("My objects & lists") }
+                    OutlinedButton(onClick = onHelp, modifier = Modifier.weight(0.8f).heightIn(min = 48.dp)) { Label("Help") }
+                    OutlinedButton(onClick = onTutorial, modifier = Modifier.weight(0.9f).heightIn(min = 48.dp)) { Label("Tutorial") }
+                }
+            }
             item { Toggle("Constellation lines and names", state.showConstellations) { state.showConstellations = it } }
             item { Toggle("Deep-sky objects", state.showDeepSky) { state.showDeepSky = it } }
             item { Toggle("Milky Way", state.showMilkyWay) { state.showMilkyWay = it } }
@@ -259,6 +271,112 @@ private fun SkyOptionsSheet(state: SkyState, onClose: () -> Unit) {
                 Stepper("Sky culture", if (state.skyCulture == "indian") "Indian (Vedic)" else "Western", onMinus = toggle, onPlus = toggle)
             }
             item { LocationEditor(state) }
+        }
+    }
+}
+
+@Composable
+private fun WatchNavigator(state: SkyState, catalog: Catalog?) {
+    val list = state.watchLists.getOrNull(state.listIndex) ?: return
+    val item = list.items.getOrNull(state.itemIndex)
+    Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surface) {
+        Row(Modifier.padding(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            OutlinedButton(onClick = { state.stepWatch(-1, catalog) }, modifier = Modifier.heightIn(min = 48.dp)) { Text("‹") }
+            Column(Modifier.weight(1f).padding(horizontal = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                val found = item != null && state.resolve(item.name, catalog) != null
+                Text((if (found) "" else "? ") + (item?.name ?: "") + if (item?.comment.isNullOrEmpty()) "" else " · ${item?.comment}",
+                    color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp, maxLines = 1, softWrap = false)
+                Text("${list.name} · ${state.itemIndex + 1}/${list.items.size}", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f), fontSize = 11.sp)
+            }
+            OutlinedButton(onClick = { state.stepWatch(1, catalog) }, modifier = Modifier.heightIn(min = 48.dp)) { Text("›") }
+        }
+    }
+}
+
+@Composable
+private fun ListsSheet(state: SkyState, catalog: Catalog?, onClose: () -> Unit) {
+    var objectsText by remember { mutableStateOf(state.userObjectsText) }
+    var listText by remember { mutableStateOf(state.watchListText) }
+    var errors by remember { mutableStateOf<List<String>>(emptyList()) }
+    SheetFrame("My objects & watch lists", onClose) {
+        LazyColumn(Modifier.fillMaxWidth()) {
+            item {
+                Text("My objects: one per line, name, RA, Dec", color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp)
+                OutlinedTextField(objectsText, { objectsText = it }, modifier = Modifier.fillMaxWidth().heightIn(min = 110.dp),
+                    placeholder = { Text("Comet C/2026 X, 05:35:17, -05:23:28") })
+                Text("Watch lists: \"Name:\" starts a list; items separated by spaces or commas; (comment) after an item",
+                    color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp, modifier = Modifier.padding(top = 12.dp))
+                OutlinedTextField(listText, { listText = it }, modifier = Modifier.fillMaxWidth().heightIn(min = 110.dp),
+                    placeholder = { Text("Tonight: M31 M33 \"Double Cluster\" (low in NE)") })
+                Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = {
+                        state.userObjectsText = objectsText
+                        state.watchListText = listText
+                        errors = state.applyUserText(catalog)
+                    }, modifier = Modifier.heightIn(min = 48.dp)) { Text("Save") }
+                    OutlinedButton(onClick = { objectsText = state.userObjectsText; listText = state.watchListText }, modifier = Modifier.heightIn(min = 48.dp)) { Text("Discard") }
+                }
+                for (e in errors) Text(e, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
+            }
+            item {
+                val names = listOf("None") + state.watchLists.map { it.name }
+                Stepper("Active watch list", names[state.listIndex + 1],
+                    onMinus = { state.selectList(if (state.listIndex < 0) state.watchLists.size - 1 else state.listIndex - 1, catalog) },
+                    onPlus = { state.selectList(if (state.listIndex + 1 >= state.watchLists.size) -1 else state.listIndex + 1, catalog) })
+            }
+        }
+    }
+}
+
+private val HELP = listOf(
+    "Setting up" to "Attach the phone flat on the telescope tube with its top edge pointing where the telescope points. Allow location so the sky matches your place and time.",
+    "Aligning" to "Point the telescope at a bright star or planet near your target, tap Align, then tap that star on the screen. Re-align for each new target; phone sensors drift over a few minutes.",
+    "Finding a target" to "Tap an object on the sky or use Find. Follow the arrows in the guidance panel until both numbers are close to zero.",
+    "Compass and Manual" to "Compass uses the phone's compass. If the alignment star isn't on screen, switch to Manual and drag the sky sideways until it is, then Align.",
+    "Zoom" to "Pinch or use + and −. Fainter stars and deep-sky objects appear as you zoom in.",
+    "Events" to "Moon phases, eclipses, meteor showers, conjunctions, transits, occultations and bright comets for the next 60 days, all worked out on the phone. Tap one to show the sky at that time; Now returns to the present.",
+    "Night mode" to "Turns everything red to protect your dark adaptation. Also lower the screen brightness.",
+    "My objects and watch lists" to "Add your own objects by RA/Dec, and lists of targets to step through with ‹ and › during a session.",
+    "Offline" to "Everything works without internet. The star, deep-sky and constellation data come from Stellarium and ship inside the app.",
+)
+
+@Composable
+private fun HelpSheet(onClose: () -> Unit) {
+    SheetFrame("Help", onClose) {
+        LazyColumn(Modifier.fillMaxWidth()) {
+            items(HELP) { (title, body) ->
+                Column(Modifier.padding(vertical = 8.dp)) {
+                    Text(title, color = MaterialTheme.colorScheme.primary, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                    Text(body, color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp)
+                }
+            }
+        }
+    }
+}
+
+private val ONBOARDING = listOf(
+    "Attach the phone" to "Fix the phone flat on the telescope tube, with its top edge pointing where the telescope points.",
+    "Align on a bright star" to "Point the telescope at an easy star or planet near what you want to find, for example Sirius for M41. Tap Align, then tap that star on the screen.",
+    "Can't see the star?" to "The compass may be off near the metal tube. Switch to Manual and drag the sky sideways until the star is under the crosshair, then Align.",
+    "Hop to the target" to "Tap your target and follow the arrows until they reach zero. Re-align for each new target.",
+)
+
+@Composable
+private fun Onboarding(onDone: () -> Unit) {
+    var page by remember { mutableStateOf(0) }
+    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background.copy(alpha = 0.92f)) {
+        Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.Center) {
+            Text("Quick start ${page + 1}/${ONBOARDING.size}", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f), fontSize = 14.sp)
+            Text(ONBOARDING[page].first, color = MaterialTheme.colorScheme.primary, fontSize = 26.sp, fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(vertical = 12.dp))
+            Text(ONBOARDING[page].second, color = MaterialTheme.colorScheme.onBackground, fontSize = 18.sp)
+            Row(Modifier.fillMaxWidth().padding(top = 32.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onDone, modifier = Modifier.weight(1f).heightIn(min = 56.dp)) { Label("Skip") }
+                OutlinedButton(onClick = { page-- }, enabled = page > 0, modifier = Modifier.weight(1f).heightIn(min = 56.dp)) { Label("Back") }
+                Button(onClick = { if (page < ONBOARDING.size - 1) page++ else onDone() }, modifier = Modifier.weight(1f).heightIn(min = 56.dp)) {
+                    Label(if (page < ONBOARDING.size - 1) "Next" else "Start")
+                }
+            }
         }
     }
 }
