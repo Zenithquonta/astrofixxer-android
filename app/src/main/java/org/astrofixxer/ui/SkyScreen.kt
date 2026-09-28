@@ -351,6 +351,11 @@ private fun ListsSheet(state: SkyState, catalog: Catalog?, onClose: () -> Unit) 
     }
 }
 
+private const val LICENCES = "AstroFixxer is free software under the GNU GPL v3; its source code is available from the project's repository. " +
+    "Based on AstroHopper by Artyom Beilis (GPLv3). Deep-sky catalogue, names, meteor showers and comet orbits from Stellarium " +
+    "(GPL-2.0-or-later). Sky cultures from Stellarium (CC BY-SA 4.0); constellation artwork under the Free Art License. " +
+    "Star positions from the HYG database (CC BY-SA). Planet theory VSOP87 and position reduction by Greg Miller (public domain)."
+
 private val HELP = listOf(
     "Setting up" to "Attach the phone flat on the telescope tube with its top edge pointing where the telescope points. Allow location so the sky matches your place and time.",
     "Aligning" to "Point the telescope at a bright star or planet near your target, tap Align, then tap that star on the screen. Re-align for each new target; phone sensors drift over a few minutes.",
@@ -363,11 +368,6 @@ private val HELP = listOf(
     "Offline" to "Everything works without internet. The star, deep-sky and constellation data come from Stellarium and ship inside the app.",
     "Licences and source" to LICENCES,
 )
-
-private const val LICENCES = "AstroFixxer is free software under the GNU GPL v3; its source code is available from the project's repository. " +
-    "Based on AstroHopper by Artyom Beilis (GPLv3). Deep-sky catalogue, names, meteor showers and comet orbits from Stellarium " +
-    "(GPL-2.0-or-later). Sky cultures from Stellarium (CC BY-SA 4.0); constellation artwork under the Free Art License. " +
-    "Star positions from the HYG database (CC BY-SA). Planet theory VSOP87 and position reduction by Greg Miller (public domain)."
 
 @Composable
 private fun HelpSheet(onClose: () -> Unit) {
