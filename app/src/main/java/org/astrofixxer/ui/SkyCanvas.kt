@@ -133,6 +133,7 @@ private fun DrawScope.drawSky(
     val hideBelowHorizon = state.landscape != Landscape.NONE
 
     fun label(s: String, at: Offset, color: Color = pal.label, fontSp: Int = 11) {
+        if (s == state.target?.name) return // the target gets its own highlighted label
         safeText(text, s, at + Offset(6f, -6f - fontSp), TextStyle(color = color, fontSize = fontSp.sp))
     }
 
@@ -227,7 +228,7 @@ private fun DrawScope.drawSky(
         if (p != null) {
             drawCircle(pal.target, 16f, p, style = Stroke(2.5f))
             drawLine(pal.target, mid, p, strokeWidth = 2f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 10f)))
-            label(t.name, p, pal.target, 14)
+            safeText(text, t.name, p + Offset(6f, -20f), TextStyle(color = pal.target, fontSize = 14.sp))
         } else {
             // Off screen: arrow at the edge pointing toward the target.
             val b = Pointing.bearing(tr, cam)

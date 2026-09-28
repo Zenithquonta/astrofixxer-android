@@ -1,6 +1,7 @@
 package org.astrofixxer
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -10,12 +11,17 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.location.LocationManager
 import android.os.Bundle
+import android.speech.RecognitionListener
+import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
+import android.speech.tts.TextToSpeech
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,6 +36,7 @@ import org.astrofixxer.astro.Catalog
 import org.astrofixxer.astro.JulianDate
 import org.astrofixxer.astro.MinorBody
 import org.astrofixxer.astro.SkyObject
+import org.astrofixxer.ui.AstroGuide
 import org.astrofixxer.ui.EventItem
 import org.astrofixxer.ui.MovingObject
 import org.astrofixxer.ui.PointingMode
@@ -38,6 +45,7 @@ import org.astrofixxer.ui.SkyState
 import org.astrofixxer.ui.parseMeteorShowers
 import org.astrofixxer.ui.solarSystem
 import org.astrofixxer.ui.upcomingEvents
+import java.util.Locale
 import kotlin.math.PI
 
 private const val DEFAULT_LAT = 28.6139 // New Delhi until a location fix arrives
@@ -52,6 +60,32 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     private var rotationSensor: Sensor? = null
     private val smoothed = DoubleArray(9)
     private var hasReading = false
+
+    // AstroGuide: offline speech in, text-to-speech out. Latest sky data mirrored from composition.
+    private var recognizer: SpeechRecognizer? = null
+    private var tts: TextToSpeech? = null
+    private var latestCatalog: Catalog? = null
+    private var latestMoving: List<MovingObject> = emptyList()
+    private var latestEvents: List<EventItem>? = null
+    private val micPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> if (granted) listen() }
+    private val guideListener = object : RecognitionListener {
+        override fun onResults(results: Bundle?) {
+            state.guideListening = false
+            val heard = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull() ?: return
+            respond(heard)
+        }
+        override fun onError(error: Int) {
+            state.guideListening = false
+            state.guideAnswer = "Didn't catch that. Tap Ask and try again."
+        }
+        override fun onReadyForSpeech(params: Bundle?) {}
+        override fun onBeginningOfSpeech() {}
+        override fun onRmsChanged(rmsdB: Float) {}
+        override fun onBufferReceived(buffer: ByteArray?) {}
+        override fun onEndOfSpeech() {}
+        override fun onPartialResults(partialResults: Bundle?) {}
+        override fun onEvent(eventType: Int, params: Bundle?) {}
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -68,6 +102,10 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         state.userObjectsText = prefs.getString("user_objects", "") ?: ""
         state.watchListText = prefs.getString("watch_list", "") ?: ""
         state.showOnboarding = !prefs.getBoolean("onboarding_done", false)
+        if (SpeechRecognizer.isRecognitionAvailable(this)) {
+            recognizer = SpeechRecognizer.createSpeechRecognizer(this).apply { setRecognitionListener(guideListener) }
+        }
+        tts = TextToSpeech(this) {}
 
         setContent {
             var catalog by remember { mutableStateOf<Catalog?>(null) }
@@ -124,8 +162,42 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                     else MovingObject(SkyObject("Comet ${c.name}", p.ra * 180 / PI, p.dec * 180 / PI, mag, "C"), MovingObject.Kind.COMET)
                 }
             }
-            SkyScreen(state, catalog, moving, events, art)
+            SideEffect {
+                latestCatalog = catalog
+                latestMoving = moving
+                latestEvents = events
+            }
+            SkyScreen(state, catalog, moving, events, art, onAsk = if (recognizer != null) ::ask else null)
         }
+    }
+
+    private fun ask() {
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) listen()
+        else micPermission.launch(Manifest.permission.RECORD_AUDIO)
+    }
+
+    private fun listen() {
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+            .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            .putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault().toLanguageTag())
+            .putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
+        state.guideAnswer = null
+        state.guideListening = true
+        recognizer?.startListening(intent)
+    }
+
+    private fun respond(heard: String) {
+        state.guideHeard = heard
+        val reply = AstroGuide.answer(heard, state, latestCatalog, latestMoving, latestEvents)
+        state.guideAnswer = reply.speech
+        tts?.language = if (heard.any { it in '\u0900'..'\u097F' }) Locale.forLanguageTag("hi-IN") else Locale.getDefault()
+        tts?.speak(reply.speech, TextToSpeech.QUEUE_FLUSH, null, "astroguide")
+    }
+
+    override fun onDestroy() {
+        recognizer?.destroy()
+        tts?.shutdown()
+        super.onDestroy()
     }
 
     private fun updateLocation() {

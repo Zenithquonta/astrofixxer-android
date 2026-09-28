@@ -68,6 +68,8 @@ fun SkyScreen(
     moving: List<MovingObject>,
     events: List<EventItem>?,
     art: Map<String, ImageBitmap> = emptyMap(),
+    /** Starts listening for an AstroGuide question; null hides the Ask button (no speech recogniser). */
+    onAsk: (() -> Unit)? = null,
 ) {
     var sheet by remember { mutableStateOf(Sheet.NONE) }
     val colors: ColorScheme = if (state.night) NightColors else DayColors
@@ -79,8 +81,9 @@ fun SkyScreen(
             Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (state.target != null && state.align == AlignState.ALIGNED) GuidancePanel(state)
                 if (state.listIndex >= 0) WatchNavigator(state, catalog)
+                if (state.guideListening || state.guideAnswer != null) GuideBubble(state)
                 if (catalog == null) Text("Loading sky catalogue…", color = colors.onSurface, modifier = Modifier.padding(start = 8.dp))
-                Toolbar(state,
+                Toolbar(state, onAsk,
                     onSearch = { sheet = Sheet.SEARCH },
                     onEvents = { sheet = Sheet.EVENTS },
                     onSky = { sheet = Sheet.SKY })
@@ -161,12 +164,13 @@ private fun Readout(arrow: String, value: Double, label: String) {
 }
 
 @Composable
-private fun Toolbar(state: SkyState, onSearch: () -> Unit, onEvents: () -> Unit, onSky: () -> Unit) {
+private fun Toolbar(state: SkyState, onAsk: (() -> Unit)?, onSearch: () -> Unit, onEvents: () -> Unit, onSky: () -> Unit) {
     val big = Modifier.heightIn(min = 56.dp)
     val pad = PaddingValues(horizontal = 4.dp)
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Button(onClick = { state.startAlign() }, modifier = big.weight(1.4f)) { Text("Align", fontSize = 18.sp) }
+            if (onAsk != null) OutlinedButton(onClick = onAsk, modifier = big.weight(0.9f), contentPadding = pad) { Label("Ask") }
             OutlinedButton(onClick = { state.fovDeg = SkyState.FOV_STEPS.lastOrNull { it < state.fovDeg - 1e-6 } ?: state.fovDeg }, modifier = big.weight(0.7f)) { Text("+", fontSize = 20.sp) }
             Box(big.weight(0.9f), contentAlignment = Alignment.Center) {
                 Text("%.0f°".format(state.fovDeg), color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp, fontFamily = FontFamily.Monospace)
@@ -271,6 +275,20 @@ private fun SkyOptionsSheet(state: SkyState, onClose: () -> Unit, onLists: () ->
                 Stepper("Sky culture", if (state.skyCulture == "indian") "Indian (Vedic)" else "Western", onMinus = toggle, onPlus = toggle)
             }
             item { LocationEditor(state) }
+        }
+    }
+}
+
+@Composable
+private fun GuideBubble(state: SkyState) {
+    Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surface) {
+        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(if (state.guideListening) "Listening…" else "“${state.guideHeard}”",
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f), fontSize = 13.sp)
+                state.guideAnswer?.let { Text(it, color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp) }
+            }
+            OutlinedButton(onClick = { state.guideAnswer = null; state.guideListening = false }, modifier = Modifier.heightIn(min = 48.dp)) { Text("×") }
         }
     }
 }

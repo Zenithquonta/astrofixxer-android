@@ -61,6 +61,10 @@ class SkyState(nowMillis: Long, lat: Double, lon: Double) {
     var listIndex by mutableStateOf(-1)
     var itemIndex by mutableStateOf(0)
     var showOnboarding by mutableStateOf(false)
+    /** AstroGuide: last thing heard and the spoken answer (null when the bubble is closed). */
+    var guideHeard by mutableStateOf("")
+    var guideAnswer by mutableStateOf<String?>(null)
+    var guideListening by mutableStateOf(false)
 
     /** Re-parses the user's objects and watch lists; returns the errors to show. */
     fun applyUserText(catalog: Catalog?): List<String> {
