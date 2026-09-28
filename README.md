@@ -27,7 +27,7 @@
 2. Open the downloaded file. If Android asks, allow your browser or Files app to **install unknown apps**.
 3. Open AstroFixxer and allow location, so the sky matches where you are.
 
-New builds install over the old one and keep your lists. Numbered versions are on the [Releases](../../releases) page.
+If a newer build won't install over the old one, uninstall the old AstroFixxer first. Numbered versions are on the [Releases](../../releases) page.
 
 What changed in each update, including every bug fix, is in **[CHANGELOG.md](CHANGELOG.md)**.
 
@@ -132,6 +132,21 @@ The screenshots in this README are produced by those tests.
 
 <p align="center"><img src="docs/art/divider.gif" width="800" alt=""></p>
 
+## What's in this repository
+
+| Folder | What it is |
+|---|---|
+| `app/` | The Android app (Kotlin + Jetpack Compose). The Gradle project is at the repository root. |
+| `web/` | The AstroFixxer web app (PWA) with its bug fixes. Deploy it with Vercel and *Root Directory* set to `web`. |
+| `tools/stellarium_import/` | Builds the offline sky data from Stellarium and the HYG database. It writes to `data/`, which is not tracked; copy the results into `app/src/main/assets/`. |
+| `tools/desktop-check/` | Runs the real screens on the desktop for the user journeys, the UI audit and the stress tests. |
+| `tools/repo-art/` | Draws Hop and the README's pixel art. |
+| `tools/golden/` | Makes golden test values from the web app's own code. |
+| `docs/` | The implementation plan, the handoff log, the Stitch UI brief, the field test, screenshots and art. |
+| `store/` | The Google Play listing draft and the 512 px icon. |
+
+<p align="center"><img src="docs/art/divider.gif" width="800" alt=""></p>
+
 ## Build it yourself
 
 You don't need any accounts, keys or secrets.
@@ -162,7 +177,6 @@ selling it, as long as your version is also GPLv3 with its source available, and
 change what you like, and your fork's Actions build and publish its own `AstroFixxer.apk` automatically. See `CONTRIBUTING.md` to
 send changes back.
 
-The planning docs, the Stitch UI brief and the handoff log live in `Zenithquonta/astrofixer-baby` under `docs/`.
 
 ## Releasing to Google Play
 

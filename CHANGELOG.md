@@ -10,6 +10,8 @@ The first Android version: a Kotlin + Jetpack Compose port of the AstroFixxer we
 
 ### Download and build (28 Sep 2026)
 
+- Changed: one repository for everything. The planning repository (web app, data tools, docs) was merged into this one with its history, so the Android app, web app, importer and docs now live together.
+
 - Added: anyone can download `AstroFixxer.apk` from GitHub Releases. Every push to `main` refreshes the `latest-build` release, and version tags publish a signed release.
 - Added: a `preview` build type that anyone can build with no keys or accounts (`./gradlew installPreview`). It has its own ID (`org.astrofixxer.preview`).
 - Security: the preview signing key is no longer in the repository. Official downloads are signed with a key in GitHub Secrets, and other builds use the local debug key. The briefly committed `app/preview.keystore` was retired before anything signed with it was published.
@@ -108,7 +110,7 @@ Each fix is covered by a test in `app/src/test` or `tools/desktop-check`.
 
 - The coordinate parser now accepts the Unicode minus sign (−), which the web app rejected.
 
-## Web app (`web/` in the planning repository)
+## Web app (`web/`)
 
 ### Fixed (28 Sep 2026)
 

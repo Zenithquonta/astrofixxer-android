@@ -20,7 +20,7 @@ Both run in CI on every push and pull request. If you change a screen, look at t
 ## House rules
 
 - **Offline first.** Everything except the daily satellite-orbit refresh must work without internet. Sky data is built in by
-  `tools/stellarium_import` in the planning repository and ships in `app/src/main/assets`.
+  `tools/stellarium_import` (output in `data/`, copied to `app/src/main/assets`).
 - **`ui/` and `astro/` stay free of Android imports**, so the desktop check can run the real screens and maths.
 - **Every text a user sees goes through `t("…")`**, with a Hindi entry in `ui/I18n.kt`. Keep controls at least 48 dp; the audit checks this.
 - **Keep it simple.** Prefer the platform and the standard library over new dependencies, and explain any shortcut in a

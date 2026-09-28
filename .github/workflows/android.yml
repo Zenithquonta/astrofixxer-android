@@ -18,6 +18,9 @@ jobs:
           java-version: 17
       - uses: gradle/actions/setup-gradle@v4
       # The preview signing key lives only in the PREVIEW_KEYSTORE_BASE64 / PREVIEW_KEYSTORE_PASSWORD secrets.
+      # With the PREVIEW_KEYSTORE_BASE64 / PREVIEW_KEYSTORE_PASSWORD secrets, the downloadable APK is signed with the permanent
+      # private key, so each download installs over the last. Without them it is signed with the throwaway debug key Gradle
+      # creates on this runner: still private and never reused, but a newer build then needs the old one uninstalled.
       - name: Restore preview signing key
         env:
           PREVIEW_KEYSTORE_BASE64: ${{ secrets.PREVIEW_KEYSTORE_BASE64 }}
@@ -25,6 +28,8 @@ jobs:
           if [ -n "$PREVIEW_KEYSTORE_BASE64" ]; then
             echo "$PREVIEW_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/preview.jks"
             echo "ASTROFIXXER_PREVIEW_KEYSTORE=$RUNNER_TEMP/preview.jks" >> "$GITHUB_ENV"
+          else
+            echo "::warning::PREVIEW_KEYSTORE_BASE64 is not set: the published APK is signed with this run's throwaway debug key."
           fi
       # assembleRelease runs R8 and release lint on every push, so shrinking problems show up before a release.
       - run: ./gradlew test assembleDebug assembleRelease assemblePreview
@@ -40,18 +45,27 @@ jobs:
         with:
           name: app-debug
           path: app/build/outputs/apk/debug/app-debug.apk
-      # Every push to main refreshes the "latest-build" release, so
+      # Every push to main refreshes the "latest-build" release, shown as the repository's Latest release, so
       # https://github.com/<owner>/<repo>/releases/download/latest-build/AstroFixxer.apk always has the newest app.
       - name: Publish latest build
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && env.ASTROFIXXER_PREVIEW_KEYSTORE != ''
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           cp app/build/outputs/apk/preview/app-preview.apk AstroFixxer.apk
+          if [ -n "$ASTROFIXXER_PREVIEW_KEYSTORE" ]; then
+            update="New builds install over the old one and keep your lists."
+          else
+            update="Each build is signed with a new one-off key, so uninstall the old AstroFixxer before installing a newer one."
+          fi
           gh release delete latest-build --cleanup-tag --yes || true
-          gh release create latest-build AstroFixxer.apk --prerelease --target "$GITHUB_SHA" \
-            --title "Latest build" \
-            --notes "Built automatically from ${GITHUB_SHA::7}. Tap AstroFixxer.apk on an Android phone to install (allow installing unknown apps when asked)."
+          gh release create latest-build AstroFixxer.apk --latest --target "$GITHUB_SHA" \
+            --title "AstroFixxer for Android" \
+            --notes "Built and tested automatically from ${GITHUB_SHA::7}.
+
+          **Install:** on an Android 8+ phone, tap **AstroFixxer.apk** below, open the downloaded file, and allow installing unknown apps if asked. $update
+
+          What changed: see [CHANGELOG.md](https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_SHA/CHANGELOG.md)."
 
   # The real Compose screens on the desktop JVM: user journeys, the layout/accessibility audit and stress tests.
   ui-check:

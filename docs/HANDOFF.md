@@ -7,14 +7,16 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 | Item | Location |
 |---|---|
 | Upstream web app (read-only reference) | `github.com/AadidevRaizada/AstroFixxer`, analysed at commit `6af76ce` |
-| This planning repo | `zenithquonta/astrofixer-baby`, branch `claude/astrofixxter-analysis-xouhoi` |
+| This repository (everything) | https://github.com/Zenithquonta/astrofixxer-android, branch `main`. The old planning repo `Zenithquonta/astrofixer-baby` was merged in on 28 Sep 2026 and can be archived |
 | Local clone of upstream (not committed, 4.7 GB) | `AstroFixxer/` (gitignored) |
 | Stitch UI prompt | `docs/STITCH_UI_PROMPT.md` |
 | Implementation plan | `docs/IMPLEMENTATION_PLAN.md` |
 | Field test protocol | `docs/FIELD_TEST.md` |
 | Fixed web app (deploy root) | `web/` |
 | Stellarium importer | `tools/stellarium_import/` |
-| Android app | https://github.com/Zenithquonta/astrofixxer-android (`main`); a copy of its history is also kept in `handoff/astrofixxer-android.bundle` |
+| Android app | `app/` (Gradle project at the repository root) |
+| UI proof suite and repo art | `tools/desktop-check/`, `tools/repo-art/` |
+| Design renders from early phases | `docs/design-renders/` |
 | Codebase analysis (web page) | https://claude.ai/artifact/SMf5adtidjB5CsJt5ZrxNW |
 | Bug-hunt and UI proof report | https://claude.ai/artifact/WxJfBipQQCRwaAE9qAkGYb |
 
@@ -24,10 +26,10 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 |---|---|
 | 0. Analysis, UI prompt, plan | Done |
 | 1. Web app fixes + Stellarium data | Done (`web/`); needs a Vercel project with Root Directory `web` |
-| 2. Android project setup | Done; own repository with green CI (build, UI audit, secret scan). Waiting for the GitHub repo `Zenithquonta/astrofixxer-android` (saved as `handoff/astrofixxer-android.bundle`) |
+| 2. Android project setup | Done; green CI in this repository (build, UI audit, secret scan) |
 | 3. Astronomy core | Done: 36 JVM tests pass |
 | 4. Stellarium offline data | Done: catalogue, comets/asteroids, meteor showers, constellation artwork |
-| 5. Compose UI (Stellarium-style) | Done: sky view, atmosphere, Milky Way, landscapes, light pollution, artwork, alignment, guidance, search, events, lists, onboarding, help, night mode, Hindi. Not yet built for Android (no CI until the repo exists) |
+| 5. Compose UI (Stellarium-style) | Done: sky view, atmosphere, Milky Way, landscapes, light pollution, artwork, alignment, guidance, search, events, lists, onboarding, help, night mode, Hindi. Built and UI-tested in CI |
 | 5b. Offline events | Done, including ISS/Tiangong passes and Sun/Moon transits (SGP4). The live TLE download is untested here (CelesTrak blocked) |
 | 6. AstroGuide v1 (offline voice) | Done: English and Hindi commands, speech in/out |
 | 7. Release | Prepared: signing via CI secrets, signed-bundle workflow on tags, R8 in CI, launcher icon, privacy policy, store listing, field-test protocol. Needs the owner: upload key, Play account, repo made public, field test, screenshots |
@@ -36,6 +38,23 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 ---
 
 ## Entries
+
+### 2026-09-28: One repository
+
+**What was done**
+- Merged the planning repository `Zenithquonta/astrofixer-baby` into this one, with its history. Everything now lives here:
+  - the web app (`web/`) and the importer (`tools/stellarium_import/`), plus `tools/golden/`;
+  - the plan, the handoff log, the Stitch brief and the field test (`docs/`), and the early renders (`docs/design-renders/`).
+- Left out: the Android backup bundle (the app is here now), the importer's generated `data/` (now gitignored; its output is already in `app/src/main/assets/`), and the duplicate README images.
+- The README has a "What's in this repository" table.
+- This repository's workflow now publishes `AstroFixxer.apk` as the Latest release on every push to `main`, the same way the old repository did, so there is a direct download here.
+- Checked: `tools/golden` run from the new layout gives output byte-identical to `app/src/test/resources/golden.json`.
+
+**Next step**
+- Owner:
+  1. Make this repository **public** (Settings → General → Danger zone → Change visibility), so anyone can download and build it; the GPL also needs the source to be public.
+  2. Archive `astrofixer-baby` (Settings → Archive this repository).
+  3. Add the two `PREVIEW_KEYSTORE_*` secrets here.
 
 ### 2026-09-28: Android repository live with green CI
 
@@ -265,7 +284,7 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 
 **How to verify**
 - 31 JVM tests pass for `astro/`.
-- The `ui/` package compiles against Compose Multiplatform 1.5.12 (desktop). Headless renders are in `docs/screens/`: guidance, night, wide, Milky Way, dusk/city, constellation art, watch list, onboarding, AstroGuide, Hindi.
+- The `ui/` package compiles against Compose Multiplatform 1.5.12 (desktop). Headless renders are in `docs/design-renders/` (then `docs/screens/` in the planning repo): guidance, night, wide, Milky Way, dusk/city, constellation art, watch list, onboarding, AstroGuide, Hindi.
 
 **Known issues / not done**
 - **Android build never run**: Google Maven is blocked here. `MainActivity` (sensors, location, speech, art loading) is reviewed by hand only. Expect to fix small compile issues on the first CI run.

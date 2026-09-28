@@ -16,3 +16,7 @@ __pycache__/
 .env.*
 google-services.json
 secrets.properties
+# Planning/data work: the upstream clone, download cache and generated importer output.
+AstroFixxer/
+.cache/
+data/
