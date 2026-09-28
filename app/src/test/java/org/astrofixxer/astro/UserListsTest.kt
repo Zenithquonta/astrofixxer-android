@@ -35,4 +35,11 @@ class UserListsTest {
         assertEquals("bring the 25mm", lists[1].items[1].comment)
         assertTrue(UserLists.parseWatchLists("   ").isEmpty())
     }
+
+    @Test fun listNamesWithSpacesAtLineStart() {
+        val lists = UserLists.parseWatchLists("Autumn galaxies: M31 M33 NGC891 (edge-on, faint)\n  Winter  sky : M42")
+        assertEquals(listOf("Autumn galaxies", "Winter  sky"), lists.map { it.name })
+        assertEquals(listOf("M31", "M33", "NGC891"), lists[0].items.map { it.name })
+        assertEquals("edge-on, faint", lists[0].items[2].comment)
+    }
 }

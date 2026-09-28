@@ -27,6 +27,8 @@ class SkyState(nowMillis: Long, lat: Double, lon: Double) {
     var live by mutableStateOf(true)
     var lat by mutableDoubleStateOf(lat)
     var lon by mutableDoubleStateOf(lon)
+    /** True once the user typed a location; GPS fixes no longer replace it. */
+    var manualLocation by mutableStateOf(false)
     var fovDeg by mutableDoubleStateOf(60.0)
 
     /** Device-to-world (east, north, up) rotation from the phone's sensors, row-major 3x3. */
@@ -114,9 +116,38 @@ class SkyState(nowMillis: Long, lat: Double, lon: Double) {
         align = AlignState.ALIGNED
     }
 
+    /** Waits for the user to tap the star the telescope points at. The old alignment stays until a new one is made. */
     fun startAlign() {
-        alignMatrix = null
         align = AlignState.PICK_STAR
+    }
+
+    /** Leaves star picking without changing anything. */
+    fun cancelAlign() {
+        align = if (alignMatrix != null) AlignState.ALIGNED else AlignState.NOT_ALIGNED
+    }
+
+    /**
+     * Manual mode: a horizontal drag of [dxPx] on a [widthPx]×[heightPx] sky moves the sky with the finger.
+     * Turning by Δaz moves things sideways by only Δaz·cos(altitude), so high up the turn is larger.
+     */
+    fun dragSky(dxPx: Float, widthPx: Float, heightPx: Float) {
+        val fovH = if (widthPx < heightPx) fovDeg * widthPx / heightPx else fovDeg
+        val up = camera()[2][2].coerceIn(-1.0, 1.0)
+        val cosAlt = kotlin.math.sqrt(1 - up * up).coerceAtLeast(0.2) // near the zenith azimuth barely moves anything
+        azOffsetDeg -= dxPx / widthPx * fovH / cosAlt
+    }
+
+    /** Time travel: shows the sky [deltaMillis] from the time shown now, and stops following the clock. */
+    fun shiftTime(deltaMillis: Long) {
+        live = false
+        timeMillis += deltaMillis
+    }
+
+    /** Sets a typed location, which from then on wins over GPS. */
+    fun setManualLocation(latDeg: Double, lonDeg: Double) {
+        lat = latDeg
+        lon = lonDeg
+        manualLocation = true
     }
 
     /** ΔAlt/ΔAz (degrees) from where the telescope points to the target, and their angular separation. */

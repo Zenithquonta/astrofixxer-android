@@ -40,10 +40,6 @@ object AstroGuide {
                 state.startAlign()
                 return GuideReply(say("Point the telescope at a bright star and tap it on the screen.", "टेलीस्कोप को किसी चमकीले तारे पर लगाएँ और स्क्रीन पर उसे छुएँ।"))
             }
-            lower.contains("night mode") || text.contains("रात") -> {
-                state.night = !lower.contains("off") && !text.contains("बंद")
-                return GuideReply(say(if (state.night) "Night mode on." else "Night mode off.", if (state.night) "रात मोड चालू।" else "रात मोड बंद।"))
-            }
             lower.contains("meteor") || text.contains("उल्का") -> {
                 val next = events?.firstOrNull { it.key.contains("meteor") }
                     ?: return GuideReply(say("No meteor shower peaks in the next two months.", "अगले दो महीनों में कोई उल्का वर्षा नहीं है।"))
@@ -59,6 +55,10 @@ object AstroGuide {
                 val en = if (up.isEmpty()) "No planets are up right now." else "Up now: ${up.joinToString(", ")}."
                 val nextEvent = events?.firstOrNull()?.let { " Next: ${it.title}, ${formatLocal(it.jd)}." } ?: ""
                 return GuideReply(say(en + nextEvent, (if (up.isEmpty()) "अभी कोई ग्रह ऊपर नहीं है।" else "अभी दिख रहे हैं: ${up.joinToString(", ")}।") + nextEvent))
+            }
+            lower.contains("night mode") || text.contains("रात मोड") || text.contains("नाइट मोड") -> {
+                state.night = !lower.contains("off") && !text.contains("बंद")
+                return GuideReply(say(if (state.night) "Night mode on." else "Night mode off.", if (state.night) "रात मोड चालू।" else "रात मोड बंद।"))
             }
         }
 
@@ -88,7 +88,9 @@ object AstroGuide {
     /** Pulls the object name out of a command: "find the Orion Nebula" -> "Orion Nebula", "मंगल दिखाओ" -> "Mars". */
     fun objectName(text: String): String? {
         for ((hiName, en) in hindiNames) if (text.contains(hiName)) return en
+        // Speech recognisers write "Messier 42" or "N G C 7000"; the catalogue wants M42 / NGC7000.
         var rest = text.trim().trimEnd('?', '.', '!', '।')
+            .replace(Regex("(?i)\\bmessier\\s*"), "M").replace(Regex("(?i)\\bn\\.?\\s*g\\.?\\s*c\\.?\\s*(?=\\d)"), "NGC ")
         for (w in (findWords + whatWords).sortedByDescending { it.length }) {
             val i = rest.lowercase().indexOf(w)
             if (i >= 0) rest = (rest.substring(0, i) + " " + rest.substring(i + w.length)).trim()

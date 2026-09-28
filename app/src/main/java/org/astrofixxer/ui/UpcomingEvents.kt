@@ -39,8 +39,13 @@ fun compass(azDeg: Double) = listOf("N", "NE", "E", "SE", "S", "SW", "W", "NW")[
 
 fun jdToMillis(jd: Double) = ((jd - 2440587.5) * 86400000.0).toLong()
 
-fun formatLocal(jd: Double, zone: ZoneId = ZoneId.systemDefault()): String =
-    DateTimeFormatter.ofPattern("EEE d MMM yyyy, HH:mm").withZone(zone).format(Instant.ofEpochMilli(jdToMillis(jd)))
+fun formatLocal(jd: Double, zone: ZoneId = ZoneId.systemDefault()): String = formatMillis(jdToMillis(jd), zone)
+
+fun formatMillis(millis: Long, zone: ZoneId = ZoneId.systemDefault()): String =
+    DateTimeFormatter.ofPattern("EEE d MMM yyyy, HH:mm").withZone(zone).format(Instant.ofEpochMilli(millis))
+
+fun formatClock(millis: Long, zone: ZoneId = ZoneId.systemDefault()): String =
+    DateTimeFormatter.ofPattern("HH:mm").withZone(zone).format(Instant.ofEpochMilli(millis))
 
 private fun f1(v: Double) = "%.1f".format(java.util.Locale.ROOT, v)
 private fun f0(v: Double) = "%.0f".format(java.util.Locale.ROOT, v)

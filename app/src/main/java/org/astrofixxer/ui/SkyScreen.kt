@@ -2,8 +2,10 @@ package org.astrofixxer.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -15,9 +17,13 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -34,23 +40,31 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.astrofixxer.astro.Catalog
 import kotlin.math.abs
 import kotlin.math.min
+import kotlin.math.roundToInt
 
-private val DayColors = darkColorScheme(
+internal val DayColors = darkColorScheme(
     primary = Color(0xFF00BFFF), onPrimary = Color.Black, surface = Color(0xE60A1018), onSurface = Color(0xFFDCE6F2),
+    onSurfaceVariant = Color(0xFFA3AEBC),
     background = Color.Black, onBackground = Color(0xFFDCE6F2), secondary = Color(0xFFFF4FD8), error = Color(0xFFFFB347),
     outline = Color(0xFF3F6E8F),
 )
-private val NightColors = darkColorScheme(
-    primary = Color(0xFFB00C0C), onPrimary = Color.Black, surface = Color(0xF0000000), onSurface = Color(0xFFB00C0C),
-    background = Color.Black, onBackground = Color(0xFFB00C0C), secondary = Color(0xFF8A0A0A), error = Color(0xFFD01010),
-    outline = Color(0xFF5A0707), outlineVariant = Color(0xFF3A0505), surfaceVariant = Color.Black, onSurfaceVariant = Color(0xFFB00C0C),
+// Night mode: pure red only (keeps dark adaptation), just bright enough for 3:1 contrast on black.
+private val NightRed = Color(0xFFC81414)
+internal val NightColors = darkColorScheme(
+    primary = NightRed, onPrimary = Color.Black, surface = Color(0xF0000000), onSurface = NightRed,
+    background = Color.Black, onBackground = NightRed, secondary = NightRed, error = Color(0xFFE01818),
+    outline = Color(0xFF5A0707), outlineVariant = Color(0xFF3A0505), surfaceVariant = Color.Black, onSurfaceVariant = NightRed,
 )
 
 private enum class Sheet { NONE, SEARCH, EVENTS, SKY, LISTS, HELP }
@@ -70,16 +84,38 @@ fun SkyScreen(
     art: Map<String, ImageBitmap> = emptyMap(),
     /** Starts listening for an AstroGuide question; null hides the Ask button (no speech recogniser). */
     onAsk: (() -> Unit)? = null,
+    /** Hooks the system Back button (Android's BackHandler); the screen stays free of Android imports. */
+    backHandler: @Composable (enabled: Boolean, onBack: () -> Unit) -> Unit = { _, _ -> },
 ) {
     var sheet by remember { mutableStateOf(Sheet.NONE) }
+    var showTime by remember { mutableStateOf(false) }
     val colors: ColorScheme = if (state.night) NightColors else DayColors
+    // Back closes the innermost thing that is open; with nothing open it leaves the app as usual.
+    val guideOpen = state.guideListening || state.guideAnswer != null
+    backHandler(state.showOnboarding || sheet != Sheet.NONE || state.align == AlignState.PICK_STAR || guideOpen || showTime) {
+        when {
+            state.showOnboarding -> state.showOnboarding = false
+            sheet != Sheet.NONE -> sheet = Sheet.NONE
+            state.align == AlignState.PICK_STAR -> state.cancelAlign()
+            guideOpen -> { state.guideAnswer = null; state.guideListening = false }
+            else -> showTime = false
+        }
+    }
     MaterialTheme(colorScheme = colors) {
         Box(Modifier.fillMaxSize().background(Color.Black)) {
             SkyCanvas(state, catalog, moving, Modifier.fillMaxSize(), art)
-            InfoOverlay(state, Modifier.align(Alignment.TopStart).padding(12.dp).widthIn(max = 260.dp))
-            AlignChip(state, Modifier.align(Alignment.TopEnd).padding(12.dp))
+            // One row so the target card and the status chips share the width and never overlap on narrow phones.
+            Row(Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(Modifier.weight(1f)) { InfoOverlay(state, Modifier) }
+                Column(Modifier.widthIn(max = 170.dp), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    AlignChip(state)
+                    ClockChip(state) { showTime = !showTime }
+                }
+            }
             Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (state.target != null && state.align == AlignState.ALIGNED) GuidancePanel(state)
+                if (state.target != null && state.align == AlignState.NOT_ALIGNED) AlignHint(state)
+                if (showTime || !state.live) TimeBar(state)
                 if (state.listIndex >= 0) WatchNavigator(state, catalog)
                 if (state.guideListening || state.guideAnswer != null) GuideBubble(state)
                 if (catalog == null) Text(t("Loading sky catalogue…"), color = colors.onSurface, modifier = Modifier.padding(start = 8.dp))
@@ -102,37 +138,85 @@ fun SkyScreen(
     }
 }
 
+/** Catalogue designations such as "NGC6720", "PK063+13.1" or "Abell 2151", as opposed to names like "Ring Nebula". */
+private val CATALOGUE_ID = Regex("^[A-Za-z]{1,6}[ -]?\\d.*")
+private val WORD = Regex("[a-z\\p{L}&&[^A-Z]]{2}")
+
+/** "Ring Nebula" or "47 Tuc" yes; "PN G063.1+13.9" or "Sh2-155" no. */
+private fun isFriendlyName(n: String) = WORD.containsMatchIn(n) && !CATALOGUE_ID.matches(n)
+
 @Composable
 private fun InfoOverlay(state: SkyState, modifier: Modifier) {
     val obj = state.target ?: return
-    val c = MaterialTheme.colorScheme.onSurface
+    val c = MaterialTheme.colorScheme
     val ray = state.ray(obj)
     val altDeg = Math.toDegrees(kotlin.math.asin(ray[2]))
     val azDeg = (Math.toDegrees(kotlin.math.atan2(ray[0], ray[1])) + 360) % 360
-    Column(modifier.background(MaterialTheme.colorScheme.surface.copy(alpha = 0.55f), RoundedCornerShape(12.dp)).padding(10.dp)) {
-        Text(obj.name, color = c, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-        if (obj.otherNames.isNotEmpty()) Text(obj.otherNames.take(3).joinToString(" · "), color = c, fontSize = 12.sp)
+    Column(modifier.background(c.surface.copy(alpha = 0.55f), RoundedCornerShape(12.dp)).padding(10.dp)) {
+        Text(obj.name, color = c.onSurface, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        // The friendly name if there is one ("Ring Nebula"); catalogue numbers are noise here.
+        obj.otherNames.firstOrNull(::isFriendlyName)?.let { Text(it, color = c.onSurface, fontSize = 14.sp) }
         val details = listOfNotNull(TYPE_NAMES[obj.type]?.let { t(it) } ?: obj.type, obj.mag?.let { "mag %.1f".format(it) },
             obj.sizeArcmin.takeIf { it > 0 }?.let { "%.0f′".format(it) })
-        Text(details.joinToString(" · "), color = c, fontSize = 12.sp)
-        Text("RA ${hms(obj.ra)}  Dec ${dms(obj.dec)}", color = c, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
-        Text("Alt ${dms(altDeg)}  Az ${dms(azDeg).trimStart('+')}", color = c, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
-        if (altDeg < 0) Text(t("Below the horizon"), color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+        Text(details.joinToString(" · "), color = c.onSurfaceVariant, fontSize = 13.sp)
+        if (altDeg >= 0) Text(t("%d° up · %s").format(altDeg.roundToInt(), t(compass(azDeg))), color = c.primary, fontSize = 14.sp)
+        else Text(t("Below the horizon"), color = c.error, fontSize = 14.sp)
+        Text("RA ${hms(obj.ra)} · Dec ${dms(obj.dec)}", color = c.onSurfaceVariant, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
     }
 }
 
 @Composable
-private fun AlignChip(state: SkyState, modifier: Modifier) {
+private fun AlignChip(state: SkyState) {
     val (label, color) = when (state.align) {
-        AlignState.NOT_ALIGNED -> "Not aligned" to MaterialTheme.colorScheme.error
-        AlignState.PICK_STAR -> "Tap the star the telescope points at" to MaterialTheme.colorScheme.primary
+        AlignState.NOT_ALIGNED -> t("Not aligned") to MaterialTheme.colorScheme.error
+        AlignState.PICK_STAR -> t("Tap the star the telescope points at") to MaterialTheme.colorScheme.primary
         AlignState.ALIGNED -> {
             val min = ((state.timeMillis - (state.alignedAtMillis ?: state.timeMillis)) / 60000).coerceAtLeast(0)
             (if (min >= 10) t("Aligned %d min ago · re-align soon").format(min) else t("Aligned ✓")) to MaterialTheme.colorScheme.primary
         }
     }
-    Surface(modifier, shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surface) {
-        Text(label, color = color, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), fontSize = 13.sp)
+    Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surface) {
+        Column(horizontalAlignment = Alignment.End) {
+            Text(label, color = color, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), fontSize = 13.sp)
+            if (state.align == AlignState.PICK_STAR) OutlinedButton(onClick = { state.cancelAlign() },
+                modifier = Modifier.padding(start = 6.dp, end = 6.dp, bottom = 6.dp).heightIn(min = 48.dp)) { Label(t("Cancel")) }
+        }
+    }
+}
+
+/** Shows the time the sky is drawn for; tapping it opens the time-travel bar. Highlighted when not live. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ClockChip(state: SkyState, onClick: () -> Unit) {
+    val c = MaterialTheme.colorScheme
+    Surface(onClick = onClick, shape = RoundedCornerShape(16.dp), color = if (state.live) c.surface else c.secondary,
+        modifier = Modifier.heightIn(min = 48.dp)) {
+        Box(Modifier.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
+            Text(if (state.live) formatClock(state.timeMillis) else formatMillis(state.timeMillis),
+                color = if (state.live) c.onSurface else c.onPrimary, fontSize = 14.sp, fontFamily = FontFamily.Monospace,
+                modifier = Modifier.padding(vertical = 14.dp))
+        }
+    }
+}
+
+@Composable
+private fun TimeBar(state: SkyState) {
+    val pad = PaddingValues(horizontal = 2.dp)
+    val big = Modifier.heightIn(min = 48.dp)
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        for ((label, ms) in listOf("−1 d" to -86_400_000L, "−1 h" to -3_600_000L, "+1 h" to 3_600_000L, "+1 d" to 86_400_000L)) {
+            OutlinedButton(onClick = { state.shiftTime(ms) }, modifier = big.weight(1f), contentPadding = pad) { Label(t(label)) }
+        }
+        Button(onClick = { state.live = true }, enabled = !state.live, modifier = big.weight(1f), contentPadding = pad,
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)) { Label(t("Now")) }
+    }
+}
+
+@Composable
+private fun AlignHint(state: SkyState) {
+    Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surface) {
+        Text(t("To get directions to %s, point the telescope at a bright star near it, tap Align, then tap that star.").format(state.target?.name),
+            color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp, modifier = Modifier.padding(14.dp))
     }
 }
 
@@ -185,34 +269,50 @@ private fun Toolbar(state: SkyState, onAsk: (() -> Unit)?, onSearch: () -> Unit,
             OutlinedButton(onClick = {
                 state.mode = if (state.mode == PointingMode.COMPASS) PointingMode.MANUAL else PointingMode.COMPASS
             }, modifier = big.weight(1.1f), contentPadding = pad) { Label(t(if (state.mode == PointingMode.COMPASS) "Compass" else "Manual")) }
-            if (!state.live) Button(onClick = { state.live = true }, modifier = big.weight(0.8f),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary), contentPadding = pad) { Label(t("Now")) }
         }
     }
 }
 
+/** One-line button label that steps its font down (15 to 11 sp) until it fits, so no label is ever cut off. */
 @Composable
-private fun Label(text: String) = Text(text, fontSize = 15.sp, maxLines = 1, softWrap = false)
+private fun Label(text: String) = BoxWithConstraints(contentAlignment = Alignment.Center) {
+    val measurer = rememberTextMeasurer()
+    val base = LocalTextStyle.current
+    val maxPx = constraints.maxWidth
+    val style = remember(text, maxPx, base) {
+        listOf(15, 14, 13, 12, 11).map { base.copy(fontSize = it.sp) }
+            .firstOrNull { measurer.measure(text, it, maxLines = 1, softWrap = false).size.width <= maxPx } ?: base.copy(fontSize = 11.sp)
+    }
+    Text(text, style = style, maxLines = 1, softWrap = false)
+}
 
 @Composable
 private fun SearchSheet(state: SkyState, catalog: Catalog?, moving: List<MovingObject>, onClose: () -> Unit) {
     var query by remember { mutableStateOf("") }
-    val results = remember(query, catalog) {
+    val results = remember(query, catalog, moving) {
         val q = query.trim()
-        if (q.isEmpty()) emptyList()
-        else (moving.map { it.obj } + state.userObjects).filter { it.name.startsWith(q, ignoreCase = true) } + (catalog?.search(q).orEmpty())
+        // Empty box: what is above the horizon right now, so there is always something to pick.
+        if (q.isEmpty()) (moving.filter { it.kind != MovingObject.Kind.SUN }.map { it.obj } + state.userObjects).filter { state.ray(it)[2] > 0 }
+        else (moving.map { it.obj } + state.userObjects).filter { it.name.contains(q, ignoreCase = true) } + (catalog?.search(q).orEmpty())
     }
+    val pick = { o: org.astrofixxer.astro.SkyObject -> state.target = o; onClose() }
     SheetFrame(t("Find"), onClose) {
         OutlinedTextField(value = query, onValueChange = { query = it }, singleLine = true, modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text(t("M42, Orion Nebula, NGC 7000, Sirius, Jupiter…")) })
+            placeholder = { Text(t("M42, Orion Nebula, NGC 7000, Sirius, Jupiter…")) },
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = { results.firstOrNull()?.let(pick) }))
+        if (query.isBlank() && results.isNotEmpty()) Text(t("Visible now"), color = MaterialTheme.colorScheme.primary, fontSize = 14.sp,
+            modifier = Modifier.padding(top = 8.dp))
+        if (query.isNotBlank() && results.isEmpty()) Text(t("Nothing found. Try a catalogue number like M31 or NGC 7000."),
+            color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(top = 8.dp))
         LazyColumn(Modifier.fillMaxWidth().padding(top = 8.dp)) {
             items(results) { o ->
                 val up = state.ray(o)[2] > 0
-                Column(Modifier.fillMaxWidth().clickable { state.target = o; onClose() }.padding(vertical = 10.dp)) {
+                Column(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { pick(o) }.padding(vertical = 10.dp)) {
                     Text(o.name, color = MaterialTheme.colorScheme.onSurface, fontSize = 17.sp)
                     val sub = listOfNotNull(TYPE_NAMES[o.type]?.let { t(it) }, o.mag?.let { "mag %.1f".format(it) }, t(if (up) "up now" else "below horizon"),
                         o.otherNames.firstOrNull())
-                    Text(sub.joinToString(" · "), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f), fontSize = 12.sp)
+                    Text(sub.joinToString(" · "), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                 }
             }
         }
@@ -228,7 +328,7 @@ private fun EventsSheet(state: SkyState, events: List<EventItem>?, onClose: () -
         }
         LazyColumn(Modifier.fillMaxWidth()) {
             items(events) { e ->
-                Column(Modifier.fillMaxWidth().clickable {
+                Column(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable {
                     state.live = false
                     state.timeMillis = jdToMillis(e.jd)
                     onClose()
@@ -236,7 +336,7 @@ private fun EventsSheet(state: SkyState, events: List<EventItem>?, onClose: () -
                     Text((if (e.rare) "★ " else "") + e.title, color = if (e.rare) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                         fontSize = 16.sp, fontWeight = if (e.rare) FontWeight.Bold else FontWeight.Normal)
                     Text(formatLocal(e.jd) + if (e.detail.isNotEmpty()) " · ${e.detail}" else "",
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f), fontSize = 12.sp)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                 }
             }
         }
@@ -248,10 +348,11 @@ private fun SkyOptionsSheet(state: SkyState, onClose: () -> Unit, onLists: () ->
     SheetFrame(t("Sky & viewing"), onClose) {
         LazyColumn(Modifier.fillMaxWidth()) {
             item {
+                val pad = PaddingValues(horizontal = 8.dp)
                 Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = onLists, modifier = Modifier.weight(1.4f).heightIn(min = 48.dp)) { Label(t("My objects & lists")) }
-                    OutlinedButton(onClick = onHelp, modifier = Modifier.weight(0.8f).heightIn(min = 48.dp)) { Label(t("Help")) }
-                    OutlinedButton(onClick = onTutorial, modifier = Modifier.weight(0.9f).heightIn(min = 48.dp)) { Label(t("Tutorial")) }
+                    OutlinedButton(onClick = onLists, modifier = Modifier.weight(1.5f).heightIn(min = 48.dp), contentPadding = pad) { Label(t("My objects & lists")) }
+                    OutlinedButton(onClick = onHelp, modifier = Modifier.weight(0.8f).heightIn(min = 48.dp), contentPadding = pad) { Label(t("Help")) }
+                    OutlinedButton(onClick = onTutorial, modifier = Modifier.weight(0.9f).heightIn(min = 48.dp), contentPadding = pad) { Label(t("Tutorial")) }
                 }
             }
             item { Toggle(t("Constellation lines and names"), state.showConstellations) { state.showConstellations = it } }
@@ -289,8 +390,8 @@ private fun GuideBubble(state: SkyState) {
     Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surface) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(if (state.guideListening) t("Listening…") else "“${state.guideHeard}”",
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f), fontSize = 13.sp)
+                if (state.guideListening || state.guideHeard.isNotEmpty()) Text(if (state.guideListening) t("Listening…") else "“${state.guideHeard}”",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
                 state.guideAnswer?.let { Text(it, color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp) }
             }
             OutlinedButton(onClick = { state.guideAnswer = null; state.guideListening = false }, modifier = Modifier.heightIn(min = 48.dp)) { Text(t("×")) }
@@ -307,14 +408,18 @@ private fun WatchNavigator(state: SkyState, catalog: Catalog?) {
             OutlinedButton(onClick = { state.stepWatch(-1, catalog) }, modifier = Modifier.heightIn(min = 48.dp)) { Text(t("‹")) }
             Column(Modifier.weight(1f).padding(horizontal = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 val found = item != null && state.resolve(item.name, catalog) != null
-                Text((if (found) "" else "? ") + (item?.name ?: "") + if (item?.comment.isNullOrEmpty()) "" else " · ${item?.comment}",
-                    color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp, maxLines = 1, softWrap = false)
-                Text("${list.name} · ${state.itemIndex + 1}/${list.items.size}", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f), fontSize = 11.sp)
+                Text((item?.name ?: "") + if (item?.comment.isNullOrEmpty()) "" else " · ${item?.comment}",
+                    color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (!found) Text(t("Not in the catalogue; check the spelling"), color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                Text("${listName(list.name)} · ${state.itemIndex + 1}/${list.items.size}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
             }
             OutlinedButton(onClick = { state.stepWatch(1, catalog) }, modifier = Modifier.heightIn(min = 48.dp)) { Text(t("›")) }
         }
     }
 }
+
+/** Items typed before any "Name:" go into a list the parser calls "default". */
+private fun listName(name: String) = if (name == "default") t("My list") else name
 
 @Composable
 private fun ListsSheet(state: SkyState, catalog: Catalog?, onClose: () -> Unit) {
@@ -342,7 +447,7 @@ private fun ListsSheet(state: SkyState, catalog: Catalog?, onClose: () -> Unit) 
                 for (e in errors) Text(e, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
             }
             item {
-                val names = listOf(t("None")) + state.watchLists.map { it.name }
+                val names = listOf(t("None")) + state.watchLists.map { listName(it.name) }
                 Stepper(t("Active watch list"), names[state.listIndex + 1],
                     onMinus = { state.selectList(if (state.listIndex < 0) state.watchLists.size - 1 else state.listIndex - 1, catalog) },
                     onPlus = { state.selectList(if (state.listIndex + 1 >= state.watchLists.size) -1 else state.listIndex + 1, catalog) })
@@ -366,6 +471,7 @@ private val HELP = listOf(
     "Compass and Manual" to "Compass uses the phone's compass. If the alignment star isn't on screen, switch to Manual and drag the sky sideways until it is, then Align.",
     "Zoom" to "Pinch or use + and −. Fainter stars and deep-sky objects appear as you zoom in.",
     "Events" to "Moon phases, eclipses, meteor showers, conjunctions, transits, occultations and bright comets for the next 60 days, all worked out on the phone. Tap one to show the sky at that time; Now returns to the present.",
+    "Time travel" to "Tap the clock at the top right to step the sky by hours or days. While you are away from the present the clock turns pink; Now returns to the present.",
     "Night mode" to "Turns everything red to protect your dark adaptation. Also lower the screen brightness.",
     "My objects and watch lists" to "Add your own objects by RA/Dec, and lists of targets to step through with ‹ and › during a session.",
     "Offline" to "Everything works without internet. The star, deep-sky and constellation data come from Stellarium and ship inside the app.",
@@ -398,7 +504,7 @@ private fun Onboarding(onDone: () -> Unit) {
     var page by remember { mutableStateOf(0) }
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background.copy(alpha = 0.92f)) {
         Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.Center) {
-            Text(t("Quick start %d/%d").format(page + 1, ONBOARDING.size), color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f), fontSize = 14.sp)
+            Text(t("Quick start %d/%d").format(page + 1, ONBOARDING.size), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
             Text(t(ONBOARDING[page].first), color = MaterialTheme.colorScheme.primary, fontSize = 26.sp, fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(vertical = 12.dp))
             Text(t(ONBOARDING[page].second), color = MaterialTheme.colorScheme.onBackground, fontSize = 18.sp)
@@ -415,9 +521,11 @@ private fun Onboarding(onDone: () -> Unit) {
 
 @Composable
 private fun Toggle(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
-    Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { onChange(!checked) }, verticalAlignment = Alignment.CenterVertically) {
+    // The whole row is the switch (one 56 dp target, read out as a switch by TalkBack).
+    Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).toggleable(checked, role = Role.Switch, onValueChange = onChange),
+        verticalAlignment = Alignment.CenterVertically) {
         Text(label, color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp, modifier = Modifier.weight(1f))
-        Switch(checked = checked, onCheckedChange = onChange)
+        Switch(checked = checked, onCheckedChange = null)
     }
 }
 
@@ -443,7 +551,7 @@ private fun LocationEditor(state: SkyState) {
             OutlinedTextField(lat, { lat = it }, label = { Text(t("Latitude")) }, isError = !latOk, singleLine = true, modifier = Modifier.weight(1f))
             OutlinedTextField(lon, { lon = it }, label = { Text(t("Longitude")) }, isError = !lonOk, singleLine = true, modifier = Modifier.weight(1f))
         }
-        Button(onClick = { state.lat = lat.toDouble(); state.lon = lon.toDouble() }, enabled = latOk && lonOk,
+        Button(onClick = { state.setManualLocation(lat.toDouble(), lon.toDouble()) }, enabled = latOk && lonOk,
             modifier = Modifier.padding(top = 8.dp).heightIn(min = 48.dp)) { Text(t("Use this location")) }
         if (!latOk || !lonOk) Text(t("Latitude −90 to 90, longitude −180 to 180 (east positive)."), color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
     }

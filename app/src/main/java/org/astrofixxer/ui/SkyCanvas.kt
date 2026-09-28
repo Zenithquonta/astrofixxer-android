@@ -43,9 +43,9 @@ val DayPalette = Palette(
     alignStar = Color(0xFFFF4FD8), crosshair = Color(0xFF00BFFF),
 )
 val NightPalette = Palette(
-    sky = Color.Black, star = Color(0xFFD01010), label = Color(0xFF8A0A0A), lines = Color(0xFF4A0505),
-    deepSky = Color(0xFFB00C0C), horizon = Color(0xFF5A0707), cardinal = Color(0xFFD01010), target = Color(0xFFFF2020),
-    alignStar = Color(0xFFB00C0C), crosshair = Color(0xFFFF2020),
+    sky = Color.Black, star = Color(0xFFD01010), label = Color(0xFFC01010), lines = Color(0xFF4A0505),
+    deepSky = Color(0xFFC81414), horizon = Color(0xFF5A0707), cardinal = Color(0xFFD01010), target = Color(0xFFFF2020),
+    alignStar = Color(0xFFC81414), crosshair = Color(0xFFFF2020),
 )
 
 /** Maps [east, north, up] directions to screen pixels with the web app's orthographic "camera" projection. */
@@ -98,9 +98,7 @@ fun SkyCanvas(
             .pointerInput(state) {
                 detectTransformGestures { _, pan, zoom, _ ->
                     if (zoom != 1f) state.fovDeg = (state.fovDeg / zoom).coerceIn(0.5, 120.0)
-                    if (state.mode == PointingMode.MANUAL && pan.x != 0f) {
-                        state.azOffsetDeg -= pan.x / size.width * state.fovDeg
-                    }
+                    if (state.mode == PointingMode.MANUAL && pan.x != 0f) state.dragSky(pan.x, size.width.toFloat(), size.height.toFloat())
                 }
             },
     ) {
@@ -111,9 +109,12 @@ fun SkyCanvas(
 
 private fun Int.dp2px(density: Float) = this * density
 
-/** drawText throws when the text starts past the right/bottom edge, so labels near the edge are skipped. */
+/**
+ * drawText throws when the text starts past the right/bottom edge, or so far left/up (zoomed in, objects project
+ * tens of thousands of pixels away) that its layout constraints overflow; labels not near the screen are skipped.
+ */
 private fun DrawScope.safeText(tm: TextMeasurer, s: String, at: Offset, style: TextStyle) {
-    if (at.x > size.width - 8 || at.y > size.height - 8) return
+    if (at.x > size.width - 8 || at.y > size.height - 8 || at.x < -size.width || at.y < -size.height) return
     drawText(tm, s, at, style, softWrap = false, maxLines = 1)
 }
 
@@ -224,13 +225,13 @@ private fun DrawScope.drawSky(
     val mid = Offset(size.width / 2, size.height / 2)
     state.target?.let { t ->
         val tr = state.ray(t)
-        val p = proj.project(tr)
+        val p = proj.project(tr)?.takeIf { it.x in 0f..size.width && it.y in 0f..size.height }
         if (p != null) {
             drawCircle(pal.target, 16f, p, style = Stroke(2.5f))
             drawLine(pal.target, mid, p, strokeWidth = 2f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 10f)))
             safeText(text, t.name, p + Offset(6f, -20f), TextStyle(color = pal.target, fontSize = 14.sp))
         } else {
-            // Off screen: arrow at the edge pointing toward the target.
+            // Off screen (beside or behind the view): arrow at the edge pointing toward the target.
             val b = Pointing.bearing(tr, cam)
             val ang = kotlin.math.atan2(-b[1], b[0]).toFloat()
             val edge = mid + Offset(cos(ang) * size.minDimension * 0.42f, sin(ang) * size.minDimension * 0.42f)

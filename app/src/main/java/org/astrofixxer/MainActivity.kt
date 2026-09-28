@@ -17,12 +17,14 @@ import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -39,6 +41,7 @@ import org.astrofixxer.astro.Sgp4
 import org.astrofixxer.astro.SkyObject
 import org.astrofixxer.ui.AstroGuide
 import org.astrofixxer.ui.EventItem
+import org.astrofixxer.ui.MeteorShower
 import org.astrofixxer.ui.MovingObject
 import org.astrofixxer.ui.PointingMode
 import org.astrofixxer.ui.SkyScreen
@@ -80,6 +83,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         }
         override fun onError(error: Int) {
             state.guideListening = false
+            state.guideHeard = ""
             state.guideAnswer = "Didn't catch that. Tap Ask and try again."
         }
         override fun onReadyForSpeech(params: Bundle?) {}
@@ -101,8 +105,9 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR)
             state.mode = PointingMode.MANUAL
         }
-        updateLocation()
         val prefs = getSharedPreferences("astrofixxer", MODE_PRIVATE)
+        if (prefs.contains("manual_lat")) state.setManualLocation(prefs.getFloat("manual_lat", 0f).toDouble(), prefs.getFloat("manual_lon", 0f).toDouble())
+        updateLocation()
         state.userObjectsText = prefs.getString("user_objects", "") ?: ""
         state.watchListText = prefs.getString("watch_list", "") ?: ""
         state.showOnboarding = !prefs.getBoolean("onboarding_done", false)
@@ -115,6 +120,8 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             var catalog by remember { mutableStateOf<Catalog?>(null) }
             var comets by remember { mutableStateOf<List<MinorBody>>(emptyList()) }
             var events by remember { mutableStateOf<List<EventItem>?>(null) }
+            var eventInputs by remember { mutableStateOf<EventInputs?>(null) }
+            var today by remember { mutableLongStateOf(System.currentTimeMillis() / 86_400_000) }
             var art by remember { mutableStateOf<Map<String, ImageBitmap>>(emptyMap()) }
             val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
                 if (granted) updateLocation()
@@ -127,8 +134,14 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 }
             }
             LaunchedEffect(Unit) {
+                snapshotFlow { Triple(state.manualLocation, state.lat, state.lon) }.collect { (manual, lat, lon) ->
+                    if (manual) prefs.edit().putFloat("manual_lat", lat.toFloat()).putFloat("manual_lon", lon.toFloat()).apply()
+                }
+            }
+            LaunchedEffect(Unit) {
                 while (true) {
                     if (state.live) state.timeMillis = System.currentTimeMillis()
+                    today = System.currentTimeMillis() / 86_400_000
                     delay(1000)
                 }
             }
@@ -139,11 +152,17 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 state.applyUserText(catalog)
                 val showers = withContext(Dispatchers.IO) { parseMeteorShowers(assets.open("meteor_showers.json").bufferedReader().readText()) }
                 val brightStars = catalog!!.objects.filter { it.type == "S" && (it.mag ?: 99.0) <= 3.5 }.map { Triple(it.name, it.ra, it.dec) }
-                val satellites = loadSatellites()
+                eventInputs = EventInputs(showers, bodies, brightStars, loadSatellites())
+            }
+            // Occultations and satellite passes depend on where you are, so recompute when the place moves ~1° or the day changes.
+            val latKey = Math.round(state.lat)
+            val lonKey = Math.round(state.lon)
+            LaunchedEffect(eventInputs, latKey, lonKey, today) {
+                val inputs = eventInputs ?: return@LaunchedEffect
                 val now = JulianDate.fromEpochMillis(System.currentTimeMillis())
                 events = withContext(Dispatchers.Default) {
-                    upcomingEvents(now, 60, showers, bodies, brightStars, state.lat, state.lon, satellites)
-                } + if (satellites.isEmpty()) listOf(EventItem(now, "ISS passes",
+                    upcomingEvents(now, 60, inputs.showers, inputs.bodies, inputs.brightStars, state.lat, state.lon, inputs.satellites)
+                } + if (inputs.satellites.isEmpty()) listOf(EventItem(now, "ISS passes",
                     detailKey = "Connect to the internet once to download satellite orbits; everything else works offline.")) else emptyList()
             }
             // Illustrations for the chosen sky culture, decoded at half size to keep memory near 11 MB.
@@ -155,7 +174,11 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 if (missing.isEmpty()) return@LaunchedEffect
                 val loaded = withContext(Dispatchers.IO) {
                     val opts = BitmapFactory.Options().apply { inSampleSize = 2; inPreferredConfig = Bitmap.Config.RGB_565 }
-                    missing.associate { f -> "$culture/$f" to assets.open("art/$culture/$f").use { BitmapFactory.decodeStream(it, null, opts)!!.asImageBitmap() } }
+                    // A picture that fails to decode is skipped rather than crashing the app.
+                    missing.mapNotNull { f ->
+                        runCatching { assets.open("art/$culture/$f").use { BitmapFactory.decodeStream(it, null, opts) } }.getOrNull()
+                            ?.let { "$culture/$f" to it.asImageBitmap() }
+                    }.toMap()
                 }
                 art = art + loaded
             }
@@ -174,7 +197,8 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 latestMoving = moving
                 latestEvents = events
             }
-            SkyScreen(state, catalog, moving, events, art, onAsk = if (recognizer != null) ::ask else null)
+            SkyScreen(state, catalog, moving, events, art, onAsk = if (recognizer != null) ::ask else null,
+                backHandler = { enabled, onBack -> BackHandler(enabled, onBack) })
         }
     }
 
@@ -227,6 +251,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     }
 
     private fun updateLocation() {
+        if (state.manualLocation) return
         if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) return
         val lm = getSystemService(LOCATION_SERVICE) as LocationManager
         val fix = listOf(LocationManager.NETWORK_PROVIDER, LocationManager.GPS_PROVIDER, LocationManager.PASSIVE_PROVIDER)
@@ -262,3 +287,8 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 }
+
+/** Bundled data the events list is computed from; loaded once. */
+private class EventInputs(
+    val showers: List<MeteorShower>, val bodies: List<MinorBody>, val brightStars: List<Triple<String, Double, Double>>, val satellites: List<Sgp4>,
+)

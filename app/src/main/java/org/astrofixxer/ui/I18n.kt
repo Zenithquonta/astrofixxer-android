@@ -116,6 +116,18 @@ object I18n {
             "उपग्रह कक्षाएँ डाउनलोड करने के लिए एक बार इंटरनेट से जुड़ें; बाकी सब बिना इंटरनेट चलता है।",
         "Sun" to "सूर्य", "Moon" to "चंद्रमा", "Mercury" to "बुध", "Venus" to "शुक्र", "Mars" to "मंगल",
         "Jupiter" to "बृहस्पति", "Saturn" to "शनि", "Uranus" to "अरुण", "Neptune" to "वरुण",
+        // Alignment, time travel, search
+        "Cancel" to "रद्द करें",
+        "To get directions to %s, point the telescope at a bright star near it, tap Align, then tap that star." to
+            "%s तक दिशा पाने के लिए, टेलीस्कोप को उसके पास किसी चमकीले तारे पर लगाएँ, संरेखण दबाएँ, फिर उस तारे को छुएँ।",
+        "−1 d" to "−1 दिन", "−1 h" to "−1 घंटा", "+1 h" to "+1 घंटा", "+1 d" to "+1 दिन",
+        "Visible now" to "अभी दिख रहे हैं",
+        "Nothing found. Try a catalogue number like M31 or NGC 7000." to "कुछ नहीं मिला। M31 या NGC 7000 जैसा सूची क्रमांक आज़माएँ।",
+        "Time travel" to "समय यात्रा",
+        "Tap the clock at the top right to step the sky by hours or days. While you are away from the present the clock turns pink; Now returns to the present." to
+            "आकाश को घंटे या दिन आगे-पीछे करने के लिए ऊपर दाईं ओर घड़ी छुएँ। वर्तमान से दूर होने पर घड़ी गुलाबी हो जाती है; अभी दबाकर वर्तमान पर लौटें।",
+        "%d° up · %s" to "%d° ऊपर · %s", "Not in the catalogue; check the spelling" to "सूची में नहीं है; वर्तनी जाँचें",
+        "My list" to "मेरी सूची",
         // Cardinal points
         "N" to "उ", "NE" to "उपू", "E" to "पू", "SE" to "दपू", "S" to "द", "SW" to "दप", "W" to "प", "NW" to "उप",
     )

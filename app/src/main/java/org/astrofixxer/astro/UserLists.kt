@@ -31,11 +31,16 @@ object UserLists {
     class Item(val name: String, var comment: String = "")
     class WatchList(val name: String, val items: MutableList<Item>)
 
-    private val token = Regex("\"[^\"]*\"|[:()]|[^\\s:,\"()]+")
+    /** A quoted name, a (comment) kept whole with its commas, a colon, or a bare name. */
+    private val token = Regex("\"[^\"]*\"|\\([^)]*\\)?|:|[^\\s:,\"()]+")
+
+    /** A list name at the start of a line may contain spaces ("Autumn galaxies: M31 M33"); it is quoted for the tokenizer. */
+    private val lineHeader = Regex("""^(\s*)([^:"()\n]*\s[^:"()\n]*?)\s*:""", RegexOption.MULTILINE)
 
     /** "Tonight: M31 M33 "Double Cluster" (low in NE), Autumn: NGC7000" -> named lists of items. */
     fun parseWatchLists(text: String): List<WatchList> {
-        val items = token.findAll(text).map { it.value }.toList()
+        val quoted = lineHeader.replace(text) { m -> m.groupValues[1] + "\"" + m.groupValues[2].trim() + "\":" }
+        val items = token.findAll(quoted).map { it.value }.toList()
         val lists = LinkedHashMap<String, WatchList>()
         var current = "default"
         var i = 0
@@ -46,14 +51,13 @@ object UserLists {
                 i += 2
                 continue
             }
-            if (item == "(") {
-                val start = ++i
-                while (i < items.size && items[i] != ")") i++
-                if (i > start) lists[current]?.items?.lastOrNull()?.comment = items.subList(start, i).joinToString(" ")
+            if (item.startsWith("(")) {
+                val comment = item.removePrefix("(").removeSuffix(")").trim()
+                if (comment.isNotEmpty()) lists[current]?.items?.lastOrNull()?.comment = comment
                 i++
                 continue
             }
-            if (item != ")" && item != ":") lists.getOrPut(current) { WatchList(current, mutableListOf()) }.items += Item(item)
+            if (item != ":") lists.getOrPut(current) { WatchList(current, mutableListOf()) }.items += Item(item)
             i++
         }
         return lists.values.toList()
