@@ -276,7 +276,7 @@ private fun DrawScope.drawHorizon(proj: Projector, pal: Palette, text: TextMeasu
     }
     for ((name, az) in listOf("N" to 0, "NE" to 45, "E" to 90, "SE" to 135, "S" to 180, "SW" to 225, "W" to 270, "NW" to 315)) {
         proj.project(horizonRay(az.toDouble(), 0.0))?.let {
-            safeText(text, name, it + Offset(-6f, 4f), TextStyle(color = pal.cardinal, fontSize = if (name.length == 1) 16.sp else 12.sp))
+            safeText(text, t(name), it + Offset(-6f, 4f), TextStyle(color = pal.cardinal, fontSize = if (name.length == 1) 16.sp else 12.sp))
         }
     }
 }
