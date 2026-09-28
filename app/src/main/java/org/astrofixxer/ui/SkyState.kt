@@ -15,6 +15,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 enum class AlignState { NOT_ALIGNED, PICK_STAR, ALIGNED }
+enum class Landscape(val label: String) { NONE("None"), HILLS("Hills"), TREES("Trees"), CITY("City"), OBSERVATORY("Dome") }
 enum class PointingMode { COMPASS, MANUAL }
 
 /** Everything the sky screen shows, independent of Android: time, place, phone orientation, alignment, target. */
@@ -42,6 +43,11 @@ class SkyState(nowMillis: Long, lat: Double, lon: Double) {
     var showConstellations by mutableStateOf(true)
     var showDeepSky by mutableStateOf(true)
     var showGrid by mutableStateOf(false)
+    var showAtmosphere by mutableStateOf(true)
+    var showMilkyWay by mutableStateOf(true)
+    var landscape by mutableStateOf(Landscape.HILLS)
+    /** Bortle dark-sky scale 1 (pristine) .. 9 (inner city); dims faint stars like Stellarium's light pollution. */
+    var bortle by mutableStateOf(4)
     var skyCulture by mutableStateOf("modern")
 
     /** Phone orientation with the manual azimuth offset applied (rotation about the up axis). */

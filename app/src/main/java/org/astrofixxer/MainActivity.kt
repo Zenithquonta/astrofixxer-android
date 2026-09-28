@@ -79,8 +79,9 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 comets = bodies.filter { it.isComet }
                 catalog = withContext(Dispatchers.IO) { assets.open("sky_catalog.json.gz").use { Catalog.load(it) } }
                 val showers = withContext(Dispatchers.IO) { parseMeteorShowers(assets.open("meteor_showers.json").bufferedReader().readText()) }
+                val brightStars = catalog!!.objects.filter { it.type == "S" && (it.mag ?: 99.0) <= 3.5 }.map { Triple(it.name, it.ra, it.dec) }
                 events = withContext(Dispatchers.Default) {
-                    upcomingEvents(JulianDate.fromEpochMillis(System.currentTimeMillis()), 60, showers, bodies)
+                    upcomingEvents(JulianDate.fromEpochMillis(System.currentTimeMillis()), 60, showers, bodies, brightStars, state.lat, state.lon)
                 }
             }
             val minute = state.timeMillis / 60000

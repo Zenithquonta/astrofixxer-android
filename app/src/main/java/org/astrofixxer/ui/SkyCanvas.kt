@@ -119,17 +119,25 @@ private fun DrawScope.drawSky(
     state: SkyState, catalog: Catalog?, moving: List<MovingObject>, text: TextMeasurer, hits: MutableList<Pair<Offset, SkyObject>>,
 ) {
     val pal = if (state.night) NightPalette else DayPalette
-    drawRect(pal.sky)
     val cam = state.camera()
     val proj = Projector(cam, size.width, size.height, state.fovDeg)
     val labelStyle = TextStyle(color = pal.label, fontSize = 11.sp)
+    val sunAlt = moving.firstOrNull { it.kind == MovingObject.Kind.SUN }
+        ?.let { Math.toDegrees(kotlin.math.asin(state.ray(it.obj)[2])) } ?: -90.0
+    val atmosphere = state.showAtmosphere && !state.night
+    drawRect(if (atmosphere) skyColor(sunAlt, pal.sky) else pal.sky)
+    val magLoss = lightPollutionLoss(state.bortle) + if (state.showAtmosphere) twilightLoss(sunAlt) else 0.0
+    val hideBelowHorizon = state.landscape != Landscape.NONE
 
     fun label(s: String, at: Offset, color: Color = pal.label, fontSp: Int = 11) {
         safeText(text, s, at + Offset(6f, -6f - fontSp), TextStyle(color = color, fontSize = fontSp.sp))
     }
 
+    if (state.showMilkyWay) {
+        val dark = ((9 - state.bortle) / 8f) * (if (state.showAtmosphere) (1 - twilightLoss(sunAlt) / 8).toFloat() else 1f)
+        drawMilkyWay(state, proj, if (state.night) pal.star else Color(0xFFC8D4F0), dark)
+    }
     if (state.showGrid) drawAltAzGrid(proj, pal)
-    drawHorizon(proj, pal, text)
 
     val center = Pointing.rayToRaDec(cam[2], state.timeMillis, state.lat, state.lon)
     val radius = hypot(proj.fovH, proj.fovV) / 2 * 1.1
@@ -150,13 +158,14 @@ private fun DrawScope.drawSky(
     }
 
     if (catalog != null) {
-        val starLimit = starMagLimit(state.fovDeg)
-        val dsoLimit = deepSkyMagLimit(state.fovDeg)
+        val starLimit = starMagLimit(state.fovDeg) - magLoss
+        val dsoLimit = deepSkyMagLimit(state.fovDeg) - magLoss
         for (o in catalog.near(center.first, center.second, radius, max(starLimit, dsoLimit))) {
             val isStar = o.type == "S"
             if (isStar && (o.mag ?: 99.0) > starLimit) continue
             if (!isStar && (!state.showDeepSky || (o.mag ?: 99.0) > dsoLimit)) continue
             val ray = state.ray(o)
+            if (hideBelowHorizon && ray[2] < 0) continue
             val p = proj.project(ray) ?: continue
             if (p.x < -20 || p.y < -20 || p.x > size.width + 20 || p.y > size.height + 20) continue
             val dim = if (ray[2] < 0) 0.35f else 1f
@@ -175,6 +184,7 @@ private fun DrawScope.drawSky(
 
     for (m in moving) {
         val ray = state.ray(m.obj)
+        if (hideBelowHorizon && ray[2] < 0) continue
         val p = proj.project(ray) ?: continue
         val (color, r) = when (m.kind) {
             MovingObject.Kind.SUN -> (if (state.night) pal.star else Color(0xFFFFE08A)) to 9f
@@ -187,6 +197,9 @@ private fun DrawScope.drawSky(
         label(m.obj.name, p, color, 12)
         hits += p to m.obj
     }
+
+    drawLandscape(state, proj, if (state.night) Color(0xFF0D0000) else Color(0xFF07100A), pal.horizon)
+    drawHorizon(proj, pal, text)
 
     state.alignStar?.let { s -> if (state.align == AlignState.ALIGNED) proj.project(state.ray(s))?.let { drawCircle(pal.alignStar, 12f, it, style = Stroke(2f)) } }
 

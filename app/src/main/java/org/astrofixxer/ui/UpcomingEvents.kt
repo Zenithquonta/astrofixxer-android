@@ -30,9 +30,13 @@ fun formatLocal(jd: Double, zone: ZoneId = ZoneId.systemDefault()): String =
 
 /**
  * Offline "what's coming up": moon phases, eclipses, equinoxes/solstices, meteor showers, planet conjunctions,
- * bright comets. ponytail: recomputed on demand (a few hundred ms), not cached.
+ * transits, supermoons, planet gatherings, bright comets, and lunar occultations of [brightStars] seen from
+ * ([latDeg], [lonDeg]). ponytail: computed once after loading, not cached across launches.
  */
-fun upcomingEvents(nowJd: Double, days: Int, showers: List<MeteorShower>, bodies: List<MinorBody>): List<EventItem> {
+fun upcomingEvents(
+    nowJd: Double, days: Int, showers: List<MeteorShower>, bodies: List<MinorBody>,
+    brightStars: List<Triple<String, Double, Double>> = emptyList(), latDeg: Double = 0.0, lonDeg: Double = 0.0,
+): List<EventItem> {
     val out = mutableListOf<EventItem>()
     val end = nowJd + days
 
@@ -78,6 +82,24 @@ fun upcomingEvents(nowJd: Double, days: Int, showers: List<MeteorShower>, bodies
         val place = b.geocentric(nowJd)
         val mag = place.mag ?: continue
         if (mag < 11) out += EventItem(nowJd, "Comet ${b.name}", "Magnitude %.1f now, %.2f AU from Earth (orbit elements from JD %.0f)".format(mag, place.delta, b.epoch))
+    }
+
+    for (body in listOf(ApparentPosition.MERCURY, ApparentPosition.VENUS)) for (t in Events.planetTransits(body, nowJd, days)) {
+        out += EventItem(t.jd, "Transit of ${ApparentPosition.bodies[body]} across the Sun",
+            "Only with a solar filter or projection. Never look at the Sun directly.", rare = true)
+    }
+    for ((t, km) in Events.supermoons(nowJd, days)) {
+        out += EventItem(t, "Supermoon", "Full Moon at %,.0f km".format(km), rare = true)
+    }
+    for ((t, span) in Events.planetGatherings(nowJd, days)) {
+        out += EventItem(t, "Planet gathering", "Four or more bright planets within %.0f°".format(span), rare = true)
+    }
+    for (o in Events.lunarOccultations(brightStars, nowJd, days, latDeg, lonDeg)) {
+        if (o.moonAltDeg <= 0) continue
+        val daylight = if (o.sunAltDeg > -6) " (in daylight or twilight)" else ""
+        out += EventItem(o.disappearJd, "Moon covers ${o.name}",
+            "Disappears %s, reappears %s%s. Times ±5 min.".format(formatLocal(o.disappearJd).substringAfter(", "),
+                formatLocal(o.reappearJd).substringAfter(", "), daylight), rare = true)
     }
 
     return out.sortedBy { it.jd }

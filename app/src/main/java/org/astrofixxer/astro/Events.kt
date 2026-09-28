@@ -175,6 +175,110 @@ object Events {
         return Pair(rise, set)
     }
 
+    class Transit(val jd: Double, val body: Int, val separationDeg: Double)
+
+    /** Mercury or Venus crossing the Sun's disc (seen from Earth's centre) within [days] of [fromJd]. */
+    fun planetTransits(body: Int, fromJd: Double, days: Int): List<Transit> =
+        conjunctions(ApparentPosition.SUN, body, fromJd, days, 1.0).mapNotNull { c ->
+            val sun = geocentric(ApparentPosition.SUN, c.jd)
+            val planet = geocentric(body, c.jd)
+            // Inferior conjunction only: the planet is between Earth and Sun.
+            if (norm(planet) >= norm(sun)) return@mapNotNull null
+            val sunRadiusDeg = asin(SUN_RADIUS_AU / norm(sun)) / D2R
+            if (c.separationDeg < sunRadiusDeg) Transit(c.jd, body, c.separationDeg) else null
+        }
+
+    /** Full moons closer than [maxKm] (a "supermoon"), with their distance in km. */
+    fun supermoons(fromJd: Double, days: Int, maxKm: Double = 360000.0): List<Pair<Double, Double>> {
+        val out = mutableListOf<Pair<Double, Double>>()
+        var t = nextPhase(fromJd, 180.0)
+        while (t < fromJd + days) {
+            val km = norm(geocentric(ApparentPosition.MOON, t)) * 149597870.7
+            if (km < maxKm) out += t to km
+            t = nextPhase(t + 20, 180.0)
+        }
+        return out
+    }
+
+    /**
+     * Days when at least [minPlanets] of Mercury, Venus, Mars, Jupiter, Saturn fit inside [spanDeg] of ecliptic
+     * longitude (a "planet parade"). Returns (jd, span in degrees) for the tightest day of each gathering.
+     */
+    fun planetGatherings(fromJd: Double, days: Int, minPlanets: Int = 4, spanDeg: Double = 30.0): List<Pair<Double, Double>> {
+        val planets = listOf(ApparentPosition.MERCURY, ApparentPosition.VENUS, ApparentPosition.MARS, ApparentPosition.JUPITER, ApparentPosition.SATURN)
+        fun tightestSpan(jd: Double): Double {
+            val lons = planets.map { eclipticLongitude(geocentric(it, jd)) }.sorted()
+            var best = 360.0
+            for (i in lons.indices) {
+                // smallest arc containing minPlanets consecutive longitudes (wrapping around 360)
+                val j = i + minPlanets - 1
+                val end = if (j < lons.size) lons[j] else lons[j - lons.size] + 360
+                best = minOf(best, end - lons[i])
+            }
+            return best
+        }
+        val out = mutableListOf<Pair<Double, Double>>()
+        var inGathering = false
+        var bestJd = 0.0
+        var bestSpan = 360.0
+        for (d in 0..days) {
+            val jd = fromJd + d
+            val span = tightestSpan(jd)
+            if (span <= spanDeg) {
+                if (!inGathering || span < bestSpan) { bestJd = jd; bestSpan = span }
+                inGathering = true
+            } else if (inGathering) {
+                out += bestJd to bestSpan
+                inGathering = false
+                bestSpan = 360.0
+            }
+        }
+        if (inGathering) out += bestJd to bestSpan
+        return out
+    }
+
+    class Occultation(val name: String, val disappearJd: Double, val reappearJd: Double, val moonAltDeg: Double, val sunAltDeg: Double)
+
+    /**
+     * The Moon passing in front of fixed stars (J2000 RA/Dec in degrees) as seen from the observer.
+     * ponytail: VSOP87-derived Moon is good to a few arcminutes, so contact times are approximate (a few minutes).
+     */
+    fun lunarOccultations(stars: List<Triple<String, Double, Double>>, fromJd: Double, days: Int, latDeg: Double, lonDeg: Double): List<Occultation> {
+        val lat = latDeg * D2R
+        val lon = lonDeg * D2R
+        fun unit(raDeg: Double, decDeg: Double) = doubleArrayOf(
+            cos(decDeg * D2R) * cos(raDeg * D2R), cos(decDeg * D2R) * sin(raDeg * D2R), sin(decDeg * D2R))
+        fun moonDir(jd: Double): DoubleArray {
+            val r = ApparentPosition.reduce(ApparentPosition.MOON, jd, lat, lon)
+            return unit(r.raJ2000 / D2R, r.decJ2000 / D2R)
+        }
+        fun moonRadius(jd: Double) = asin(MOON_RADIUS_AU / norm(geocentric(ApparentPosition.MOON, jd)))
+
+        val starDirs = stars.map { (name, ra, dec) -> name to unit(ra, dec) }
+        val out = mutableListOf<Occultation>()
+        val hour = 1.0 / 24
+        var t = fromJd
+        val lastFound = HashMap<String, Double>()
+        while (t < fromJd + days) {
+            val m = moonDir(t)
+            for ((name, dir) in starDirs) {
+                if (angle(m, dir) > 1.0 * D2R) continue
+                fun sep(jd: Double) = angle(moonDir(jd), dir) - moonRadius(jd)
+                val tMin = minimise(::sep, t - hour, t + hour, 1e-5)
+                if (sep(tMin) >= 0) continue
+                if (lastFound[name]?.let { abs(it - tMin) < 0.2 } == true) continue // same event seen from the next hour
+                lastFound[name] = tMin
+                val disappear = bisect({ -sep(it) }, tMin - 2 * hour, tMin)
+                val reappear = bisect(::sep, tMin, tMin + 2 * hour)
+                val moonAlt = ApparentPosition.reduce(ApparentPosition.MOON, tMin, lat, lon).alt / D2R
+                val sunAlt = ApparentPosition.reduce(ApparentPosition.SUN, tMin, lat, lon).alt / D2R
+                out += Occultation(name, disappear, reappear, moonAlt, sunAlt)
+            }
+            t += hour
+        }
+        return out.sortedBy { it.disappearJd }
+    }
+
     class Conjunction(val jd: Double, val bodyA: Int, val bodyB: Int, val separationDeg: Double)
 
     /** Close approaches (< [maxDeg]) between two bodies over [days] days, sampled every 6 hours and refined. */

@@ -22,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
@@ -51,7 +52,7 @@ private val NightColors = darkColorScheme(
     outline = Color(0xFF5A0707), outlineVariant = Color(0xFF3A0505), surfaceVariant = Color.Black, onSurfaceVariant = Color(0xFFB00C0C),
 )
 
-private enum class Sheet { NONE, SEARCH, EVENTS }
+private enum class Sheet { NONE, SEARCH, EVENTS, SKY }
 
 private val TYPE_NAMES = mapOf("S" to "Star", "Ga" to "Galaxy", "Oc" to "Open cluster", "Gc" to "Globular cluster", "Ne" to "Nebula", "P" to "Solar system", "C" to "Comet")
 
@@ -78,11 +79,13 @@ fun SkyScreen(
                 if (catalog == null) Text("Loading sky catalogue…", color = colors.onSurface, modifier = Modifier.padding(start = 8.dp))
                 Toolbar(state,
                     onSearch = { sheet = Sheet.SEARCH },
-                    onEvents = { sheet = Sheet.EVENTS })
+                    onEvents = { sheet = Sheet.EVENTS },
+                    onSky = { sheet = Sheet.SKY })
             }
             when (sheet) {
                 Sheet.SEARCH -> SearchSheet(state, catalog, moving) { sheet = Sheet.NONE }
                 Sheet.EVENTS -> EventsSheet(state, events) { sheet = Sheet.NONE }
+                Sheet.SKY -> SkyOptionsSheet(state) { sheet = Sheet.NONE }
                 Sheet.NONE -> {}
             }
         }
@@ -151,7 +154,7 @@ private fun Readout(arrow: String, value: Double, label: String) {
 }
 
 @Composable
-private fun Toolbar(state: SkyState, onSearch: () -> Unit, onEvents: () -> Unit) {
+private fun Toolbar(state: SkyState, onSearch: () -> Unit, onEvents: () -> Unit, onSky: () -> Unit) {
     val big = Modifier.heightIn(min = 56.dp)
     val pad = PaddingValues(horizontal = 4.dp)
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -166,6 +169,7 @@ private fun Toolbar(state: SkyState, onSearch: () -> Unit, onEvents: () -> Unit)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             OutlinedButton(onClick = onSearch, modifier = big.weight(1f), contentPadding = pad) { Label("Find") }
             OutlinedButton(onClick = onEvents, modifier = big.weight(1f), contentPadding = pad) { Label("Events") }
+            OutlinedButton(onClick = onSky, modifier = big.weight(0.8f), contentPadding = pad) { Label("Sky") }
             OutlinedButton(onClick = { state.night = !state.night }, modifier = big.weight(1f), contentPadding = pad) { Label(if (state.night) "Day" else "Night") }
             OutlinedButton(onClick = {
                 state.mode = if (state.mode == PointingMode.COMPASS) PointingMode.MANUAL else PointingMode.COMPASS
@@ -225,6 +229,70 @@ private fun EventsSheet(state: SkyState, events: List<EventItem>?, onClose: () -
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SkyOptionsSheet(state: SkyState, onClose: () -> Unit) {
+    SheetFrame("Sky & viewing", onClose) {
+        LazyColumn(Modifier.fillMaxWidth()) {
+            item { Toggle("Constellation lines and names", state.showConstellations) { state.showConstellations = it } }
+            item { Toggle("Deep-sky objects", state.showDeepSky) { state.showDeepSky = it } }
+            item { Toggle("Milky Way", state.showMilkyWay) { state.showMilkyWay = it } }
+            item { Toggle("Atmosphere (daylight and twilight)", state.showAtmosphere) { state.showAtmosphere = it } }
+            item { Toggle("Alt/Az grid", state.showGrid) { state.showGrid = it } }
+            item {
+                Stepper("Light pollution (Bortle)", state.bortle.toString(),
+                    onMinus = { state.bortle = (state.bortle - 1).coerceAtLeast(1) }, onPlus = { state.bortle = (state.bortle + 1).coerceAtMost(9) })
+            }
+            item {
+                val all = Landscape.values()
+                Stepper("Landscape", state.landscape.label,
+                    onMinus = { state.landscape = all[(state.landscape.ordinal + all.size - 1) % all.size] },
+                    onPlus = { state.landscape = all[(state.landscape.ordinal + 1) % all.size] })
+            }
+            item {
+                val toggle = { state.skyCulture = if (state.skyCulture == "indian") "modern" else "indian" }
+                Stepper("Sky culture", if (state.skyCulture == "indian") "Indian (Vedic)" else "Western", onMinus = toggle, onPlus = toggle)
+            }
+            item { LocationEditor(state) }
+        }
+    }
+}
+
+@Composable
+private fun Toggle(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { onChange(!checked) }, verticalAlignment = Alignment.CenterVertically) {
+        Text(label, color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp, modifier = Modifier.weight(1f))
+        Switch(checked = checked, onCheckedChange = onChange)
+    }
+}
+
+@Composable
+private fun Stepper(label: String, value: String, onMinus: () -> Unit, onPlus: () -> Unit) {
+    Row(Modifier.fillMaxWidth().heightIn(min = 56.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp, modifier = Modifier.weight(1f))
+        OutlinedButton(onClick = onMinus, modifier = Modifier.heightIn(min = 48.dp)) { Text("‹") }
+        Text(value, color = MaterialTheme.colorScheme.primary, fontSize = 16.sp, modifier = Modifier.padding(horizontal = 12.dp))
+        OutlinedButton(onClick = onPlus, modifier = Modifier.heightIn(min = 48.dp)) { Text("›") }
+    }
+}
+
+@Composable
+private fun LocationEditor(state: SkyState) {
+    var lat by remember { mutableStateOf("%.4f".format(java.util.Locale.ROOT, state.lat)) }
+    var lon by remember { mutableStateOf("%.4f".format(java.util.Locale.ROOT, state.lon)) }
+    val latOk = lat.toDoubleOrNull()?.let { it in -90.0..90.0 } == true
+    val lonOk = lon.toDoubleOrNull()?.let { it in -180.0..180.0 } == true
+    Column(Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
+        Text("Location (overrides GPS)", color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(lat, { lat = it }, label = { Text("Latitude") }, isError = !latOk, singleLine = true, modifier = Modifier.weight(1f))
+            OutlinedTextField(lon, { lon = it }, label = { Text("Longitude") }, isError = !lonOk, singleLine = true, modifier = Modifier.weight(1f))
+        }
+        Button(onClick = { state.lat = lat.toDouble(); state.lon = lon.toDouble() }, enabled = latOk && lonOk,
+            modifier = Modifier.padding(top = 8.dp).heightIn(min = 48.dp)) { Text("Use this location") }
+        if (!latOk || !lonOk) Text("Latitude −90 to 90, longitude −180 to 180 (east positive).", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
     }
 }
 
