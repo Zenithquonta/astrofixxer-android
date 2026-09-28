@@ -22,7 +22,7 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 |---|---|
 | 0. Analysis, UI prompt, plan | Done |
 | 1. Web app fixes + Stellarium data | Done (`web/`); needs a Vercel project with Root Directory `web` |
-| 2. Android project setup | Done; waiting for the GitHub repo `Zenithquonta/astrofixxer-android` (saved as `handoff/astrofixxer-android.bundle`) |
+| 2. Android project setup | Done; `MainActivity` compiles against the Android 14 framework (stub check). Waiting for the GitHub repo `Zenithquonta/astrofixxer-android` (saved as `handoff/astrofixxer-android.bundle`) |
 | 3. Astronomy core | Done: 36 JVM tests pass |
 | 4. Stellarium offline data | Done: catalogue, comets/asteroids, meteor showers, constellation artwork |
 | 5. Compose UI (Stellarium-style) | Done: sky view, atmosphere, Milky Way, landscapes, light pollution, artwork, alignment, guidance, search, events, lists, onboarding, help, night mode, Hindi. Not yet built for Android (no CI until the repo exists) |
@@ -30,20 +30,26 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 | 6. AstroGuide v1 (offline voice) | Done: English and Hindi commands, speech in/out |
 | 7. Release | Not started: needs the owner's signing key and Play account |
 
----|---|
-| 0. Analysis, UI prompt, plan | Done |
-| 1. Web app fixes + Stellarium data | Done (`web/`); needs a Vercel project with root `web` |
-| 2. Android project setup | Done locally; waiting for the GitHub repo to push and run CI |
-| 3. Astronomy core | Done: reduction, pointing, alignment, parser; golden tests pass on the JVM |
-| 4. Stellarium offline data | Done except constellation artwork: importer, comets/asteroids, Android catalogue loader with grid index and search |
-| 5. Compose UI (Stellarium-style) | v1 done: sky view, alignment, guidance, search, events, night mode. Missing: atmosphere, Milky Way, landscapes, light-pollution slider, constellation art, settings, onboarding, help, localisation |
-| 5b. Offline events | Moon phases, eclipses, equinoxes/solstices, rise/set, conjunctions, meteor peaks, bright comets done. Missing: occultations, transits, ISS passes, supermoons, planet gatherings |
-| 6. AstroGuide v1 (offline voice) | Not started |
-| 7. Release | Not started |
 
 ---
 
 ## Entries
+
+### 2026-09-28: MainActivity checked against the Android framework
+
+**What was done** (Android `main` at `4e45381`, saved in `handoff/astrofixxer-android.bundle`)
+- The Android SDK can't be downloaded here (Google Maven is blocked), so I compiled all of `app/src/main/java` (`MainActivity`, `ui/`, `astro/`) against Robolectric's `android-all:14` jar (the real Android 14 framework classes, from Maven Central). The few `androidx.activity` calls (`ComponentActivity`, `setContent`, the permission launcher, `asImageBitmap`) came from small stubs.
+- The result was a clean build. The only warning was the deprecated `URL(String)` in the CelesTrak download, which now uses `URI(...).toURL()`.
+- Removed the stale duplicate status table from this file.
+
+**How to verify**
+- Run the first GitHub Actions build (`./gradlew test assembleDebug`) once the repo exists.
+
+**Known issues / not done**
+- It is still not a real Android build: resources, the manifest merge, AGP and dexing have never run.
+
+**Next step**
+- Owner: create `Zenithquonta/astrofixxer-android` (private, empty). I'll push `main` and fix whatever CI reports.
 
 ### 2026-09-28: ISS passes and transits; event titles in Hindi
 
