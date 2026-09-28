@@ -39,6 +39,17 @@ class GoldenTest {
         }
     }
 
+    @Test fun rayToRaDecInvertsRayFromPos() {
+        val cases = golden.getJSONArray("rays")
+        for (i in 0 until cases.length()) {
+            val c = cases.getJSONObject(i)
+            val ray = c.getJSONArray("ray").doubles()
+            val (ra, dec) = Pointing.rayToRaDec(ray, c.getLong("time"), c.getDouble("lat"), c.getDouble("lon"))
+            assertEquals("dec $i", c.getDouble("de"), dec, 1e-9)
+            if (kotlin.math.abs(dec) < 89.0) assertEquals("ra $i", 0.0, ((ra - c.getDouble("ra") + 180).mod(360.0) - 180), 1e-7)
+        }
+    }
+
     @Test fun rotationMatrixMatchesWebApp() {
         val cases = golden.getJSONArray("rotations")
         for (i in 0 until cases.length()) {

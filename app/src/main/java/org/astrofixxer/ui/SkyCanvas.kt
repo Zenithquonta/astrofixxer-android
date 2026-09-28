@@ -1,0 +1,283 @@
+package org.astrofixxer.ui
+
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.sp
+import org.astrofixxer.astro.ApparentPosition
+import org.astrofixxer.astro.Catalog
+import org.astrofixxer.astro.Pointing
+import org.astrofixxer.astro.SkyObject
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.hypot
+import kotlin.math.max
+import kotlin.math.sin
+
+/** A planet, the Moon, the Sun or a comet, positioned for the current time. */
+class MovingObject(val obj: SkyObject, val kind: Kind) { enum class Kind { SUN, MOON, PLANET, COMET } }
+
+class Palette(
+    val sky: Color, val star: Color, val label: Color, val lines: Color, val deepSky: Color,
+    val horizon: Color, val cardinal: Color, val target: Color, val alignStar: Color, val crosshair: Color,
+)
+
+val DayPalette = Palette(
+    sky = Color(0xFF03060C), star = Color(0xFFF2F6FF), label = Color(0xFFA9B8CC), lines = Color(0xFF2E4A6B),
+    deepSky = Color(0xFF7FC7FF), horizon = Color(0xFF3B5A3A), cardinal = Color(0xFFE05A4E), target = Color(0xFF00E5FF),
+    alignStar = Color(0xFFFF4FD8), crosshair = Color(0xFF00BFFF),
+)
+val NightPalette = Palette(
+    sky = Color.Black, star = Color(0xFFD01010), label = Color(0xFF8A0A0A), lines = Color(0xFF4A0505),
+    deepSky = Color(0xFFB00C0C), horizon = Color(0xFF5A0707), cardinal = Color(0xFFD01010), target = Color(0xFFFF2020),
+    alignStar = Color(0xFFB00C0C), crosshair = Color(0xFFFF2020),
+)
+
+/** Maps [east, north, up] directions to screen pixels with the web app's orthographic "camera" projection. */
+class Projector(private val cam: Array<DoubleArray>, val width: Float, val height: Float, fovDeg: Double) {
+    val fovH: Double
+    val fovV: Double
+    private val limX: Double
+    private val limY: Double
+
+    init {
+        val ratio = width / height
+        if (ratio < 1) { fovV = fovDeg; fovH = fovDeg * ratio } else { fovH = fovDeg; fovV = fovDeg / ratio }
+        limX = sin(fovH / 2 * PI / 180)
+        limY = sin(fovV / 2 * PI / 180)
+    }
+
+    fun project(ray: DoubleArray): Offset? {
+        val b = Pointing.bearing(ray, cam)
+        if (b[2] <= 0) return null
+        return Offset(((b[0] + limX) / (2 * limX) * width).toFloat(), ((1 - (b[1] + limY) / (2 * limY)) * height).toFloat())
+    }
+}
+
+/** Faintest magnitudes drawn at a field of view, like Stellarium's zoom-dependent limit. */
+/** Deep-sky objects labelled on the map; the rest are drawn as symbols and searchable. */
+private val WELL_KNOWN = Regex("^(M|NGC|IC|C)\\d.*")
+
+fun starMagLimit(fovDeg: Double) = when { fovDeg >= 100 -> 4.5; fovDeg >= 50 -> 5.3; fovDeg >= 25 -> 6.0; else -> 6.5 }
+fun deepSkyMagLimit(fovDeg: Double) = when { fovDeg >= 100 -> 7.0; fovDeg >= 50 -> 8.5; fovDeg >= 25 -> 10.0; fovDeg >= 10 -> 11.5; fovDeg >= 4 -> 12.5; else -> 14.0 }
+
+@Composable
+fun SkyCanvas(
+    state: SkyState,
+    catalog: Catalog?,
+    moving: List<MovingObject>,
+    modifier: Modifier = Modifier,
+) {
+    val text = rememberTextMeasurer()
+    val hits = remember { mutableListOf<Pair<Offset, SkyObject>>() }
+    Canvas(
+        modifier
+            .pointerInput(state) {
+                detectTapGestures { tap ->
+                    val best = hits.minByOrNull { (p, _) -> hypot(p.x - tap.x, p.y - tap.y) } ?: return@detectTapGestures
+                    if (hypot(best.first.x - tap.x, best.first.y - tap.y) > 48.dp2px(density)) return@detectTapGestures
+                    if (state.align == AlignState.PICK_STAR) state.alignOn(best.second) else state.target = best.second
+                }
+            }
+            .pointerInput(state) {
+                detectTransformGestures { _, pan, zoom, _ ->
+                    if (zoom != 1f) state.fovDeg = (state.fovDeg / zoom).coerceIn(0.5, 120.0)
+                    if (state.mode == PointingMode.MANUAL && pan.x != 0f) {
+                        state.azOffsetDeg -= pan.x / size.width * state.fovDeg
+                    }
+                }
+            },
+    ) {
+        hits.clear()
+        drawSky(state, catalog, moving, text, hits)
+    }
+}
+
+private fun Int.dp2px(density: Float) = this * density
+
+/** drawText throws when the text starts past the right/bottom edge, so labels near the edge are skipped. */
+private fun DrawScope.safeText(tm: TextMeasurer, s: String, at: Offset, style: TextStyle) {
+    if (at.x > size.width - 8 || at.y > size.height - 8) return
+    drawText(tm, s, at, style, softWrap = false, maxLines = 1)
+}
+
+private fun DrawScope.drawSky(
+    state: SkyState, catalog: Catalog?, moving: List<MovingObject>, text: TextMeasurer, hits: MutableList<Pair<Offset, SkyObject>>,
+) {
+    val pal = if (state.night) NightPalette else DayPalette
+    drawRect(pal.sky)
+    val cam = state.camera()
+    val proj = Projector(cam, size.width, size.height, state.fovDeg)
+    val labelStyle = TextStyle(color = pal.label, fontSize = 11.sp)
+
+    fun label(s: String, at: Offset, color: Color = pal.label, fontSp: Int = 11) {
+        safeText(text, s, at + Offset(6f, -6f - fontSp), TextStyle(color = color, fontSize = fontSp.sp))
+    }
+
+    if (state.showGrid) drawAltAzGrid(proj, pal)
+    drawHorizon(proj, pal, text)
+
+    val center = Pointing.rayToRaDec(cam[2], state.timeMillis, state.lat, state.lon)
+    val radius = hypot(proj.fovH, proj.fovV) / 2 * 1.1
+
+    if (catalog != null && state.showConstellations) {
+        for (c in catalog.constellations[state.skyCulture].orEmpty()) {
+            for (poly in c.lines) for (k in 0 until poly.size - 1) {
+                val a = catalog.starsByHip[poly[k]] ?: continue
+                val b = catalog.starsByHip[poly[k + 1]] ?: continue
+                val pa = proj.project(state.ray(a)) ?: continue
+                val pb = proj.project(state.ray(b)) ?: continue
+                drawLine(pal.lines, pa, pb, strokeWidth = 1.2f)
+            }
+            proj.project(Pointing.rayFromPos(c.ra, c.dec, state.timeMillis, state.lat, state.lon))?.let {
+                safeText(text, c.name.uppercase(), it, labelStyle.copy(color = if (state.night) pal.lines else Color(0xFF5B7FA6), fontSize = 10.sp))
+            }
+        }
+    }
+
+    if (catalog != null) {
+        val starLimit = starMagLimit(state.fovDeg)
+        val dsoLimit = deepSkyMagLimit(state.fovDeg)
+        for (o in catalog.near(center.first, center.second, radius, max(starLimit, dsoLimit))) {
+            val isStar = o.type == "S"
+            if (isStar && (o.mag ?: 99.0) > starLimit) continue
+            if (!isStar && (!state.showDeepSky || (o.mag ?: 99.0) > dsoLimit)) continue
+            val ray = state.ray(o)
+            val p = proj.project(ray) ?: continue
+            if (p.x < -20 || p.y < -20 || p.x > size.width + 20 || p.y > size.height + 20) continue
+            val dim = if (ray[2] < 0) 0.35f else 1f
+            if (isStar) {
+                val r = (0.9 + max(0.0, starLimit + 0.5 - (o.mag ?: 6.0)) * 0.9).toFloat()
+                drawCircle(pal.star.copy(alpha = 0.25f * dim), r * 2.2f, p)
+                drawCircle(pal.star.copy(alpha = dim), r, p)
+                if ((o.mag ?: 9.0) < starLimit - 3.0 && !o.name.startsWith("HIP")) label(o.name, p)
+            } else {
+                drawDeepSky(o, p, pal.deepSky.copy(alpha = dim))
+                if ((o.mag ?: 99.0) < dsoLimit - 2.5 && WELL_KNOWN.matches(o.name)) label(o.name, p, pal.deepSky)
+            }
+            hits += p to o
+        }
+    }
+
+    for (m in moving) {
+        val ray = state.ray(m.obj)
+        val p = proj.project(ray) ?: continue
+        val (color, r) = when (m.kind) {
+            MovingObject.Kind.SUN -> (if (state.night) pal.star else Color(0xFFFFE08A)) to 9f
+            MovingObject.Kind.MOON -> (if (state.night) pal.star else Color(0xFFE8E8DC)) to 8f
+            MovingObject.Kind.PLANET -> (if (state.night) pal.star else Color(0xFFFFD27F)) to 4f
+            MovingObject.Kind.COMET -> pal.deepSky to 3f
+        }
+        drawCircle(color, r, p)
+        if (m.kind == MovingObject.Kind.COMET) drawLine(color, p, p + Offset(14f, -10f), strokeWidth = 2f)
+        label(m.obj.name, p, color, 12)
+        hits += p to m.obj
+    }
+
+    state.alignStar?.let { s -> if (state.align == AlignState.ALIGNED) proj.project(state.ray(s))?.let { drawCircle(pal.alignStar, 12f, it, style = Stroke(2f)) } }
+
+    val mid = Offset(size.width / 2, size.height / 2)
+    state.target?.let { t ->
+        val tr = state.ray(t)
+        val p = proj.project(tr)
+        if (p != null) {
+            drawCircle(pal.target, 16f, p, style = Stroke(2.5f))
+            drawLine(pal.target, mid, p, strokeWidth = 2f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 10f)))
+            label(t.name, p, pal.target, 14)
+        } else {
+            // Off screen: arrow at the edge pointing toward the target.
+            val b = Pointing.bearing(tr, cam)
+            val ang = kotlin.math.atan2(-b[1], b[0]).toFloat()
+            val edge = mid + Offset(cos(ang) * size.minDimension * 0.42f, sin(ang) * size.minDimension * 0.42f)
+            rotate(Math.toDegrees(ang.toDouble()).toFloat(), edge) {
+                drawLine(pal.target, edge - Offset(26f, 0f), edge, strokeWidth = 4f)
+                drawLine(pal.target, edge, edge + Offset(-12f, -10f), strokeWidth = 4f)
+                drawLine(pal.target, edge, edge + Offset(-12f, 10f), strokeWidth = 4f)
+            }
+        }
+    }
+
+    for (dir in listOf(Offset(1f, 0f), Offset(-1f, 0f), Offset(0f, 1f), Offset(0f, -1f))) {
+        drawLine(pal.crosshair, mid + dir * 10f, mid + dir * 40f, strokeWidth = 2.5f)
+    }
+}
+
+private fun DrawScope.drawDeepSky(o: SkyObject, p: Offset, color: Color) {
+    val r = 6f
+    when (o.type) {
+        "Ga" -> rotate(-35f, p) { drawOval(color, p - Offset(r * 1.5f, r / 1.6f), androidx.compose.ui.geometry.Size(r * 3f, r * 1.25f), style = Stroke(1.5f)) }
+        "Gc" -> {
+            drawCircle(color, r, p, style = Stroke(1.5f))
+            drawLine(color, p - Offset(r, 0f), p + Offset(r, 0f), strokeWidth = 1f)
+            drawLine(color, p - Offset(0f, r), p + Offset(0f, r), strokeWidth = 1f)
+        }
+        "Oc" -> drawCircle(color, r, p, style = Stroke(1.5f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(3f, 3f))))
+        else -> drawRect(color, p - Offset(r * 0.8f, r * 0.8f), androidx.compose.ui.geometry.Size(r * 1.6f, r * 1.6f), style = Stroke(1.5f))
+    }
+}
+
+private fun horizonRay(azDeg: Double, altDeg: Double): DoubleArray {
+    val a = azDeg * PI / 180
+    val h = altDeg * PI / 180
+    return doubleArrayOf(sin(a) * cos(h), cos(a) * cos(h), sin(h))
+}
+
+private fun DrawScope.drawHorizon(proj: Projector, pal: Palette, text: TextMeasurer) {
+    var prev: Offset? = null
+    for (az in 0..360 step 2) {
+        val p = proj.project(horizonRay(az.toDouble(), 0.0))
+        if (p != null && prev != null) drawLine(pal.horizon, prev, p, strokeWidth = 2f)
+        prev = p
+    }
+    for ((name, az) in listOf("N" to 0, "NE" to 45, "E" to 90, "SE" to 135, "S" to 180, "SW" to 225, "W" to 270, "NW" to 315)) {
+        proj.project(horizonRay(az.toDouble(), 0.0))?.let {
+            safeText(text, name, it + Offset(-6f, 4f), TextStyle(color = pal.cardinal, fontSize = if (name.length == 1) 16.sp else 12.sp))
+        }
+    }
+}
+
+private fun DrawScope.drawAltAzGrid(proj: Projector, pal: Palette) {
+    val c = pal.lines.copy(alpha = 0.6f)
+    for (alt in listOf(30, 60)) {
+        var prev: Offset? = null
+        for (az in 0..360 step 3) {
+            val p = proj.project(horizonRay(az.toDouble(), alt.toDouble()))
+            if (p != null && prev != null) drawLine(c, prev, p, strokeWidth = 0.8f)
+            prev = p
+        }
+    }
+    for (az in 0 until 360 step 30) {
+        var prev: Offset? = null
+        for (alt in 0..90 step 3) {
+            val p = proj.project(horizonRay(az.toDouble(), alt.toDouble()))
+            if (p != null && prev != null) drawLine(c, prev, p, strokeWidth = 0.8f)
+            prev = p
+        }
+    }
+}
+
+/** Sun, Moon and planets as sky objects at the state's time. */
+fun solarSystem(state: SkyState): List<MovingObject> = listOf(
+    ApparentPosition.SUN to MovingObject.Kind.SUN, ApparentPosition.MOON to MovingObject.Kind.MOON,
+    ApparentPosition.MERCURY to MovingObject.Kind.PLANET, ApparentPosition.VENUS to MovingObject.Kind.PLANET,
+    ApparentPosition.MARS to MovingObject.Kind.PLANET, ApparentPosition.JUPITER to MovingObject.Kind.PLANET,
+    ApparentPosition.SATURN to MovingObject.Kind.PLANET, ApparentPosition.URANUS to MovingObject.Kind.PLANET,
+    ApparentPosition.NEPTUNE to MovingObject.Kind.PLANET,
+).map { (body, kind) ->
+    val (ra, dec) = state.bodyPosition(body)
+    MovingObject(SkyObject(ApparentPosition.bodies[body], ra, dec, null, "P"), kind)
+}

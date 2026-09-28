@@ -1,74 +1,135 @@
 package org.astrofixxer
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
+import android.location.LocationManager
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.runtime.Composable
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import org.astrofixxer.astro.ApparentPosition
+import kotlinx.coroutines.withContext
+import org.astrofixxer.astro.Catalog
 import org.astrofixxer.astro.JulianDate
+import org.astrofixxer.astro.MinorBody
+import org.astrofixxer.astro.SkyObject
+import org.astrofixxer.ui.EventItem
+import org.astrofixxer.ui.MovingObject
+import org.astrofixxer.ui.PointingMode
+import org.astrofixxer.ui.SkyScreen
+import org.astrofixxer.ui.SkyState
+import org.astrofixxer.ui.parseMeteorShowers
+import org.astrofixxer.ui.solarSystem
+import org.astrofixxer.ui.upcomingEvents
 import kotlin.math.PI
 
-// ponytail: placeholder screen proving the astronomy core runs on device; replaced by the sky view in Phase 5.
-private const val DEFAULT_LAT = 28.6139
+private const val DEFAULT_LAT = 28.6139 // New Delhi until a location fix arrives
 private const val DEFAULT_LON = 77.2090
 
-class MainActivity : ComponentActivity() {
+/** Sensor smoothing: fraction of each new reading kept. Real sensors jitter; tune on devices. */
+private const val SENSOR_SMOOTHING = 0.25
+
+class MainActivity : ComponentActivity(), SensorEventListener {
+    private val state = SkyState(System.currentTimeMillis(), DEFAULT_LAT, DEFAULT_LON)
+    private lateinit var sensorManager: SensorManager
+    private var rotationSensor: Sensor? = null
+    private val smoothed = DoubleArray(9)
+    private var hasReading = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            MaterialTheme(colorScheme = darkColorScheme(primary = Color(0xFF00BFFF), background = Color.Black)) {
-                SkyNow()
-            }
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
+        rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
+        if (rotationSensor == null) {
+            // No compass: gyro + gravity only, so the user fixes azimuth by dragging the sky.
+            rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR)
+            state.mode = PointingMode.MANUAL
         }
-    }
-}
+        updateLocation()
 
-@Composable
-private fun SkyNow() {
-    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(1000)
-            now = System.currentTimeMillis()
-        }
-    }
-    val jd = JulianDate.fromEpochMillis(now)
-    val bodies = listOf(ApparentPosition.SUN, ApparentPosition.MOON, ApparentPosition.MERCURY, ApparentPosition.VENUS,
-        ApparentPosition.MARS, ApparentPosition.JUPITER, ApparentPosition.SATURN, ApparentPosition.URANUS, ApparentPosition.NEPTUNE)
-    Column(
-        Modifier.fillMaxSize().background(Color.Black).safeDrawingPadding().padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Text("AstroFixxer", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
-        Text("New Delhi · Alt / Az now", color = Color.Gray)
-        for (b in bodies) {
-            val p = ApparentPosition.reduce(b, jd, DEFAULT_LAT * PI / 180, DEFAULT_LON * PI / 180)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(ApparentPosition.bodies[b], color = if (p.alt > 0) Color.White else Color.DarkGray)
-                Text("%6.1f°  %6.1f°".format(p.alt * 180 / PI, p.az * 180 / PI),
-                    fontFamily = FontFamily.Monospace, color = if (p.alt > 0) Color.White else Color.DarkGray)
+        setContent {
+            var catalog by remember { mutableStateOf<Catalog?>(null) }
+            var comets by remember { mutableStateOf<List<MinorBody>>(emptyList()) }
+            var events by remember { mutableStateOf<List<EventItem>?>(null) }
+            val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+                if (granted) updateLocation()
             }
+            LaunchedEffect(Unit) { permission.launch(Manifest.permission.ACCESS_COARSE_LOCATION) }
+            LaunchedEffect(Unit) {
+                while (true) {
+                    if (state.live) state.timeMillis = System.currentTimeMillis()
+                    delay(1000)
+                }
+            }
+            LaunchedEffect(Unit) {
+                val bodies = withContext(Dispatchers.IO) { MinorBody.parse(assets.open("minor_bodies.json").bufferedReader().readText()) }
+                comets = bodies.filter { it.isComet }
+                catalog = withContext(Dispatchers.IO) { assets.open("sky_catalog.json.gz").use { Catalog.load(it) } }
+                val showers = withContext(Dispatchers.IO) { parseMeteorShowers(assets.open("meteor_showers.json").bufferedReader().readText()) }
+                events = withContext(Dispatchers.Default) {
+                    upcomingEvents(JulianDate.fromEpochMillis(System.currentTimeMillis()), 60, showers, bodies)
+                }
+            }
+            val minute = state.timeMillis / 60000
+            val moving = remember(minute, comets, state.lat, state.lon) {
+                val jd = JulianDate.fromEpochMillis(state.timeMillis)
+                solarSystem(state) + comets.mapNotNull { c ->
+                    val p = c.geocentric(jd)
+                    val mag = p.mag ?: return@mapNotNull null
+                    if (mag > 11) null
+                    else MovingObject(SkyObject("Comet ${c.name}", p.ra * 180 / PI, p.dec * 180 / PI, mag, "C"), MovingObject.Kind.COMET)
+                }
+            }
+            SkyScreen(state, catalog, moving, events)
         }
     }
+
+    private fun updateLocation() {
+        if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) return
+        val lm = getSystemService(LOCATION_SERVICE) as LocationManager
+        val fix = listOf(LocationManager.NETWORK_PROVIDER, LocationManager.GPS_PROVIDER, LocationManager.PASSIVE_PROVIDER)
+            .mapNotNull { runCatching { lm.getLastKnownLocation(it) }.getOrNull() }
+            .maxByOrNull { it.time } ?: return
+        state.lat = fix.latitude
+        state.lon = fix.longitude
+    }
+
+    override fun onResume() {
+        super.onResume()
+        rotationSensor?.let { sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME) }
+        updateLocation()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        sensorManager.unregisterListener(this)
+    }
+
+    override fun onSensorChanged(event: SensorEvent) {
+        // Device-to-world (east, north, up) rotation, the same frame the web app built from DeviceOrientation.
+        // ponytail: magnetic declination not applied; one-star alignment absorbs it (1-2° across India).
+        val r = FloatArray(9)
+        SensorManager.getRotationMatrixFromVector(r, event.values)
+        for (i in 0 until 9) {
+            // ponytail: element-wise low-pass; fine for small per-frame changes, re-orthonormalise if jitter shows.
+            smoothed[i] = if (hasReading) smoothed[i] + SENSOR_SMOOTHING * (r[i] - smoothed[i]) else r[i].toDouble()
+        }
+        hasReading = true
+        state.device = smoothed.copyOf()
+    }
+
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 }

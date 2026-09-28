@@ -28,6 +28,19 @@ object Pointing {
         return doubleArrayOf(-sin(az) * cos(alt), -cos(az) * cos(alt), sin(alt))
     }
 
+    /** Inverse of [rayFromPos]: J2000 RA/Dec in degrees for a [east, north, up] direction. */
+    fun rayToRaDec(ray: DoubleArray, timeMillis: Long, latDeg: Double, lonDeg: Double): Pair<Double, Double> {
+        val az = atan2(-ray[0], -ray[1]) // measured from south, as in rayFromPos
+        val alt = asin(ray[2].coerceIn(-1.0, 1.0))
+        val f = latDeg * D2R
+        val h = atan2(sin(az), cos(az) * sin(f) + tan(alt) * cos(f))
+        val dec = asin((sin(f) * sin(alt) - cos(f) * cos(alt) * cos(az)).coerceIn(-1.0, 1.0))
+        val tu = JulianDate.fromEpochMillis(timeMillis) - 2451545.0
+        val lst = 2 * PI * (0.7790572732640 + 1.00273781191135448 * tu) + lonDeg * D2R
+        val ra = ((lst - h) / D2R).mod(360.0)
+        return Pair(ra, dec / D2R)
+    }
+
     /** W3C DeviceOrientation ZXY rotation matrix from alpha/beta/gamma in degrees. */
     fun rotationMatrix(alpha: Double, beta: Double, gamma: Double): DoubleArray {
         val x = beta * D2R
