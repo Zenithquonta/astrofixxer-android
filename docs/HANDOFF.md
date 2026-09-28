@@ -14,7 +14,7 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 | Field test protocol | `docs/FIELD_TEST.md` |
 | Fixed web app (deploy root) | `web/` |
 | Stellarium importer | `tools/stellarium_import/` |
-| Android app | `Zenithquonta/astrofixxer-android` (not created yet); until then the repo is saved as `handoff/astrofixxer-android.bundle` |
+| Android app | https://github.com/Zenithquonta/astrofixxer-android (`main`); a copy of its history is also kept in `handoff/astrofixxer-android.bundle` |
 | Codebase analysis (web page) | https://claude.ai/artifact/SMf5adtidjB5CsJt5ZrxNW |
 | Bug-hunt and UI proof report | https://claude.ai/artifact/WxJfBipQQCRwaAE9qAkGYb |
 
@@ -24,7 +24,7 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 |---|---|
 | 0. Analysis, UI prompt, plan | Done |
 | 1. Web app fixes + Stellarium data | Done (`web/`); needs a Vercel project with Root Directory `web` |
-| 2. Android project setup | Done; builds and passes its unit tests in GitHub Actions (real Android SDK). Waiting for the GitHub repo `Zenithquonta/astrofixxer-android` (saved as `handoff/astrofixxer-android.bundle`) |
+| 2. Android project setup | Done; own repository with green CI (build, UI audit, secret scan). Waiting for the GitHub repo `Zenithquonta/astrofixxer-android` (saved as `handoff/astrofixxer-android.bundle`) |
 | 3. Astronomy core | Done: 36 JVM tests pass |
 | 4. Stellarium offline data | Done: catalogue, comets/asteroids, meteor showers, constellation artwork |
 | 5. Compose UI (Stellarium-style) | Done: sky view, atmosphere, Milky Way, landscapes, light pollution, artwork, alignment, guidance, search, events, lists, onboarding, help, night mode, Hindi. Not yet built for Android (no CI until the repo exists) |
@@ -36,6 +36,20 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 ---
 
 ## Entries
+
+### 2026-09-28: Android repository live with green CI
+
+**What was done** (Android `main` at `3b00f88`)
+- Pushed the app to https://github.com/Zenithquonta/astrofixxer-android. The repository's starter README commit was merged in, not overwritten.
+- First CI runs there:
+  - `build` passed: tests, debug, release (R8 and lint), preview APK and the sky-data check.
+  - `ui-check` found a real bug: in Hindi, "My objects & lists" was cut off at 360 dp with the runner's Devanagari font. That button now has its own row.
+  - `secret-scan` broke on the gitleaks action (it fails on a push that includes the first commit). It now runs the pinned, checksummed gitleaks program over the full history, in both repos.
+- Run #3 is green on all three jobs: https://github.com/Zenithquonta/astrofixxer-android/actions/runs/36420235146
+- The public download in this repository was rebuilt with the fix (run #7, green).
+
+**Next step**
+- Owner: add `PREVIEW_KEYSTORE_BASE64` and `PREVIEW_KEYSTORE_PASSWORD` (values in the session scratchpad `signing/`) to both repositories' Actions secrets, so downloads update in place. Then test the app on a phone with `docs/FIELD_TEST.md`.
 
 ### 2026-09-28: Direct APK download live; launch crash fixed; README animations
 
