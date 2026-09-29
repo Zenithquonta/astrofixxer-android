@@ -22,6 +22,8 @@ class SkyObject(
     val type: String,
     val sizeArcmin: Double = 0.0,
     val otherNames: List<String> = emptyList(),
+    /** Star colour index B−V: about −0.3 blue, 0.6 yellow-white like the Sun, 1.5+ orange-red. Null if unknown. */
+    val bv: Double? = null,
 )
 
 class Constellation(
@@ -36,7 +38,13 @@ class ConstellationArt(val file: String, val width: Int, val height: Int, val an
  * Stars, deep-sky objects and constellations, with a 10°×10° RA/Dec grid for field-of-view queries and a name index.
  * ponytail: grid, not HEALPix; upgrade if profiling on a phone says so.
  */
-class Catalog(val objects: List<SkyObject>, val constellations: Map<String, List<Constellation>>, val starsByHip: Map<Int, SkyObject>) {
+class Catalog(
+    val objects: List<SkyObject>,
+    val constellations: Map<String, List<Constellation>>,
+    val starsByHip: Map<Int, SkyObject>,
+    /** IAU constellation boundaries as J2000 polylines: ra0, dec0, ra1, dec1, … in degrees. */
+    val boundaries: List<DoubleArray> = emptyList(),
+) {
     private val grid = Array(18 * 36) { mutableListOf<Int>() }
     private val names = HashMap<String, MutableList<Int>>()
     private val sortedNames: List<String>
@@ -137,8 +145,9 @@ class Catalog(val objects: List<SkyObject>, val constellations: Map<String, List
                 }
                 val hip = if (s.isNull("hip")) null else s.getInt("hip")
                 val hipName = hip?.let { listOf("HIP $it") }.orEmpty()
+                val bv = if (s.isNull("bv")) null else s.optDouble("bv").takeIf { !it.isNaN() }
                 val o = SkyObject(names.firstOrNull() ?: hipName.firstOrNull() ?: "Star", s.getDouble("ra"), s.getDouble("dec"),
-                    s.getDouble("mag"), "S", 0.0, names.drop(1) + indianNames + hipName)
+                    s.getDouble("mag"), "S", 0.0, names.drop(1) + indianNames + hipName, bv)
                 objects += o
                 if (hip != null) byHip[hip] = o
             }
@@ -179,7 +188,12 @@ class Catalog(val objects: List<SkyObject>, val constellations: Map<String, List
                         }, art)
                 }
             }
-            return Catalog(objects, constellations, byHip)
+            val edges = root.optJSONArray("boundaries")
+            val boundaries = if (edges == null) emptyList() else List(edges.length()) { i ->
+                val e = edges.getJSONArray(i)
+                DoubleArray(e.length()) { e.getDouble(it) }
+            }
+            return Catalog(objects, constellations, byHip, boundaries)
         }
     }
 }

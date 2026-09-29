@@ -25,6 +25,13 @@ class Pure(unittest.TestCase):
         eq = b.datetime_from_jd(b.jd_for_solar_longitude(0.0, jan1 + 78))
         self.assertEqual((eq.month, eq.day), (3, 20))
 
+    def test_precession_b1875_to_j2000_matches_astropy(self):
+        # Reference values from astropy's FK5 transform (B1875 equinox to J2000).
+        for (ra, de), (ra2, de2) in [((343.0, 34.5), (344.46516, 35.16819)), ((82.5, -62.0), (82.80489, -61.91098))]:
+            r, d = b.precess(ra, de, b.B1875)
+            self.assertAlmostEqual(r, ra2, delta=0.0003)  # about 1 arcsecond
+            self.assertAlmostEqual(d, de2, delta=0.0003)
+
     def test_polylines_break_on_non_int(self):
         self.assertEqual(list(b.polylines([[1, 2, 'x', 3, 4]])), [[1, 2], [3, 4]])
 
@@ -70,6 +77,13 @@ class WithStellariumData(unittest.TestCase):
         self.assertTrue(all({'q', 'e', 'tp_jd', 'h'} <= x.keys() for x in comets))
         ceres = by['Ceres']
         self.assertAlmostEqual(ceres['a'], 2.77, delta=0.02)
+
+    def test_constellation_boundaries(self):
+        edges = b.boundaries(b.read_skyculture(os.path.join(ST, 'skycultures/modern')))
+        self.assertEqual(len(edges), 781)
+        for e in edges:
+            self.assertEqual(len(e) % 2, 0)
+            self.assertTrue(all(0 <= e[i] < 360 and -90 <= e[i + 1] <= 90 for i in range(0, len(e), 2)))
 
     def test_meteor_showers(self):
         s = b.meteor_showers(os.path.join(ST, 'plugins/MeteorShowers/resources/MeteorShowers.json'), [2026])

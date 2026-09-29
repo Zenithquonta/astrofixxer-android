@@ -167,7 +167,7 @@ def read_dso_catalog(path, names):
 # ---------------------------------------------------------------- stars & constellations
 
 def read_hyg(path):
-    """-> {hip: (ra_deg, dec_deg, mag, proper_name)} and list of all rows with mag."""
+    """-> {hip: (ra_deg, dec_deg, mag, proper_name)} and list of all rows (hip, ra, dec, mag, proper, B-V colour or None)."""
     by_hip, rows = {}, []
     with open(path, encoding='utf-8') as f:
         for i, row in enumerate(csv.reader(f)):
@@ -176,9 +176,10 @@ def read_hyg(path):
             ra, de, mag = float(row[7]) * 15.0, float(row[8]), float(row[13])
             hip = int(row[1]) if row[1] else None
             proper = row[6] or None
+            bv = round(float(row[16]), 2) if row[16].strip() else None  # colour index: blue < 0 < white < 1 < red
             if hip:
                 by_hip[hip] = (ra, de, mag, proper)
-            rows.append((hip, ra, de, mag, proper))
+            rows.append((hip, ra, de, mag, proper, bv))
     return by_hip, rows
 
 
@@ -258,6 +259,58 @@ def constellations(culture, by_hip, culture_id):
     return labels, segments, missing
 
 
+# B1875.0 as a Julian date; the IAU boundaries were drawn in that equinox.
+B1875 = 2405889.25855
+
+
+def precess(ra, de, jd_from, jd_to=2451545.0):
+    """Rigorous IAU 1976 precession of RA/Dec (degrees) between two equinoxes (Lieske 1977)."""
+    T = (jd_from - 2451545.0) / 36525
+    t = (jd_to - jd_from) / 36525
+    as2r = math.pi / 180 / 3600
+    zeta = ((2306.2181 + 1.39656 * T - 0.000139 * T * T) * t + (0.30188 - 0.000344 * T) * t * t + 0.017998 * t ** 3) * as2r
+    z = ((2306.2181 + 1.39656 * T - 0.000139 * T * T) * t + (1.09468 + 0.000066 * T) * t * t + 0.018203 * t ** 3) * as2r
+    theta = ((2004.3109 - 0.85330 * T - 0.000217 * T * T) * t - (0.42665 + 0.000217 * T) * t * t - 0.041833 * t ** 3) * as2r
+    r, d = math.radians(ra), math.radians(de)
+    a = math.cos(d) * math.sin(r + zeta)
+    b = math.cos(theta) * math.cos(d) * math.cos(r + zeta) - math.sin(theta) * math.sin(d)
+    c = math.sin(theta) * math.cos(d) * math.cos(r + zeta) + math.cos(theta) * math.sin(d)
+    return (math.degrees(math.atan2(a, b) + z) % 360, math.degrees(math.asin(max(-1.0, min(1.0, c)))))
+
+
+def _hms(s):
+    h, m, sec = (float(x) for x in s.split(':'))
+    return (h + m / 60 + sec / 3600) * 15
+
+
+def _dms(s):
+    sign = -1 if s.startswith('-') else 1
+    d, m, sec = (float(x) for x in s.lstrip('+-').split(':'))
+    return sign * (d + m / 60 + sec / 3600)
+
+
+def boundaries(culture):
+    """IAU constellation boundaries as J2000 polylines [ra0, dec0, ra1, dec1, ...] (degrees, 3 decimals).
+    Edges run along a meridian (M) or a parallel (P) of B1875; parallels are sampled every degree so they curve
+    correctly after precession."""
+    out = []
+    for edge in culture.get('edges', []):
+        parts = edge.split()
+        kind, ra0, de0, ra1, de1 = parts[1][0], _hms(parts[2]), _dms(parts[3]), _hms(parts[4]), _dms(parts[5])
+        if kind == 'P':
+            span = (ra1 - ra0 + 180) % 360 - 180  # the short way round
+            n = max(1, int(abs(span)))
+            pts = [(ra0 + span * i / n, de0) for i in range(n + 1)]
+        else:
+            pts = [(ra0, de0), (ra1, de1)]
+        flat = []
+        for ra, de in pts:
+            r, d = precess(ra % 360, de, B1875)
+            flat += [round(r, 3), round(d, 3)]
+        out.append(flat)
+    return out
+
+
 # ---------------------------------------------------------------- web output
 
 def _fmt(v):
@@ -296,7 +349,7 @@ def build_web(dsos, stars_rows, star_names, indian_names, con_labels, segments,
         blocks['Ca'].append({'DE': c['DE'], 'RA': c['RA'], 'AM': -1, 'name': c['name'], 't': 'Ca'})
         search['Ca'].append([])
 
-    for hip, ra, de, mag, proper in stars_rows:
+    for hip, ra, de, mag, proper, _bv in stars_rows:
         if mag > star_mag_limit:
             continue
         e = {'DE': de, 'RA': ra, 'AM': mag, 't': 'S'}
@@ -537,11 +590,12 @@ def main():
         'source': {'stellarium_commit': rev, 'note': note},
         'dso': [{k: v for k, v in o.items() if k not in ('searchable', 'mag')} for o in dsos if o['t']],
         'stars': [
-            {'hip': h, 'ra': ra, 'dec': de, 'mag': mag,
+            {'hip': h, 'ra': ra, 'dec': de, 'mag': mag, 'bv': bv,
              'names': [x.get('english') or x.get('native') for x in star_names.get(h, [])] or ([p] if p else []),
              'indian_names': indian_names.get(h, [])}
-            for h, ra, de, mag, p in star_rows if mag <= args.star_mag_limit + 0.5
+            for h, ra, de, mag, p, bv in star_rows if mag <= args.star_mag_limit + 0.5
         ],
+        'boundaries': boundaries(modern),
         'constellations': {
             cid: [{k: c[k] for k in ('id', 'name', 'n2', 'RA', 'DE', 'lines', 'art') if k in c}
                   for c in constellations(cult, by_hip, cid)[0]]
