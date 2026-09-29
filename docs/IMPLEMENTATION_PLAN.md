@@ -170,7 +170,7 @@ Build from the Stitch designs (`STITCH_UI_PROMPT.md`).
   - guidance with ΔAlt/ΔAz (or ΔRA/ΔDec for equatorial mounts), a bullseye and a haptic pulse;
   - the watch-list navigator.
 - Other screens, done:
-  - Search (Object / Position / Lists: Messier, Caldwell, bright stars, nakshatras, my objects, watch lists);
+  - Search (Object / Position / Lists: Messier, Caldwell, bright stars, Indian constellations (nakshatras and rashis), my objects, watch lists);
   - Events, with the Tonight card and week/month filters;
   - Sky & Viewing tabs (Sky, Deep-sky, Markings, Culture, Landscape, Telescope, Place & time, More);
   - Location, with an offline list of 58 cities, and Date & Time;

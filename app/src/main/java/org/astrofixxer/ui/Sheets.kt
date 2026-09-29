@@ -123,7 +123,7 @@ private fun ResultRow(state: SkyState, o: SkyObject, pick: (SkyObject) -> Unit, 
         Column(Modifier.weight(1f).heightIn(min = 48.dp).clickable { pick(o) }.padding(vertical = 8.dp)) {
             Text(o.name, color = c.onSurface, fontSize = 17.sp)
             val sub = listOfNotNull(TYPE_NAMES[o.type]?.let { t(it) }, o.mag?.let { "mag %.1f".format(it) }, where, o.otherNames.firstOrNull())
-            Text(sub.joinToString(" · "), color = c.onSurfaceVariant, fontSize = 12.sp, maxLines = 1)
+            Text(sub.joinToString(" · "), color = c.onSurfaceVariant, fontSize = 12.sp)
         }
         OutlinedButton(onClick = { onInfo(o) }, modifier = Modifier.heightIn(min = 48.dp)) { Label(t("Info")) }
     }
@@ -155,7 +155,7 @@ private fun ListBrowser(state: SkyState, catalog: Catalog?, pick: (SkyObject) ->
                 add("Messier" to (1..110).mapNotNull { cat.find("M$it") })
                 add("Caldwell" to (1..109).mapNotNull { cat.find("C$it") })
                 add("Bright stars" to cat.objects.filter { it.type == "S" && (it.mag ?: 99.0) <= 1.5 }.sortedBy { it.mag })
-                add("Nakshatras" to constellationObjects(cat, "indian"))
+                add("Indian constellations" to constellationObjects(cat, "indian")) // nakshatras and rashis
             }
             if (state.userObjects.isNotEmpty()) add("My objects" to state.userObjects)
             for (wl in state.watchLists) add(wl.name to wl.items.mapNotNull { state.resolve(it.name, cat) })
@@ -226,7 +226,7 @@ internal fun SkyOptionsSheet(
                 }
                 3 -> {
                     item { Choice(t("Western"), t("The 88 IAU constellations with Stellarium's artwork."), state.skyCulture == "modern") { state.skyCulture = "modern" } }
-                    item { Choice(t("Indian (Vedic)"), t("The 28 nakshatras and Indian star names."), state.skyCulture == "indian") { state.skyCulture = "indian" } }
+                    item { Choice(t("Indian (Vedic)"), t("Nakshatras, rashis and Indian star names."), state.skyCulture == "indian") { state.skyCulture = "indian" } }
                 }
                 4 -> for (l in Landscape.values()) item { Choice(t(l.label), null, state.landscape == l) { state.landscape = l } }
                 5 -> item { TelescopeSettings(state) }
@@ -387,8 +387,8 @@ private fun MoreSettings(state: SkyState, catalog: Catalog?, onLists: () -> Unit
             else t("Stellarium catalogue: %,d objects, %d constellations, %d boundary edges.").format(
                 catalog.objects.size, catalog.constellations["modern"].orEmpty().size, catalog.boundaries.size),
             color = c.onSurface, fontSize = 14.sp)
-        if (!confirmReset) OutlinedButton(onClick = { confirmReset = true }, modifier = Modifier.heightIn(min = 48.dp).padding(top = 8.dp)) { Text(t("Reset all")) }
-        else Button(onClick = { state.resetAll(catalog); confirmReset = false }, modifier = Modifier.heightIn(min = 48.dp).padding(top = 8.dp),
+        if (!confirmReset) OutlinedButton(onClick = { confirmReset = true }, modifier = Modifier.padding(top = 8.dp).heightIn(min = 48.dp)) { Text(t("Reset all")) }
+        else Button(onClick = { state.resetAll(catalog); confirmReset = false }, modifier = Modifier.padding(top = 8.dp).heightIn(min = 48.dp),
             colors = ButtonDefaults.buttonColors(containerColor = c.error)) { Text(t("Tap again to reset every setting and list")) }
     }
 }

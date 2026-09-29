@@ -8,6 +8,73 @@ Every update and fix to AstroFixxer, newest first. Dates are when the work lande
 The first Android version: a Kotlin + Jetpack Compose port of the AstroFixxer web app, which grew out of
 [AstroHopper / skyhopper](https://github.com/artyom-beilis/skyhopper) by Artyom Beilis.
 
+### New screens and sky plotting (29 Sep 2026)
+
+Built from the Stitch UI brief and Phase 5 of the implementation plan.
+
+**Sky plotting**
+- Stars are drawn in their real colours, from each star's B−V colour index (off in night mode, and there's a switch for it).
+- New sky markings, each with a switch under Sky & viewing → Markings:
+  - the RA/Dec grid with hour labels;
+  - the meridian;
+  - the ecliptic;
+  - the official IAU constellation boundaries (781 edges from Stellarium, precessed from 1875 to J2000 and checked against astropy to 0.4″).
+- The eyepiece circle shows the true field of your telescope and eyepiece around the crosshair.
+- The guidance panel has a bullseye that fills in when the target is inside the eyepiece field. With an equatorial mount, directions are in RA/Dec.
+- Wherever you are in the sky, the app can name the constellation.
+
+**Object Info** (tap the target card, a search result's Info button, or long-press an object)
+- Names, type, magnitude, size, constellation, RA/Dec and where it is now.
+- Tonight: rise, highest point and set times, with an altitude graph from 16:00 to 08:00. The graph shades twilight and dark sky, draws the Moon's path and marks the time now.
+- "In the eyepiece": the object drawn to scale in your eyepiece's field.
+
+**New screens**
+- Find has three tabs:
+  - Object: constellations are now searchable, and each result says "Up · 45°" or "Rises 21:10";
+  - Position: go to an RA/Dec;
+  - Lists: Messier, Caldwell, bright stars, Indian constellations, My objects and watch lists.
+- Sky & viewing has eight tabs: Sky, Deep-sky (filter by type), Markings, Culture, Landscape, Telescope, Place & time, and More.
+- Telescope settings: telescope focal length, eyepiece focal length and apparent field give the true field and magnification. Also here: mount type and vibration on target.
+- Place & time:
+  - choose from 58 cities, type coordinates, or go back to GPS;
+  - set any date and time.
+- The Tonight card in Events shows:
+  - sunset and sunrise, and the fully dark window;
+  - Moon rise and set, and how much of it is lit;
+  - which planets are well placed.
+
+  Events can be filtered to this week or this month.
+- Long-press any object for a quick menu: target, align on it, add to a list, info.
+- Free look: a third pointing mode where you drag the sky freely, with no compass.
+- AstroGuide suggests questions to tap when there is no microphone or you'd rather not speak.
+- Settings are now remembered between launches.
+- A two-step "Reset all" returns every setting to its default.
+- Everything new is translated into Hindi.
+
+**Data**
+- Stars now carry their B−V colour index, and the constellation boundaries are included.
+- M40 (Winnecke 4) added, because Stellarium's deep-sky list lacks it, so the Messier list now has all 110.
+
+**Fixed while building it**
+- The Find tabs crashed on opening: a self-sizing label can't be measured inside a tab row.
+- The Tonight card corrupted the screen state and crashed: it returned early from inside the layout.
+- The guidance readouts wrapped or ran together once the bullseye was added.
+- Panels were see-through, so the sky showed behind the text. They are now opaque.
+- The UI audit found these, and they are fixed:
+  - search result details were cut off on 360 dp phones;
+  - "Reset all" was a 40 dp touch target.
+- The "Nakshatras" list also held the 12 rashis. It is now called "Indian constellations".
+
+**Proof** (`tools/desktop-check`)
+- 38 tests pass:
+  - new suites: `PlottingTest`, `ObjectInfoTest` and `NewScreensTest`;
+  - the Sun is on the drawn ecliptic all year to within 0.05°;
+  - Vega is inside Lyra's boundary;
+  - Vega's maximum altitude matches 90° − |latitude − declination|;
+  - Polaris is always up and σ Octantis never rises from Delhi;
+  - Delhi's dark window matches the almanac.
+- The audit now checks 192 screen variants, with no findings. The app's 41 unit tests and 12 importer tests pass.
+
 ### Download and build (28 Sep 2026)
 
 - Changed: one repository for everything. The planning repository (web app, data tools, docs) was merged into this one with its history, so the Android app, web app, importer and docs now live together.

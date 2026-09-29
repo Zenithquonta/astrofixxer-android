@@ -348,32 +348,35 @@ internal fun Label(text: String) = BoxWithConstraints(contentAlignment = Alignme
 @Composable
 private fun EventsSheet(state: SkyState, events: List<EventItem>?, onClose: () -> Unit) {
     var days by remember { mutableStateOf(Int.MAX_VALUE) }
-    // Filtered here, not inside the list builder, so a filter change always redraws the list. Counted from the time
-    // the sky shows, so the filters follow time travel.
-    val shown = events.orEmpty().filter { days == Int.MAX_VALUE || jdToMillis(it.jd) - state.timeMillis <= days * 86_400_000L }
+    // Counted from the time the sky shows, so the filters follow time travel.
+    val shown = events?.filter { days == Int.MAX_VALUE || jdToMillis(it.jd) - state.timeMillis <= days * 86_400_000L }
     SheetFrame(t("Events"), onClose) {
-        LazyColumn(Modifier.fillMaxWidth()) {
-            item { TonightCard(state) }
-            item {
-                Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    for ((label, d) in listOf("This week" to 7, "This month" to 31, "All" to Int.MAX_VALUE)) {
-                        if (days == d) Button(onClick = { days = d }, modifier = Modifier.weight(1f).heightIn(min = 48.dp), contentPadding = PaddingValues(horizontal = 4.dp)) { Label(t(label)) }
-                        else OutlinedButton(onClick = { days = d }, modifier = Modifier.weight(1f).heightIn(min = 48.dp), contentPadding = PaddingValues(horizontal = 4.dp)) { Label(t(label)) }
-                    }
-                }
+        // Filters stay above the list so they don't scroll away with it.
+        Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            for ((label, d) in listOf("This week" to 7, "This month" to 31, "All" to Int.MAX_VALUE)) {
+                if (days == d) Button(onClick = { days = d }, modifier = Modifier.weight(1f).heightIn(min = 48.dp), contentPadding = PaddingValues(horizontal = 4.dp)) { Label(t(label)) }
+                else OutlinedButton(onClick = { days = d }, modifier = Modifier.weight(1f).heightIn(min = 48.dp), contentPadding = PaddingValues(horizontal = 4.dp)) { Label(t(label)) }
             }
-            if (events == null) item { Text(t("Working out what's coming up…"), color = MaterialTheme.colorScheme.onSurface) }
-            items(shown) { e ->
-                Column(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable {
-                    state.live = false
-                    state.timeMillis = jdToMillis(e.jd)
-                    onClose()
-                }.padding(vertical = 10.dp)) {
-                    Text((if (e.rare) "★ " else "") + e.title, color = if (e.rare) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                        fontSize = 16.sp, fontWeight = if (e.rare) FontWeight.Bold else FontWeight.Normal)
-                    Text(formatLocal(e.jd) + if (e.detail.isNotEmpty()) " · ${e.detail}" else "",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
-                }
+        }
+        EventList(state, shown, onClose)
+    }
+}
+
+@Composable
+private fun EventList(state: SkyState, events: List<EventItem>?, onClose: () -> Unit) {
+    LazyColumn(Modifier.fillMaxWidth()) {
+        item { TonightCard(state) }
+        if (events == null) item { Text(t("Working out what's coming up…"), color = MaterialTheme.colorScheme.onSurface) }
+        items(events.orEmpty()) { e ->
+            Column(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable {
+                state.live = false
+                state.timeMillis = jdToMillis(e.jd)
+                onClose()
+            }.padding(vertical = 10.dp)) {
+                Text((if (e.rare) "★ " else "") + e.title, color = if (e.rare) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    fontSize = 16.sp, fontWeight = if (e.rare) FontWeight.Bold else FontWeight.Normal)
+                Text(formatLocal(e.jd) + if (e.detail.isNotEmpty()) " · ${e.detail}" else "",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
             }
         }
     }

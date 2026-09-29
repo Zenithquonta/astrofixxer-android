@@ -29,7 +29,7 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 | 2. Android project setup | Done; green CI in this repository (build, UI audit, secret scan) |
 | 3. Astronomy core | Done: 36 JVM tests pass |
 | 4. Stellarium offline data | Done: catalogue, comets/asteroids, meteor showers, constellation artwork |
-| 5. Compose UI (Stellarium-style) | Done: sky view, atmosphere, Milky Way, landscapes, light pollution, artwork, alignment, guidance, search, events, lists, onboarding, help, night mode, Hindi. Built and UI-tested in CI |
+| 5. Compose UI (Stellarium-style) | Done: Object Info with altitude graph, markings (grid, ecliptic, meridian, IAU boundaries), star colours, eyepiece field, telescope and place & time settings, Tonight card, Free look, sky view, atmosphere, Milky Way, landscapes, light pollution, artwork, alignment, guidance, search, events, lists, onboarding, help, night mode, Hindi. Built and UI-tested in CI |
 | 5b. Offline events | Done, including ISS/Tiangong passes and Sun/Moon transits (SGP4). The live TLE download is untested here (CelesTrak blocked) |
 | 6. AstroGuide v1 (offline voice) | Done: English and Hindi commands, speech in/out |
 | 7. Release | Prepared: signing via CI secrets, signed-bundle workflow on tags, R8 in CI, launcher icon, privacy policy, store listing, field-test protocol. Needs the owner: upload key, Play account, repo made public, field test, screenshots |
@@ -38,6 +38,68 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 ---
 
 ## Entries
+
+### 2026-09-29: New UI and sky plotting (Stitch brief, Phase 5)
+
+**What was done**
+- Importer:
+  - star B−V colours from HYG;
+  - IAU constellation boundaries from Stellarium's modern sky culture, precessed B1875 → J2000 (IAU 1976);
+  - M40 added.
+- Catalogue: 93,997 deep-sky objects, 8,913 stars and 781 boundary edges.
+- Sky plotting:
+  - star colours;
+  - RA/Dec grid, meridian and ecliptic;
+  - boundaries;
+  - the eyepiece circle;
+  - the bullseye in guidance;
+  - RA/Dec guidance for equatorial mounts.
+- Object Info sheet: facts, constellation, tonight's rise/transit/set, altitude graph with twilight and the Moon, and an eyepiece preview.
+- New screens:
+  - Find with Object, Position and Lists tabs;
+  - Sky & viewing with 8 tabs, including Telescope and Place & time (58 cities, date and time);
+  - the Tonight card, and Events filters;
+  - the long-press quick menu;
+  - Free look mode;
+  - AstroGuide question chips;
+  - settings saved between launches, and Reset all.
+
+**Files changed**
+- `tools/stellarium_import/build_sky_data.py` and its tests: `bv`, `boundaries`, `precess`, `EXTRA_STARS`.
+- `app/src/main/assets/sky_catalog.json.gz`: regenerated.
+- `astro/Catalog.kt`: `bv`, `Boundary`, `constellationAt`, `constellationName`; loads gzip or plain.
+- New UI files:
+  - `ui/SkyMarkings.kt`: markings, star colours, eyepiece circle;
+  - `ui/Visibility.kt`: altitude samples, rise/set, the Tonight summary;
+  - `ui/ObjectInfo.kt`;
+  - `ui/Sheets.kt`: Find, Sky & viewing, Tonight, quick menu, chips.
+- `ui/SkyCanvas.kt`, `ui/SkyState.kt`, `ui/SkyScreen.kt`, `ui/I18n.kt` and `MainActivity.kt`: wiring, new state and settings persistence, Hindi.
+- `tools/desktop-check`: `PlottingTest`, `ObjectInfoTest`, `NewScreensTest`, and new audit screens.
+
+**How to verify**
+- `cd tools/desktop-check && ./gradlew test`:
+  - 38 tests pass;
+  - `build/screens/audit.txt` reads "Checked 192 screen variants. No findings.";
+  - screenshots are in `build/screens/`.
+- App unit tests: 41 pass. Importer: `STELLARIUM_DIR=<stellarium> python3 -m pytest tools/stellarium_import` (12 pass).
+
+**Decisions**
+- Left out on purpose (see the plan's Phase 5 status):
+  - Wikipedia summaries;
+  - moving strings to `strings.xml`;
+  - Ukrainian, Hungarian, Russian and Hebrew;
+  - twinkle, font size, compact toolbars and brightness cap;
+  - the adjustable sensor filter.
+- The "Nakshatras" list holds 49 entries (nakshatras and rashis), so it is named "Indian constellations".
+
+**Known issues / not done**
+- Compose 1.5's test tree keeps recycled lazy-list rows (outside the list's visible area), so tests check `assertIsNotDisplayed`, not `assertDoesNotExist`, for rows that should be gone.
+- Not yet tried on a real phone; the field test (`docs/FIELD_TEST.md`) covers it.
+
+**Next step**
+- Owner:
+  1. Install the latest `AstroFixxer.apk` from Releases and try Object Info, Free look and the Telescope tab outside.
+  2. The repository steps from the entry below still stand: make it public, archive `astrofixer-baby`, and add the preview signing secrets.
 
 ### 2026-09-28: One repository
 

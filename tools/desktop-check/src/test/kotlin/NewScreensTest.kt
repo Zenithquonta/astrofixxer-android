@@ -1,5 +1,7 @@
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
@@ -38,8 +40,8 @@ class NewScreensTest {
         tab("Lists")
         onNode(hasText("Messier · 110 objects")).assertExists()
         screenshot("new-find-lists")
-        onNode(button("Nakshatras")).tap()
-        onNode(hasText("Nakshatras · 28 objects", substring = true)).assertExists()
+        tab("Indian constellations") // the chip row scrolls sideways
+        onNode(hasText("Indian constellations · 49 objects", substring = true)).assertExists()
     }
 
     @Test fun infoFromSearchResults() = phoneTest {
@@ -127,9 +129,11 @@ class NewScreensTest {
         onNode(hasText("Fully dark", substring = true)).assertExists()
         onNode(hasText("% lit", substring = true)).assertExists()
         screenshot("new-tonight")
-        onNode(hasText("Orionids meteor shower peak", substring = true)).assertExists()
+        onNode(hasText("Orionids meteor shower peak", substring = true)).assertIsDisplayed()
         onNode(button("This week")).tap()
-        onNode(hasText("Orionids meteor shower peak", substring = true)).assertDoesNotExist() // 18 days away
+        // 18 days away. Compose keeps the dropped row around for reuse (still in the semantics tree, outside the list's
+        // clipped area), so the check is that it is no longer shown, not that the node is gone.
+        onNode(hasText("Orionids meteor shower peak", substring = true)).assertIsNotDisplayed()
         onNode(hasText("Full Moon")).assertExists()
     }
 
