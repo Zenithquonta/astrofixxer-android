@@ -47,6 +47,22 @@ class SkyState(nowMillis: Long, lat: Double, lon: Double) {
     var showConstellations by mutableStateOf(true)
     var showDeepSky by mutableStateOf(true)
     var showGrid by mutableStateOf(false)
+    var showEquatorialGrid by mutableStateOf(false)
+    var showMeridian by mutableStateOf(false)
+    var showEcliptic by mutableStateOf(false)
+    var showBoundaries by mutableStateOf(false)
+    var showStarColours by mutableStateOf(true)
+
+    /** Telescope and eyepiece, which set the eyepiece circle and when the target counts as "on target". */
+    var telescopeFocalMm by mutableDoubleStateOf(1200.0)
+    var eyepieceFocalMm by mutableDoubleStateOf(25.0)
+    var eyepieceAfovDeg by mutableDoubleStateOf(52.0)
+    /** Equatorial mounts move in RA/Dec, so guidance is given in those instead of altitude/azimuth. */
+    var equatorialMount by mutableStateOf(false)
+    var haptics by mutableStateOf(true)
+
+    /** True field of view of the eyepiece: apparent field × eyepiece focal length / telescope focal length. */
+    val eyepieceFovDeg: Double get() = if (telescopeFocalMm > 0) eyepieceAfovDeg * eyepieceFocalMm / telescopeFocalMm else 1.0
     var showAtmosphere by mutableStateOf(true)
     var showMilkyWay by mutableStateOf(true)
     var showArt by mutableStateOf(false)
@@ -158,6 +174,14 @@ class SkyState(nowMillis: Long, lat: Double, lon: Double) {
         val (dAlt, dAz) = Pointing.deltaAltAz(fwd, r)
         val sep = acos(Pointing.dot(fwd, r).coerceIn(-1.0, 1.0)) * 180 / PI
         return Triple(dAlt, dAz, sep)
+    }
+
+    /** Equatorial-mount guidance: ΔRA (east positive) and ΔDec (north positive), degrees, from where the telescope points. */
+    fun guidanceEquatorial(): Pair<Double, Double>? {
+        val t = target ?: return null
+        val (ra, dec) = Pointing.rayToRaDec(camera()[2], timeMillis, lat, lon)
+        val dRa = ((t.ra - ra) + 540) % 360 - 180
+        return Pair(dRa, t.dec - dec) // raw RA difference: that is what the RA axis turns through
     }
 
     /** Current apparent RA/Dec (J2000, degrees) for a Sun/Moon/planet body index. */

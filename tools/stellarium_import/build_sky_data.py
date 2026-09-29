@@ -290,7 +290,8 @@ def _dms(s):
 
 
 def boundaries(culture):
-    """IAU constellation boundaries as J2000 polylines [ra0, dec0, ra1, dec1, ...] (degrees, 3 decimals).
+    """IAU constellation boundaries: {'c': [the two constellations it separates], 'p': J2000 polyline [ra0, dec0, ra1, ...]}
+    in degrees (3 decimals).
     Edges run along a meridian (M) or a parallel (P) of B1875; parallels are sampled every degree so they curve
     correctly after precession."""
     out = []
@@ -307,7 +308,7 @@ def boundaries(culture):
         for ra, de in pts:
             r, d = precess(ra % 360, de, B1875)
             flat += [round(r, 3), round(d, 3)]
-        out.append(flat)
+        out.append({'c': parts[6:8], 'p': flat})
     return out
 
 

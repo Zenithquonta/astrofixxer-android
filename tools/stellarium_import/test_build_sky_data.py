@@ -82,8 +82,11 @@ class WithStellariumData(unittest.TestCase):
         edges = b.boundaries(b.read_skyculture(os.path.join(ST, 'skycultures/modern')))
         self.assertEqual(len(edges), 781)
         for e in edges:
-            self.assertEqual(len(e) % 2, 0)
-            self.assertTrue(all(0 <= e[i] < 360 and -90 <= e[i + 1] <= 90 for i in range(0, len(e), 2)))
+            self.assertEqual(len(e['c']), 2)
+            p = e['p']
+            self.assertEqual(len(p) % 2, 0)
+            self.assertTrue(all(0 <= p[i] < 360 and -90 <= p[i + 1] <= 90 for i in range(0, len(p), 2)))
+        self.assertEqual(sum('LYR' in e['c'] for e in edges), 17)
 
     def test_meteor_showers(self):
         s = b.meteor_showers(os.path.join(ST, 'plugins/MeteorShowers/resources/MeteorShowers.json'), [2026])

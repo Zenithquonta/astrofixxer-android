@@ -31,6 +31,9 @@ class Constellation(
     val art: ConstellationArt? = null,
 )
 
+/** One IAU boundary edge between two constellations ([constellations], e.g. AND and LAC); [points] is ra0, dec0, ra1, … J2000 degrees. */
+class Boundary(val constellations: List<String>, val points: DoubleArray)
+
 /** Stellarium illustration placed on the sky by three anchor stars: (x, y) pixel in a [width]×[height] image -> HIP. */
 class ConstellationArt(val file: String, val width: Int, val height: Int, val anchors: List<Triple<Double, Double, Int>>)
 
@@ -42,8 +45,8 @@ class Catalog(
     val objects: List<SkyObject>,
     val constellations: Map<String, List<Constellation>>,
     val starsByHip: Map<Int, SkyObject>,
-    /** IAU constellation boundaries as J2000 polylines: ra0, dec0, ra1, dec1, … in degrees. */
-    val boundaries: List<DoubleArray> = emptyList(),
+    /** IAU constellation boundaries. */
+    val boundaries: List<Boundary> = emptyList(),
 ) {
     private val grid = Array(18 * 36) { mutableListOf<Int>() }
     private val names = HashMap<String, MutableList<Int>>()
@@ -190,8 +193,9 @@ class Catalog(
             }
             val edges = root.optJSONArray("boundaries")
             val boundaries = if (edges == null) emptyList() else List(edges.length()) { i ->
-                val e = edges.getJSONArray(i)
-                DoubleArray(e.length()) { e.getDouble(it) }
+                val e = edges.getJSONObject(i)
+                val p = e.getJSONArray("p")
+                Boundary(e.getJSONArray("c").strings(), DoubleArray(p.length()) { p.getDouble(it) })
             }
             return Catalog(objects, constellations, byHip, boundaries)
         }

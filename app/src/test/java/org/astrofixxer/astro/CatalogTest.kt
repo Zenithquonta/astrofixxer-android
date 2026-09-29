@@ -70,8 +70,10 @@ class CatalogTest {
         assertTrue("Betelgeuse is orange-red", betelgeuse.bv!! > 1.3)
         assertTrue("IAU boundaries: 781 edges", catalog.boundaries.size > 700)
         // Every boundary point is a valid J2000 position.
-        for (edge in catalog.boundaries) for (i in edge.indices step 2) {
-            assertTrue(edge[i] in 0.0..360.0 && edge[i + 1] in -90.0..90.0)
+        for (edge in catalog.boundaries) {
+            assertEquals(2, edge.constellations.size)
+            for (i in edge.points.indices step 2) assertTrue(edge.points[i] in 0.0..360.0 && edge.points[i + 1] in -90.0..90.0)
         }
+        assertEquals(17, catalog.boundaries.count { "LYR" in it.constellations })
     }
 }

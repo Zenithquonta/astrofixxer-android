@@ -62,6 +62,9 @@ class Projector(private val cam: Array<DoubleArray>, val width: Float, val heigh
         limY = sin(fovV / 2 * PI / 180)
     }
 
+    /** On-screen radius in pixels of a circle [deg] degrees across its radius, at the centre of the view. */
+    fun radiusPx(deg: Double): Float = (sin(deg * PI / 180) / (2 * limX) * width).toFloat()
+
     fun project(ray: DoubleArray): Offset? {
         val b = Pointing.bearing(ray, cam)
         if (b[2] <= 0) return null
@@ -113,7 +116,7 @@ private fun Int.dp2px(density: Float) = this * density
  * drawText throws when the text starts past the right/bottom edge, or so far left/up (zoomed in, objects project
  * tens of thousands of pixels away) that its layout constraints overflow; labels not near the screen are skipped.
  */
-private fun DrawScope.safeText(tm: TextMeasurer, s: String, at: Offset, style: TextStyle) {
+internal fun DrawScope.safeText(tm: TextMeasurer, s: String, at: Offset, style: TextStyle) {
     if (at.x > size.width - 8 || at.y > size.height - 8 || at.x < -size.width || at.y < -size.height) return
     drawText(tm, s, at, style, softWrap = false, maxLines = 1)
 }
@@ -143,6 +146,7 @@ private fun DrawScope.drawSky(
         drawMilkyWay(state, proj, if (state.night) pal.star else Color(0xFFC8D4F0), dark)
     }
     if (state.showGrid) drawAltAzGrid(proj, pal)
+    drawSkyMarkings(state, catalog, proj, text)
     if (state.showArt && catalog != null) drawConstellationArt(state, catalog, proj, art, if (state.night) pal.star else Color(0xFF9FB8E0))
 
     val center = Pointing.rayToRaDec(cam[2], state.timeMillis, state.lat, state.lon)
@@ -177,8 +181,9 @@ private fun DrawScope.drawSky(
             val dim = if (ray[2] < 0) 0.35f else 1f
             if (isStar) {
                 val r = (0.9 + max(0.0, starLimit + 0.5 - (o.mag ?: 6.0)) * 0.9).toFloat()
-                drawCircle(pal.star.copy(alpha = 0.25f * dim), r * 2.2f, p)
-                drawCircle(pal.star.copy(alpha = dim), r, p)
+                val c = if (state.night || !state.showStarColours) pal.star else starColour(o.bv)
+                drawCircle(c.copy(alpha = 0.25f * dim), r * 2.2f, p)
+                drawCircle(c.copy(alpha = dim), r, p)
                 if ((o.mag ?: 9.0) < starLimit - 3.0 && !o.name.startsWith("HIP")) label(o.name, p)
             } else {
                 drawDeepSky(o, p, pal.deepSky.copy(alpha = dim))
@@ -243,6 +248,7 @@ private fun DrawScope.drawSky(
         }
     }
 
+    drawEyepieceCircle(state, proj)
     for (dir in listOf(Offset(1f, 0f), Offset(-1f, 0f), Offset(0f, 1f), Offset(0f, -1f))) {
         drawLine(pal.crosshair, mid + dir * 10f, mid + dir * 40f, strokeWidth = 2.5f)
     }
@@ -262,7 +268,7 @@ private fun DrawScope.drawDeepSky(o: SkyObject, p: Offset, color: Color) {
     }
 }
 
-private fun horizonRay(azDeg: Double, altDeg: Double): DoubleArray {
+internal fun horizonRay(azDeg: Double, altDeg: Double): DoubleArray {
     val a = azDeg * PI / 180
     val h = altDeg * PI / 180
     return doubleArrayOf(sin(a) * cos(h), cos(a) * cos(h), sin(h))

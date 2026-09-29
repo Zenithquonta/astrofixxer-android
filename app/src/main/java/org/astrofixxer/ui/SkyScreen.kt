@@ -1,5 +1,6 @@
 package org.astrofixxer.ui
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.toggleable
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -32,6 +34,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,7 +42,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -50,7 +59,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.astrofixxer.astro.Catalog
 import kotlin.math.abs
-import kotlin.math.min
 import kotlin.math.roundToInt
 
 internal val DayColors = darkColorScheme(
@@ -223,17 +231,49 @@ private fun AlignHint(state: SkyState) {
 @Composable
 private fun GuidancePanel(state: SkyState) {
     val (dAlt, dAz, sep) = state.guidance() ?: return
-    val onTarget = sep < min(1.0, state.fovDeg * 0.05)
+    // On target once the target is inside the eyepiece's field.
+    val onTarget = sep < state.eyepieceFovDeg / 2
     val c = MaterialTheme.colorScheme
+    val haptic = LocalHapticFeedback.current
+    LaunchedEffect(onTarget) { if (onTarget && state.haptics) haptic.performHapticFeedback(HapticFeedbackType.LongPress) }
     Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), color = c.surface) {
-        Column(Modifier.padding(16.dp)) {
-            Text((if (onTarget) t("On target: %s") else t("Move to %s")).format(state.target?.name),
-                color = c.primary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-            Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-                Readout(if (dAlt >= 0) "↑" else "↓", dAlt, "altitude")
-                Readout(if (dAz >= 0) "→" else "←", dAz, "azimuth")
+        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text((if (onTarget) t("On target: %s") else t("Move to %s")).format(state.target?.name),
+                    color = c.primary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    val eq = if (state.equatorialMount) state.guidanceEquatorial() else null
+                    if (eq != null) {
+                        val (dRa, dDec) = eq
+                        Readout(if (dRa >= 0) t("E") else t("W"), dRa, "RA")
+                        Readout(if (dDec >= 0) t("N") else t("S"), dDec, "Dec")
+                    } else {
+                        Readout(if (dAlt >= 0) "↑" else "↓", dAlt, "altitude")
+                        Readout(if (dAz >= 0) "→" else "←", dAz, "azimuth")
+                    }
+                }
+                Text(t("%.1f° to go · re-align if the target drifts").format(sep), color = c.onSurface, fontSize = 12.sp)
             }
-            Text(t("%.1f° to go · re-align if the target drifts").format(sep), color = c.onSurface, fontSize = 12.sp)
+            Bullseye(dAlt, dAz, sep, onTarget, Modifier.padding(start = 8.dp).size(64.dp))
+        }
+    }
+}
+
+/** The target's direction as a dot that closes in on the centre as the telescope approaches; filled when on target. */
+@Composable
+private fun Bullseye(dAlt: Double, dAz: Double, sep: Double, onTarget: Boolean, modifier: Modifier) {
+    val ring = MaterialTheme.colorScheme.outline
+    val accent = MaterialTheme.colorScheme.primary
+    Canvas(modifier.semantics { contentDescription = if (onTarget) "On target" else "Target direction" }) {
+        val r = size.minDimension / 2
+        val mid = Offset(size.width / 2, size.height / 2)
+        for (k in 1..3) drawCircle(ring, r * k / 3, mid, style = Stroke(1.5f))
+        if (onTarget) {
+            drawCircle(accent, r / 3, mid)
+        } else {
+            val d = kotlin.math.sqrt(dAlt * dAlt + dAz * dAz).coerceAtLeast(1e-9)
+            val reach = kotlin.math.sqrt((sep / 20).coerceIn(0.0, 1.0)).toFloat() * (r - 6f) // square root: fine steps near the target
+            drawCircle(accent, 6f, mid + Offset((dAz / d).toFloat() * reach, (-dAlt / d).toFloat() * reach))
         }
     }
 }
@@ -241,8 +281,9 @@ private fun GuidancePanel(state: SkyState) {
 @Composable
 private fun Readout(arrow: String, value: Double, label: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("$arrow ${dm(abs(value))}", color = MaterialTheme.colorScheme.onSurface, fontSize = 30.sp,
-            fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+        // One line only: if it ever stops fitting, the UI audit reports it as clipped instead of it wrapping silently.
+        Text("$arrow ${dm(abs(value))}", color = MaterialTheme.colorScheme.onSurface, fontSize = 24.sp,
+            fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
         Text(t(label), color = MaterialTheme.colorScheme.onSurface, fontSize = 12.sp)
     }
 }
