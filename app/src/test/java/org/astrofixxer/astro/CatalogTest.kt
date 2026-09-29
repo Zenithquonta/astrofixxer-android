@@ -76,4 +76,19 @@ class CatalogTest {
         }
         assertEquals(17, catalog.boundaries.count { "LYR" in it.constellations })
     }
+
+    @Test fun constellationOfWellKnownObjects() {
+        val expected = mapOf(
+            "M57" to "LYR", "M31" to "AND", "Polaris" to "UMI", "M42" to "ORI", "Sirius" to "CMA", "Acrux" to "CRU",
+            "M13" to "HER", "M45" to "TAU", "Betelgeuse" to "ORI", "Deneb" to "CYG", "Canopus" to "CAR", "M104" to "VIR",
+            "Antares" to "SCO", "M8" to "SGR", "Fomalhaut" to "PSA", "Kochab" to "UMI",
+        )
+        for ((name, code) in expected) {
+            val o = catalog.find(name) ?: error("no $name")
+            assertEquals(name, code, catalog.constellationAt(o.ra, o.dec))
+        }
+        // The south celestial pole is in Octans.
+        assertEquals("OCT", catalog.constellationAt(0.0, -89.9))
+        assertEquals("Lyra", catalog.constellationName("LYR"))
+    }
 }

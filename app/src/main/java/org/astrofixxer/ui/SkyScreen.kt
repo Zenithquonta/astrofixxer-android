@@ -75,9 +75,9 @@ internal val NightColors = darkColorScheme(
     outline = Color(0xFF5A0707), outlineVariant = Color(0xFF3A0505), surfaceVariant = Color.Black, onSurfaceVariant = NightRed,
 )
 
-private enum class Sheet { NONE, SEARCH, EVENTS, SKY, LISTS, HELP }
+private enum class Sheet { NONE, SEARCH, EVENTS, SKY, LISTS, HELP, INFO }
 
-private val TYPE_NAMES = mapOf("S" to "Star", "Ga" to "Galaxy", "Oc" to "Open cluster", "Gc" to "Globular cluster", "Ne" to "Nebula", "P" to "Solar system", "C" to "Comet", "U" to "My object")
+internal val TYPE_NAMES = mapOf("S" to "Star", "Ga" to "Galaxy", "Oc" to "Open cluster", "Gc" to "Globular cluster", "Ne" to "Nebula", "P" to "Solar system", "C" to "Comet", "U" to "My object")
 
 /**
  * The main screen: Stellarium-style sky, info overlay, alignment chip, guidance panel and toolbar.
@@ -97,6 +97,7 @@ fun SkyScreen(
 ) {
     var sheet by remember { mutableStateOf(Sheet.NONE) }
     var showTime by remember { mutableStateOf(false) }
+    var infoObject by remember { mutableStateOf<org.astrofixxer.astro.SkyObject?>(null) }
     val colors: ColorScheme = if (state.night) NightColors else DayColors
     // Back closes the innermost thing that is open; with nothing open it leaves the app as usual.
     val guideOpen = state.guideListening || state.guideAnswer != null
@@ -114,7 +115,7 @@ fun SkyScreen(
             SkyCanvas(state, catalog, moving, Modifier.fillMaxSize(), art)
             // One row so the target card and the status chips share the width and never overlap on narrow phones.
             Row(Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Box(Modifier.weight(1f)) { InfoOverlay(state, Modifier) }
+                Box(Modifier.weight(1f)) { InfoOverlay(state, Modifier) { infoObject = state.target; sheet = Sheet.INFO } }
                 Column(Modifier.widthIn(max = 170.dp), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     AlignChip(state)
                     ClockChip(state) { showTime = !showTime }
@@ -139,6 +140,7 @@ fun SkyScreen(
                     onHelp = { sheet = Sheet.HELP }, onTutorial = { sheet = Sheet.NONE; state.showOnboarding = true })
                 Sheet.LISTS -> ListsSheet(state, catalog) { sheet = Sheet.NONE }
                 Sheet.HELP -> HelpSheet { sheet = Sheet.NONE }
+                Sheet.INFO -> infoObject?.let { ObjectInfoSheet(state, catalog, it) { sheet = Sheet.NONE } }
                 Sheet.NONE -> {}
             }
             if (state.showOnboarding) Onboarding { state.showOnboarding = false }
@@ -154,13 +156,14 @@ private val WORD = Regex("[a-z\\p{L}&&[^A-Z]]{2}")
 private fun isFriendlyName(n: String) = WORD.containsMatchIn(n) && !CATALOGUE_ID.matches(n)
 
 @Composable
-private fun InfoOverlay(state: SkyState, modifier: Modifier) {
+private fun InfoOverlay(state: SkyState, modifier: Modifier, onOpen: () -> Unit) {
     val obj = state.target ?: return
     val c = MaterialTheme.colorScheme
     val ray = state.ray(obj)
     val altDeg = Math.toDegrees(kotlin.math.asin(ray[2]))
     val azDeg = (Math.toDegrees(kotlin.math.atan2(ray[0], ray[1])) + 360) % 360
-    Column(modifier.background(c.surface.copy(alpha = 0.55f), RoundedCornerShape(12.dp)).padding(10.dp)) {
+    // Tap the card for everything about the object (Object Info).
+    Column(modifier.background(c.surface.copy(alpha = 0.55f), RoundedCornerShape(12.dp)).clickable(onClick = onOpen).padding(10.dp)) {
         Text(obj.name, color = c.onSurface, fontSize = 20.sp, fontWeight = FontWeight.Bold)
         // The friendly name if there is one ("Ring Nebula"); catalogue numbers are noise here.
         obj.otherNames.firstOrNull(::isFriendlyName)?.let { Text(it, color = c.onSurface, fontSize = 14.sp) }
@@ -602,9 +605,10 @@ private fun LocationEditor(state: SkyState) {
 }
 
 @Composable
-private fun SheetFrame(title: String, onClose: () -> Unit, content: @Composable () -> Unit) {
+internal fun SheetFrame(title: String, onClose: () -> Unit, content: @Composable () -> Unit) {
+    // Opaque: the sky screen's own text must not show through a sheet.
     Surface(Modifier.fillMaxSize().padding(top = 48.dp), shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-        color = MaterialTheme.colorScheme.surface) {
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 1f)) {
         Column(Modifier.padding(16.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(title, color = MaterialTheme.colorScheme.primary, fontSize = 22.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))

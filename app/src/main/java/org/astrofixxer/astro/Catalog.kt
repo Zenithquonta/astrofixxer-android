@@ -85,6 +85,32 @@ class Catalog(
         return out
     }
 
+    /**
+     * IAU constellation code (e.g. "LYR") containing J2000 ([ra], [dec]) degrees, from the boundaries: walk north from the
+     * point and count boundary crossings per constellation; the one crossed an odd number of times contains the point.
+     * Ursa Minor holds the north pole, so the walk ends inside it: its count is flipped.
+     */
+    fun constellationAt(ra: Double, dec: Double): String? {
+        if (boundaries.isEmpty()) return null
+        val odd = HashMap<String, Boolean>()
+        for (edge in boundaries) {
+            val p = edge.points
+            for (k in 0 until p.size / 2 - 1) {
+                val ra0 = p[2 * k]
+                val span = (p[2 * k + 2] - ra0 + 540) % 360 - 180 // the short way round
+                val along = (ra - ra0 + 540) % 360 - 180
+                if (span == 0.0 || along * span <= 0 || kotlin.math.abs(along) >= kotlin.math.abs(span)) continue
+                val decAt = p[2 * k + 1] + along / span * (p[2 * k + 3] - p[2 * k + 1])
+                if (decAt > dec) for (c in edge.constellations) odd[c] = !(odd[c] ?: false)
+            }
+        }
+        return odd.entries.firstOrNull { it.value && it.key != "UMI" }?.key ?: "UMI"
+    }
+
+    /** Full name of an IAU constellation code, from the modern sky culture ("LYR" -> "Lyra"). */
+    fun constellationName(code: String): String =
+        constellations["modern"].orEmpty().firstOrNull { it.id.substringAfterLast(' ').equals(code, ignoreCase = true) }?.name ?: code
+
     /** Object with exactly this name or catalogue ID (after normalisation), if any. */
     fun find(name: String): SkyObject? = names[normalizeName(name.trim())]?.firstOrNull()?.let { objects[it] }
 

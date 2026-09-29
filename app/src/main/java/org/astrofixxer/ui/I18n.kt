@@ -128,6 +128,13 @@ object I18n {
             "आकाश को घंटे या दिन आगे-पीछे करने के लिए ऊपर दाईं ओर घड़ी छुएँ। वर्तमान से दूर होने पर घड़ी गुलाबी हो जाती है; अभी दबाकर वर्तमान पर लौटें।",
         "%d° up · %s" to "%d° ऊपर · %s", "Not in the catalogue; check the spelling" to "सूची में नहीं है; वर्तनी जाँचें",
         "My list" to "मेरी सूची",
+        // Object Info
+        "Type" to "प्रकार", "Magnitude" to "कांतिमान", "Size" to "आकार", "Constellation" to "तारामंडल", "RA / Dec" to "RA / Dec",
+        "Tonight" to "आज रात", "Working out tonight's positions…" to "आज रात की स्थितियाँ निकाली जा रही हैं…",
+        "Up all night; highest at %s (%d°)" to "पूरी रात ऊपर; सबसे ऊँचा %s पर (%d°)", "Doesn't rise tonight" to "आज रात नहीं उगेगा",
+        "Rises %s" to "उदय %s", "Highest %s (%d°)" to "सबसे ऊँचा %s (%d°)", "Sets %s" to "अस्त %s",
+        "In the eyepiece" to "आईपीस में", "Field %.1f° with the %.0f mm eyepiece" to "%.1f° क्षेत्र, %.0f mm आईपीस के साथ",
+        "Object %.0f′ across" to "वस्तु %.0f′ चौड़ी", "Set as target" to "लक्ष्य बनाएँ",
         // Cardinal points
         "N" to "उ", "NE" to "उपू", "E" to "पू", "SE" to "दपू", "S" to "द", "SW" to "दप", "W" to "प", "NW" to "उप",
     )
