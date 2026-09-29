@@ -154,7 +154,7 @@ class JourneyTest {
         screenshot("journey-12-night")
         try {
             onNode(button("Sky")).tap()
-            onNode(hasScrollAction()).performScrollToNode(hasText("English"))
+            tab("More")
             clickStepper("Language")
             assertEquals("hi", I18n.language)
             onNode(hasText("हिन्दी")).assertExists()
@@ -185,6 +185,7 @@ class JourneyTest {
         val state = Fixtures.state()
         setContent { AppScreen(state) }
         onNode(button("Sky")).tap()
+        tab("More")
         onNode(button("My objects & lists")).tap()
         val fields = onAllNodes(hasSetTextAction())
         fields[0].performTextInput("My nova, 19:30:00, +35:00:00\nBroken, 99999999999:00, 0")
@@ -207,7 +208,7 @@ class JourneyTest {
         val state = Fixtures.state()
         setContent { AppScreen(state) }
         onNode(button("Sky")).tap()
-        onNode(hasScrollAction()).performScrollToNode(hasText("Use this location"))
+        tab("Place & time")
         val fields = onAllNodes(hasSetTextAction())
         fields[0].performTextReplacement("19.0760")
         fields[1].performTextReplacement("72.8777")

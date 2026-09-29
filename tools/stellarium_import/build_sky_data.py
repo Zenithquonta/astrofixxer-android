@@ -259,6 +259,12 @@ def constellations(culture, by_hip, culture_id):
     return labels, segments, missing
 
 
+# Messier objects missing from Stellarium's deep-sky catalogue. M40 is a double star (Winnecke 4): J2000 position from
+# WDS, combined magnitude of its 9.65 and 10.11 components. Added to the stars so the Messier list is complete.
+EXTRA_STARS = [
+    {'hip': None, 'ra': 185.5521, 'dec': 58.0831, 'mag': 9.1, 'bv': None, 'names': ['M40', 'Winnecke 4'], 'indian_names': []},
+]
+
 # B1875.0 as a Julian date; the IAU boundaries were drawn in that equinox.
 B1875 = 2405889.25855
 
@@ -595,7 +601,7 @@ def main():
              'names': [x.get('english') or x.get('native') for x in star_names.get(h, [])] or ([p] if p else []),
              'indian_names': indian_names.get(h, [])}
             for h, ra, de, mag, p, bv in star_rows if mag <= args.star_mag_limit + 0.5
-        ],
+        ] + EXTRA_STARS,
         'boundaries': boundaries(modern),
         'constellations': {
             cid: [{k: c[k] for k in ('id', 'name', 'n2', 'RA', 'DE', 'lines', 'art') if k in c}

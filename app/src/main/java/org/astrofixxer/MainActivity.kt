@@ -107,6 +107,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         }
         val prefs = getSharedPreferences("astrofixxer", MODE_PRIVATE)
         if (prefs.contains("manual_lat")) state.setManualLocation(prefs.getFloat("manual_lat", 0f).toDouble(), prefs.getFloat("manual_lon", 0f).toDouble())
+        state.applySettings(prefs.all.filterKeys { it.startsWith("s.") }.mapKeys { it.key.removePrefix("s.") }.mapValues { it.value.toString() })
         updateLocation()
         state.userObjectsText = prefs.getString("user_objects", "") ?: ""
         state.watchListText = prefs.getString("watch_list", "") ?: ""
@@ -136,6 +137,16 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             LaunchedEffect(Unit) {
                 snapshotFlow { Triple(state.manualLocation, state.lat, state.lon) }.collect { (manual, lat, lon) ->
                     if (manual) prefs.edit().putFloat("manual_lat", lat.toFloat()).putFloat("manual_lon", lon.toFloat()).apply()
+                    else if (prefs.contains("manual_lat")) {
+                        // "Use GPS" again: forget the typed location and take the latest fix.
+                        prefs.edit().remove("manual_lat").remove("manual_lon").apply()
+                        updateLocation()
+                    }
+                }
+            }
+            LaunchedEffect(Unit) {
+                snapshotFlow { state.settings() }.collect { settings ->
+                    prefs.edit().apply { for ((k, v) in settings) putString("s.$k", v) }.apply()
                 }
             }
             LaunchedEffect(Unit) {
@@ -198,7 +209,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 latestEvents = events
             }
             SkyScreen(state, catalog, moving, events, art, onAsk = if (recognizer != null) ::ask else null,
-                backHandler = { enabled, onBack -> BackHandler(enabled, onBack) })
+                backHandler = { enabled, onBack -> BackHandler(enabled, onBack) }, onAskText = ::respond)
         }
     }
 

@@ -38,7 +38,11 @@ fun nightStart(millis: Long, zone: ZoneId = ZoneId.systemDefault()): Long {
     return (if (local.hour >= 12) noon else noon.minusDays(1)).toInstant().toEpochMilli()
 }
 
-fun visibilityTonight(obj: SkyObject, millis: Long, latDeg: Double, lonDeg: Double, zone: ZoneId = ZoneId.systemDefault()): Visibility {
+fun visibilityTonight(
+    obj: SkyObject, millis: Long, latDeg: Double, lonDeg: Double, zone: ZoneId = ZoneId.systemDefault(),
+    /** False skips the Moon's altitude (NaN), which is the costly part when only the object matters. */
+    withMoon: Boolean = true,
+): Visibility {
     val start = nightStart(millis, zone)
     val lat = latDeg * PI / 180
     val lon = lonDeg * PI / 180
@@ -48,7 +52,7 @@ fun visibilityTonight(obj: SkyObject, millis: Long, latDeg: Double, lonDeg: Doub
     val samples = (0..144).map { i ->
         val t = start + i * STEP_MS
         val alt = if (body != null) altOf(body, t) else Math.toDegrees(asin(Pointing.rayFromPos(obj.ra, obj.dec, t, latDeg, lonDeg)[2]))
-        AltitudeSample(t, alt, altOf(ApparentPosition.SUN, t), altOf(ApparentPosition.MOON, t))
+        AltitudeSample(t, alt, altOf(ApparentPosition.SUN, t), if (withMoon) altOf(ApparentPosition.MOON, t) else Double.NaN)
     }
     fun crossing(a: AltitudeSample, b: AltitudeSample, level: Double, pick: (AltitudeSample) -> Double): Long {
         val f = (level - pick(a)) / (pick(b) - pick(a))
@@ -61,4 +65,43 @@ fun visibilityTonight(obj: SkyObject, millis: Long, latDeg: Double, lonDeg: Doub
     val darkStart = pairs.firstOrNull { (a, b) -> a.sunAlt > -18 && b.sunAlt <= -18 }?.let { (a, b) -> crossing(a, b, -18.0) { it.sunAlt } }
     val darkEnd = pairs.firstOrNull { (a, b) -> a.sunAlt <= -18 && b.sunAlt > -18 }?.let { (a, b) -> crossing(a, b, -18.0) { it.sunAlt } }
     return Visibility(samples, rise, set, top.millis, top.alt, darkStart, darkEnd)
+}
+
+/** Next time within a day that a fixed-position object rises above the horizon, or null (already up, or it doesn't rise). */
+fun nextRise(obj: SkyObject, millis: Long, latDeg: Double, lonDeg: Double): Long? {
+    fun alt(t: Long) = Pointing.rayFromPos(obj.ra, obj.dec, t, latDeg, lonDeg)[2]
+    if (alt(millis) > 0) return null
+    var prev = millis
+    for (i in 1..144) {
+        val t = millis + i * STEP_MS
+        if (alt(t) > 0) {
+            val a = alt(prev); val b = alt(t)
+            return prev + ((-a / (b - a)) * (t - prev)).toLong()
+        }
+        prev = t
+    }
+    return null
+}
+
+/** The "Tonight" card: Sun and Moon times, how much of the Moon is lit, and which bright planets are up in the dark. */
+class TonightSummary(
+    val sunset: Long?, val darkStart: Long?, val darkEnd: Long?, val sunrise: Long?,
+    val moonrise: Long?, val moonset: Long?, val moonLitPercent: Int,
+    /** Planet name, time it is highest while the sky is dark (Sun below −12°), and that altitude. */
+    val planets: List<Triple<String, Long, Double>>,
+)
+
+fun tonightSummary(millis: Long, latDeg: Double, lonDeg: Double, zone: ZoneId = ZoneId.systemDefault()): TonightSummary {
+    // The Moon as the object: its altitude is the object's, so the separate Moon track isn't needed.
+    val moon = visibilityTonight(SkyObject("Moon", 0.0, 0.0, null, "P"), millis, latDeg, lonDeg, zone, withMoon = false)
+    val pairs = moon.samples.zipWithNext()
+    fun sunCross(down: Boolean) = pairs.firstOrNull { (a, b) -> if (down) a.sunAlt > -0.833 && b.sunAlt <= -0.833 else a.sunAlt <= -0.833 && b.sunAlt > -0.833 }
+        ?.let { (a, b) -> a.millis + (((-0.833 - a.sunAlt) / (b.sunAlt - a.sunAlt)) * (b.millis - a.millis)).toLong() }
+    val planets = listOf("Mercury", "Venus", "Mars", "Jupiter", "Saturn").mapNotNull { name ->
+        val v = visibilityTonight(SkyObject(name, 0.0, 0.0, null, "P"), millis, latDeg, lonDeg, zone, withMoon = false)
+        v.samples.filter { it.sunAlt < -12 && it.alt > 10 }.maxByOrNull { it.alt }?.let { Triple(name, it.millis, it.alt) }
+    }
+    val midnight = moon.samples[72].millis
+    val lit = (org.astrofixxer.astro.Events.moonIllumination(JulianDate.fromEpochMillis(midnight)) * 100).toInt()
+    return TonightSummary(sunCross(true), moon.darkStart, moon.darkEnd, sunCross(false), moon.rise, moon.set, lit, planets)
 }

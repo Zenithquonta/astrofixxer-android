@@ -18,7 +18,7 @@ import kotlin.math.sin
 
 enum class AlignState { NOT_ALIGNED, PICK_STAR, ALIGNED }
 enum class Landscape(val label: String) { NONE("None"), HILLS("Hills"), TREES("Trees"), CITY("City"), OBSERVATORY("Dome") }
-enum class PointingMode { COMPASS, MANUAL }
+enum class PointingMode { COMPASS, MANUAL, FREE }
 
 /** Everything the sky screen shows, independent of Android: time, place, phone orientation, alignment, target. */
 class SkyState(nowMillis: Long, lat: Double, lon: Double) {
@@ -52,6 +52,12 @@ class SkyState(nowMillis: Long, lat: Double, lon: Double) {
     var showEcliptic by mutableStateOf(false)
     var showBoundaries by mutableStateOf(false)
     var showStarColours by mutableStateOf(true)
+    var showCardinals by mutableStateOf(true)
+    /** Deep-sky types switched off in Sky & Viewing ("Ga", "Oc", "Gc", "Ne"). */
+    var hiddenDsoTypes by mutableStateOf<Set<String>>(emptySet())
+    /** Free look: where the view points (degrees), driven by dragging instead of the sensors. */
+    var freeAzDeg by mutableDoubleStateOf(180.0)
+    var freeAltDeg by mutableDoubleStateOf(45.0)
 
     /** Telescope and eyepiece, which set the eyepiece circle and when the target counts as "on target". */
     var telescopeFocalMm by mutableDoubleStateOf(1200.0)
@@ -112,8 +118,9 @@ class SkyState(nowMillis: Long, lat: Double, lon: Double) {
         target = resolve(items[itemIndex].name, catalog)
     }
 
-    /** Phone orientation with the manual azimuth offset applied (rotation about the up axis). */
+    /** Phone orientation with the manual azimuth offset applied (rotation about the up axis); Free look ignores the sensors. */
     fun worldDevice(): DoubleArray {
+        if (mode == PointingMode.FREE) return Pointing.rotationMatrix(-freeAzDeg, freeAltDeg, 0.0)
         if (azOffsetDeg == 0.0) return device
         val a = -azOffsetDeg * PI / 180
         val rz = doubleArrayOf(cos(a), -sin(a), 0.0, sin(a), cos(a), 0.0, 0.0, 0.0, 1.0)
@@ -151,6 +158,72 @@ class SkyState(nowMillis: Long, lat: Double, lon: Double) {
         val up = camera()[2][2].coerceIn(-1.0, 1.0)
         val cosAlt = kotlin.math.sqrt(1 - up * up).coerceAtLeast(0.2) // near the zenith azimuth barely moves anything
         azOffsetDeg -= dxPx / widthPx * fovH / cosAlt
+    }
+
+    /** Switches pointing mode: Compass -> Manual -> Free look. Free look starts where the view points now, so nothing jumps. */
+    fun nextMode() {
+        mode = when (mode) {
+            PointingMode.COMPASS -> PointingMode.MANUAL
+            PointingMode.MANUAL -> {
+                val fwd = camera()[2]
+                freeAltDeg = Math.toDegrees(kotlin.math.asin(fwd[2].coerceIn(-1.0, 1.0)))
+                freeAzDeg = (Math.toDegrees(kotlin.math.atan2(fwd[0], fwd[1])) + 360) % 360
+                PointingMode.FREE
+            }
+            PointingMode.FREE -> PointingMode.COMPASS
+        }
+    }
+
+    /** Free look: dragging moves the sky with the finger in both directions. */
+    fun panFree(dxPx: Float, dyPx: Float, widthPx: Float, heightPx: Float) {
+        val fovH = if (widthPx < heightPx) fovDeg * widthPx / heightPx else fovDeg
+        val fovV = if (widthPx < heightPx) fovDeg else fovDeg * heightPx / widthPx
+        val cosAlt = kotlin.math.cos(Math.toRadians(freeAltDeg)).coerceAtLeast(0.2)
+        freeAzDeg = (freeAzDeg - dxPx / widthPx * fovH / cosAlt + 360) % 360
+        freeAltDeg = (freeAltDeg + dyPx / heightPx * fovV).coerceIn(-89.0, 89.0)
+    }
+
+    /** Adds an object to the first watch list (or a new "Tonight" list) by editing the list text. */
+    fun addToWatchList(name: String, catalog: Catalog?) {
+        val item = if (name.any { it.isWhitespace() }) "\"$name\"" else name
+        watchListText = if (watchListText.isBlank()) "Tonight: $item" else watchListText.trimEnd() + " " + item
+        applyUserText(catalog)
+    }
+
+    /** Back to defaults: every display setting, the telescope, the location override, lists and objects. */
+    fun resetAll(catalog: Catalog?) {
+        showConstellations = true; showDeepSky = true; showGrid = false; showAtmosphere = true; showMilkyWay = true; showArt = false
+        showEquatorialGrid = false; showMeridian = false; showEcliptic = false; showBoundaries = false; showStarColours = true
+        showCardinals = true; hiddenDsoTypes = emptySet(); landscape = Landscape.HILLS; bortle = 4; skyCulture = "modern"; night = false
+        telescopeFocalMm = 1200.0; eyepieceFocalMm = 25.0; eyepieceAfovDeg = 52.0; equatorialMount = false; haptics = true
+        mode = PointingMode.COMPASS; manualLocation = false; live = true
+        userObjectsText = ""; watchListText = ""; applyUserText(catalog); listIndex = -1
+    }
+
+    /** Display and telescope settings as strings, for the host to save between launches. */
+    fun settings(): Map<String, String> = mapOf(
+        "constellations" to "$showConstellations", "deepSky" to "$showDeepSky", "altAzGrid" to "$showGrid", "atmosphere" to "$showAtmosphere",
+        "milkyWay" to "$showMilkyWay", "art" to "$showArt", "eqGrid" to "$showEquatorialGrid", "meridian" to "$showMeridian",
+        "ecliptic" to "$showEcliptic", "boundaries" to "$showBoundaries", "starColours" to "$showStarColours", "cardinals" to "$showCardinals",
+        "hiddenDso" to hiddenDsoTypes.sorted().joinToString(","), "landscape" to landscape.name, "bortle" to "$bortle", "culture" to skyCulture,
+        "telescopeMm" to "$telescopeFocalMm", "eyepieceMm" to "$eyepieceFocalMm", "eyepieceAfov" to "$eyepieceAfovDeg",
+        "equatorial" to "$equatorialMount", "haptics" to "$haptics",
+    )
+
+    /** Restores [settings] output; unknown or malformed values keep their defaults. */
+    fun applySettings(s: Map<String, String>) {
+        fun b(k: String, set: (Boolean) -> Unit) = s[k]?.toBooleanStrictOrNull()?.let(set)
+        fun d(k: String, set: (Double) -> Unit) = s[k]?.toDoubleOrNull()?.takeIf { it > 0 }?.let(set)
+        b("constellations") { showConstellations = it }; b("deepSky") { showDeepSky = it }; b("altAzGrid") { showGrid = it }
+        b("atmosphere") { showAtmosphere = it }; b("milkyWay") { showMilkyWay = it }; b("art") { showArt = it }
+        b("eqGrid") { showEquatorialGrid = it }; b("meridian") { showMeridian = it }; b("ecliptic") { showEcliptic = it }
+        b("boundaries") { showBoundaries = it }; b("starColours") { showStarColours = it }; b("cardinals") { showCardinals = it }
+        s["hiddenDso"]?.let { v -> hiddenDsoTypes = v.split(',').filter { it.isNotBlank() }.toSet() }
+        s["landscape"]?.let { v -> Landscape.values().firstOrNull { it.name == v }?.let { landscape = it } }
+        s["bortle"]?.toIntOrNull()?.takeIf { it in 1..9 }?.let { bortle = it }
+        s["culture"]?.takeIf { it == "modern" || it == "indian" }?.let { skyCulture = it }
+        d("telescopeMm") { telescopeFocalMm = it }; d("eyepieceMm") { eyepieceFocalMm = it }; d("eyepieceAfov") { eyepieceAfovDeg = it }
+        b("equatorial") { equatorialMount = it }; b("haptics") { haptics = it }
     }
 
     /** Time travel: shows the sky [deltaMillis] from the time shown now, and stops following the clock. */

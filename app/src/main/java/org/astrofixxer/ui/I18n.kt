@@ -74,7 +74,6 @@ object I18n {
         "Zoom" to "ज़ूम",
         "Pinch or use + and −. Fainter stars and deep-sky objects appear as you zoom in." to
             "दो उँगलियों से या + और − से ज़ूम करें। ज़ूम करने पर धुँधले तारे और गहन-आकाशीय पिंड दिखते हैं।",
-        "Events" to "घटनाएँ",
         "Moon phases, eclipses, meteor showers, conjunctions, transits, occultations and bright comets for the next 60 days, all worked out on the phone. Tap one to show the sky at that time; Now returns to the present." to
             "अगले 60 दिनों की चंद्र कलाएँ, ग्रहण, उल्का वर्षा, युति, पारगमन, प्रच्छादन और चमकीले धूमकेतु, सब फ़ोन पर ही गणना। किसी पर छुएँ तो उस समय का आकाश दिखेगा; 'अभी' वर्तमान पर लौटाता है।",
         "Night mode" to "रात मोड",
@@ -135,6 +134,42 @@ object I18n {
         "Rises %s" to "उदय %s", "Highest %s (%d°)" to "सबसे ऊँचा %s (%d°)", "Sets %s" to "अस्त %s",
         "In the eyepiece" to "आईपीस में", "Field %.1f° with the %.0f mm eyepiece" to "%.1f° क्षेत्र, %.0f mm आईपीस के साथ",
         "Object %.0f′ across" to "वस्तु %.0f′ चौड़ी", "Set as target" to "लक्ष्य बनाएँ",
+        // New screens (Find tabs, Sky & viewing tabs, telescope, place & time, Tonight, quick menu, AstroGuide chips)
+        "Object" to "वस्तु", "Position" to "स्थिति", "Lists" to "सूचियाँ", "Info" to "जानकारी", "Up · %d°" to "ऊपर · %d°",
+        "Point at any position in the sky (J2000)." to "आकाश में किसी भी स्थिति पर जाएँ (J2000)।",
+        "RA, e.g. 05:35:17 or 83.82" to "RA, जैसे 05:35:17 या 83.82", "Dec, e.g. -05:23:28 or -5.39" to "Dec, जैसे -05:23:28 या -5.39",
+        "Go to this position" to "इस स्थिति पर जाएँ", "Messier" to "मेसियर", "Caldwell" to "कॉल्डवेल", "Bright stars" to "चमकीले तारे",
+        "Nakshatras" to "नक्षत्र", "My objects" to "मेरी वस्तुएँ", "%s · %d objects" to "%s · %d वस्तुएँ",
+        "Deep-sky" to "गहरा आकाश", "Markings" to "चिह्न", "Culture" to "संस्कृति", "Telescope" to "टेलीस्कोप",
+        "Place & time" to "स्थान व समय", "More" to "और", "Star colours" to "तारों के रंग", "Galaxies" to "मंदाकिनियाँ",
+        "Open clusters" to "खुले तारा-गुच्छ", "Globular clusters" to "गोलाकार तारा-गुच्छ", "Nebulae" to "नीहारिकाएँ",
+        "Constellation boundaries" to "तारामंडल सीमाएँ", "Equatorial grid" to "विषुवतीय ग्रिड", "Meridian" to "याम्योत्तर",
+        "Ecliptic" to "क्रांतिवृत्त", "Cardinal points" to "मुख्य दिशाएँ",
+        "The 88 IAU constellations with Stellarium's artwork." to "Stellarium के चित्रों सहित 88 IAU तारामंडल।",
+        "The 28 nakshatras and Indian star names." to "28 नक्षत्र और भारतीय तारों के नाम।",
+        "The eyepiece circle and \"On target\" use these." to "आईपीस वृत्त और \"लक्ष्य पर\" इन्हीं से तय होते हैं।",
+        "Telescope focal length (mm)" to "टेलीस्कोप फ़ोकल लंबाई (mm)", "Eyepiece (mm)" to "आईपीस (mm)", "Apparent field (°)" to "आभासी क्षेत्र (°)",
+        "True field: %.2f° · magnification ×%.0f" to "वास्तविक क्षेत्र: %.2f° · आवर्धन ×%.0f", "Mount" to "माउंट",
+        "Equatorial" to "विषुवतीय", "Alt-Az" to "ऊँचाई-दिगंश", "Vibrate when on target" to "लक्ष्य पर पहुँचने पर कंपन",
+        "Use GPS" to "GPS इस्तेमाल करें", "Or pick a city" to "या कोई शहर चुनें", "Date & time" to "तारीख व समय",
+        "Date (YYYY-MM-DD)" to "तारीख (YYYY-MM-DD)", "Time (HH:MM)" to "समय (HH:MM)", "Show this time" to "यह समय दिखाएँ",
+        "Data" to "डेटा", "Stellarium catalogue: %,d objects, %d constellations, %d boundary edges." to
+            "Stellarium सूची: %,d वस्तुएँ, %d तारामंडल, %d सीमा रेखाएँ।",
+        "Reset all" to "सब रीसेट करें", "Tap again to reset every setting and list" to "हर सेटिंग और सूची रीसेट करने के लिए फिर से छुएँ",
+        "This week" to "इस सप्ताह", "This month" to "इस महीने", "All" to "सभी",
+        "Sunset %s · sunrise %s" to "सूर्यास्त %s · सूर्योदय %s", "Fully dark %s–%s" to "पूरा अंधेरा %s–%s",
+        "No fully dark sky tonight" to "आज रात पूरा अंधेरा नहीं होगा", "Moon %d%% lit · rises %s · sets %s" to "चंद्रमा %d%% प्रकाशित · उदय %s · अस्त %s",
+        "No bright planets in the dark sky tonight" to "आज रात अंधेरे आकाश में कोई चमकीला ग्रह नहीं", "Planets: %s" to "ग्रह: %s",
+        "Align on this" to "इस पर संरेखित करें", "Add to list" to "सूची में जोड़ें",
+        "Tap a question below." to "नीचे कोई प्रश्न छुएँ।", "What's up tonight?" to "आज रात क्या दिखेगा", "Find Saturn" to "शनि दिखाओ", "Next meteor shower" to "अगली उल्का वर्षा",
+        "What is M42?" to "M42 क्या है", "Next eclipse" to "अगला ग्रहण", "Free look" to "मुक्त दृश्य", "Search help" to "सहायता खोजें",
+        "Object info" to "वस्तु जानकारी", "Telescope settings" to "टेलीस्कोप सेटिंग",
+        "The third pointing mode: the sky ignores the phone's sensors and you drag it in any direction, like a planetarium. Tap the Compass / Manual / Free look button to switch." to
+            "तीसरा मोड: आकाश फ़ोन के सेंसर को नहीं मानता और आप उसे किसी भी दिशा में खींच सकते हैं, तारामंडल-भवन की तरह। बदलने के लिए कम्पास / हाथ से / मुक्त दृश्य बटन दबाएँ।",
+        "Tap the target card at the top left, or long-press any object, for its names, constellation, rise and set times, a graph of its altitude tonight and how it looks in your eyepiece." to
+            "नाम, तारामंडल, उदय-अस्त समय, आज रात की ऊँचाई का ग्राफ़ और आईपीस में दृश्य देखने के लिए ऊपर बाईं ओर लक्ष्य कार्ड छुएँ, या किसी वस्तु को देर तक दबाएँ।",
+        "In Sky & viewing, Telescope: enter the telescope's and eyepiece's focal lengths and the eyepiece's apparent field. The circle around the crosshair is your eyepiece's view, and On target means the target is inside it. Equatorial mounts get directions in RA and Dec." to
+            "आकाश व दृश्य, टेलीस्कोप में: टेलीस्कोप और आईपीस की फ़ोकल लंबाई और आईपीस का आभासी क्षेत्र भरें। क्रॉसहेयर के चारों ओर का वृत्त आपके आईपीस का दृश्य है, और लक्ष्य पर का अर्थ है कि लक्ष्य उसके भीतर है। विषुवतीय माउंट के लिए दिशाएँ RA और Dec में मिलती हैं।",
         // Cardinal points
         "N" to "उ", "NE" to "उपू", "E" to "पू", "SE" to "दपू", "S" to "द", "SW" to "दप", "W" to "प", "NW" to "उप",
     )

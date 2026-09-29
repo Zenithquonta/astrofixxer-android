@@ -58,8 +58,23 @@ class AuditTest {
         }),
         Screen("events", true, {}, { onNode(button(I18n.t("Events"))).tap() }),
         Screen("sky-options", true, {}, { onNode(button(I18n.t("Sky"))).tap() }),
-        Screen("lists", true, {}, { onNode(button(I18n.t("Sky"))).tap(); onNode(button(I18n.t("My objects & lists"))).tap() }),
-        Screen("help", true, {}, { onNode(button(I18n.t("Sky"))).tap(); onNode(button(I18n.t("Help"))).tap() }),
+        Screen("lists", true, {}, { onNode(button(I18n.t("Sky"))).tap(); tab(I18n.t("More")); onNode(button(I18n.t("My objects & lists"))).tap() }),
+        Screen("help", true, {}, { onNode(button(I18n.t("Sky"))).tap(); tab(I18n.t("More")); onNode(button(I18n.t("Help"))).tap() }),
+        // The new tabs of Sky & viewing, Find and the other new screens.
+        *listOf("Deep-sky", "Markings", "Culture", "Landscape", "Telescope", "Place & time", "More").map { name ->
+            Screen("sky-tab-$name", true, {}, { onNode(button(I18n.t("Sky"))).tap(); tab(I18n.t(name)) })
+        }.toTypedArray(),
+        Screen("find-position", true, {}, { onNode(button(I18n.t("Find"))).tap(); tab(I18n.t("Position")) }),
+        Screen("find-lists", true, {}, { onNode(button(I18n.t("Find"))).tap(); tab(I18n.t("Lists")) }),
+        Screen("object-info", true, { it.target = catalog.find("M57") }, {
+            onNode(hasText("Ring Nebula") and hasClickAction()).tap()
+            waitUntil(15_000) { onAllNodes(hasText(I18n.t("Tonight"))).fetchSemanticsNodes().isNotEmpty() }
+        }),
+        Screen("guide-suggestions", false, {}, { onNode(button(I18n.t("Ask"))).tap() }),
+        Screen("sky-all-markings", false, { s ->
+            s.showEquatorialGrid = true; s.showMeridian = true; s.showEcliptic = true; s.showBoundaries = true
+            Fixtures.pointAt(s, catalog.find("Vega")!!); s.alignOn(catalog.find("Vega")!!); s.target = catalog.find("M57")
+        }),
         Screen("tutorial", true, { it.showOnboarding = true }),
     )
 

@@ -86,22 +86,30 @@ fun SkyCanvas(
     moving: List<MovingObject>,
     modifier: Modifier = Modifier,
     art: Map<String, ImageBitmap> = emptyMap(),
+    /** Long press on an object: the screen shows its quick menu at that point. */
+    onLongPress: (SkyObject, Offset) -> Unit = { _, _ -> },
 ) {
     val text = rememberTextMeasurer()
     val hits = remember { mutableListOf<Pair<Offset, SkyObject>>() }
     Canvas(
         modifier
             .pointerInput(state) {
-                detectTapGestures { tap ->
-                    val best = hits.minByOrNull { (p, _) -> hypot(p.x - tap.x, p.y - tap.y) } ?: return@detectTapGestures
-                    if (hypot(best.first.x - tap.x, best.first.y - tap.y) > 48.dp2px(density)) return@detectTapGestures
-                    if (state.align == AlignState.PICK_STAR) state.alignOn(best.second) else state.target = best.second
+                fun nearest(at: Offset): SkyObject? {
+                    val best = hits.minByOrNull { (p, _) -> hypot(p.x - at.x, p.y - at.y) } ?: return null
+                    return best.second.takeIf { hypot(best.first.x - at.x, best.first.y - at.y) <= 48.dp2px(density) }
+                }
+                detectTapGestures(
+                    onLongPress = { at -> nearest(at)?.let { onLongPress(it, at) } },
+                ) { tap ->
+                    val obj = nearest(tap) ?: return@detectTapGestures
+                    if (state.align == AlignState.PICK_STAR) state.alignOn(obj) else state.target = obj
                 }
             }
             .pointerInput(state) {
                 detectTransformGestures { _, pan, zoom, _ ->
                     if (zoom != 1f) state.fovDeg = (state.fovDeg / zoom).coerceIn(0.5, 120.0)
                     if (state.mode == PointingMode.MANUAL && pan.x != 0f) state.dragSky(pan.x, size.width.toFloat(), size.height.toFloat())
+                    if (state.mode == PointingMode.FREE) state.panFree(pan.x, pan.y, size.width.toFloat(), size.height.toFloat())
                 }
             },
     ) {
@@ -173,7 +181,7 @@ private fun DrawScope.drawSky(
         for (o in catalog.near(center.first, center.second, radius, max(starLimit, dsoLimit))) {
             val isStar = o.type == "S"
             if (isStar && (o.mag ?: 99.0) > starLimit) continue
-            if (!isStar && (!state.showDeepSky || (o.mag ?: 99.0) > dsoLimit)) continue
+            if (!isStar && (!state.showDeepSky || o.type in state.hiddenDsoTypes || (o.mag ?: 99.0) > dsoLimit)) continue
             val ray = state.ray(o)
             if (hideBelowHorizon && ray[2] < 0) continue
             val p = proj.project(ray) ?: continue
@@ -223,7 +231,7 @@ private fun DrawScope.drawSky(
     }
 
     drawLandscape(state, proj, if (state.night) Color(0xFF0D0000) else Color(0xFF07100A), pal.horizon)
-    drawHorizon(proj, pal, text)
+    drawHorizon(proj, pal, text, state.showCardinals)
 
     state.alignStar?.let { s -> if (state.align == AlignState.ALIGNED) proj.project(state.ray(s))?.let { drawCircle(pal.alignStar, 12f, it, style = Stroke(2f)) } }
 
@@ -274,14 +282,14 @@ internal fun horizonRay(azDeg: Double, altDeg: Double): DoubleArray {
     return doubleArrayOf(sin(a) * cos(h), cos(a) * cos(h), sin(h))
 }
 
-private fun DrawScope.drawHorizon(proj: Projector, pal: Palette, text: TextMeasurer) {
+private fun DrawScope.drawHorizon(proj: Projector, pal: Palette, text: TextMeasurer, cardinals: Boolean = true) {
     var prev: Offset? = null
     for (az in 0..360 step 2) {
         val p = proj.project(horizonRay(az.toDouble(), 0.0))
         if (p != null && prev != null) drawLine(pal.horizon, prev, p, strokeWidth = 2f)
         prev = p
     }
-    for ((name, az) in listOf("N" to 0, "NE" to 45, "E" to 90, "SE" to 135, "S" to 180, "SW" to 225, "W" to 270, "NW" to 315)) {
+    if (cardinals) for ((name, az) in listOf("N" to 0, "NE" to 45, "E" to 90, "SE" to 135, "S" to 180, "SW" to 225, "W" to 270, "NW" to 315)) {
         proj.project(horizonRay(az.toDouble(), 0.0))?.let {
             safeText(text, t(name), it + Offset(-6f, 4f), TextStyle(color = pal.cardinal, fontSize = if (name.length == 1) 16.sp else 12.sp))
         }

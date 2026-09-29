@@ -32,6 +32,9 @@ class Pure(unittest.TestCase):
             self.assertAlmostEqual(r, ra2, delta=0.0003)  # about 1 arcsecond
             self.assertAlmostEqual(d, de2, delta=0.0003)
 
+    def test_m40_completes_the_messier_list(self):
+        self.assertEqual([s['names'][0] for s in b.EXTRA_STARS], ['M40'])
+
     def test_polylines_break_on_non_int(self):
         self.assertEqual(list(b.polylines([[1, 2, 'x', 3, 4]])), [[1, 2], [3, 4]])
 

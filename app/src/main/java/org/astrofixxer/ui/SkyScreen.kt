@@ -77,7 +77,7 @@ internal val NightColors = darkColorScheme(
 
 private enum class Sheet { NONE, SEARCH, EVENTS, SKY, LISTS, HELP, INFO }
 
-internal val TYPE_NAMES = mapOf("S" to "Star", "Ga" to "Galaxy", "Oc" to "Open cluster", "Gc" to "Globular cluster", "Ne" to "Nebula", "P" to "Solar system", "C" to "Comet", "U" to "My object")
+internal val TYPE_NAMES = mapOf("S" to "Star", "Ga" to "Galaxy", "Oc" to "Open cluster", "Gc" to "Globular cluster", "Ne" to "Nebula", "P" to "Solar system", "C" to "Comet", "U" to "My object", "Con" to "Constellation", "Pos" to "Position")
 
 /**
  * The main screen: Stellarium-style sky, info overlay, alignment chip, guidance panel and toolbar.
@@ -90,19 +90,28 @@ fun SkyScreen(
     moving: List<MovingObject>,
     events: List<EventItem>?,
     art: Map<String, ImageBitmap> = emptyMap(),
-    /** Starts listening for an AstroGuide question; null hides the Ask button (no speech recogniser). */
+    /** Starts listening for an AstroGuide question; null (no speech recogniser) makes Ask show the question suggestions instead. */
     onAsk: (() -> Unit)? = null,
     /** Hooks the system Back button (Android's BackHandler); the screen stays free of Android imports. */
     backHandler: @Composable (enabled: Boolean, onBack: () -> Unit) -> Unit = { _, _ -> },
+    /** Answers a typed or suggested AstroGuide question; the host adds speech. Default: answer on screen only. */
+    onAskText: ((String) -> Unit)? = null,
 ) {
     var sheet by remember { mutableStateOf(Sheet.NONE) }
     var showTime by remember { mutableStateOf(false) }
     var infoObject by remember { mutableStateOf<org.astrofixxer.astro.SkyObject?>(null) }
+    var quick by remember { mutableStateOf<Pair<org.astrofixxer.astro.SkyObject, androidx.compose.ui.geometry.Offset>?>(null) }
+    val openInfo = { o: org.astrofixxer.astro.SkyObject -> infoObject = o; sheet = Sheet.INFO }
+    val askText = onAskText ?: { q: String ->
+        state.guideHeard = q
+        state.guideAnswer = AstroGuide.answer(q, state, catalog, moving, events).speech
+    }
     val colors: ColorScheme = if (state.night) NightColors else DayColors
     // Back closes the innermost thing that is open; with nothing open it leaves the app as usual.
     val guideOpen = state.guideListening || state.guideAnswer != null
-    backHandler(state.showOnboarding || sheet != Sheet.NONE || state.align == AlignState.PICK_STAR || guideOpen || showTime) {
+    backHandler(quick != null || state.showOnboarding || sheet != Sheet.NONE || state.align == AlignState.PICK_STAR || guideOpen || showTime) {
         when {
+            quick != null -> quick = null
             state.showOnboarding -> state.showOnboarding = false
             sheet != Sheet.NONE -> sheet = Sheet.NONE
             state.align == AlignState.PICK_STAR -> state.cancelAlign()
@@ -112,7 +121,7 @@ fun SkyScreen(
     }
     MaterialTheme(colorScheme = colors) {
         Box(Modifier.fillMaxSize().background(Color.Black)) {
-            SkyCanvas(state, catalog, moving, Modifier.fillMaxSize(), art)
+            SkyCanvas(state, catalog, moving, Modifier.fillMaxSize(), art) { o, at -> quick = o to at }
             // One row so the target card and the status chips share the width and never overlap on narrow phones.
             Row(Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(Modifier.weight(1f)) { InfoOverlay(state, Modifier) { infoObject = state.target; sheet = Sheet.INFO } }
@@ -126,7 +135,7 @@ fun SkyScreen(
                 if (state.target != null && state.align == AlignState.NOT_ALIGNED) AlignHint(state)
                 if (showTime || !state.live) TimeBar(state)
                 if (state.listIndex >= 0) WatchNavigator(state, catalog)
-                if (state.guideListening || state.guideAnswer != null) GuideBubble(state)
+                if (state.guideListening || state.guideAnswer != null) GuideBubble(state, askText)
                 if (catalog == null) Text(t("Loading sky catalogue…"), color = colors.onSurface, modifier = Modifier.padding(start = 8.dp))
                 Toolbar(state, onAsk,
                     onSearch = { sheet = Sheet.SEARCH },
@@ -134,14 +143,18 @@ fun SkyScreen(
                     onSky = { sheet = Sheet.SKY })
             }
             when (sheet) {
-                Sheet.SEARCH -> SearchSheet(state, catalog, moving) { sheet = Sheet.NONE }
+                Sheet.SEARCH -> SearchSheet(state, catalog, moving, onClose = { sheet = Sheet.NONE }, onInfo = openInfo)
                 Sheet.EVENTS -> EventsSheet(state, events) { sheet = Sheet.NONE }
-                Sheet.SKY -> SkyOptionsSheet(state, onClose = { sheet = Sheet.NONE }, onLists = { sheet = Sheet.LISTS },
+                Sheet.SKY -> SkyOptionsSheet(state, catalog, onClose = { sheet = Sheet.NONE }, onLists = { sheet = Sheet.LISTS },
                     onHelp = { sheet = Sheet.HELP }, onTutorial = { sheet = Sheet.NONE; state.showOnboarding = true })
                 Sheet.LISTS -> ListsSheet(state, catalog) { sheet = Sheet.NONE }
                 Sheet.HELP -> HelpSheet { sheet = Sheet.NONE }
                 Sheet.INFO -> infoObject?.let { ObjectInfoSheet(state, catalog, it) { sheet = Sheet.NONE } }
                 Sheet.NONE -> {}
+            }
+            quick?.let { (o, at) ->
+                QuickMenu(o, at, onDismiss = { quick = null }, onTarget = { state.target = o }, onAlign = { state.alignOn(o) },
+                    onAdd = { state.addToWatchList(o.name, catalog) }, onInfo = { openInfo(o) })
             }
             if (state.showOnboarding) Onboarding { state.showOnboarding = false }
         }
@@ -298,7 +311,9 @@ private fun Toolbar(state: SkyState, onAsk: (() -> Unit)?, onSearch: () -> Unit,
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Button(onClick = { state.startAlign() }, modifier = big.weight(1.4f)) { Text(t("Align"), fontSize = 18.sp) }
-            if (onAsk != null) OutlinedButton(onClick = onAsk, modifier = big.weight(0.9f), contentPadding = pad) { Label(t("Ask")) }
+            // Without speech recognition, Ask still opens AstroGuide with its question suggestions.
+            OutlinedButton(onClick = onAsk ?: { state.guideHeard = ""; state.guideAnswer = t("Tap a question below.") },
+                modifier = big.weight(0.9f), contentPadding = pad) { Label(t("Ask")) }
             OutlinedButton(onClick = { state.fovDeg = SkyState.FOV_STEPS.lastOrNull { it < state.fovDeg - 1e-6 } ?: state.fovDeg }, modifier = big.weight(0.7f)) { Text(t("+"), fontSize = 20.sp) }
             Box(big.weight(0.9f), contentAlignment = Alignment.Center) {
                 Text("%.0f°".format(state.fovDeg), color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp, fontFamily = FontFamily.Monospace)
@@ -310,16 +325,16 @@ private fun Toolbar(state: SkyState, onAsk: (() -> Unit)?, onSearch: () -> Unit,
             OutlinedButton(onClick = onEvents, modifier = big.weight(1f), contentPadding = pad) { Label(t("Events")) }
             OutlinedButton(onClick = onSky, modifier = big.weight(0.8f), contentPadding = pad) { Label(t("Sky")) }
             OutlinedButton(onClick = { state.night = !state.night }, modifier = big.weight(1f), contentPadding = pad) { Label(t(if (state.night) "Day" else "Night")) }
-            OutlinedButton(onClick = {
-                state.mode = if (state.mode == PointingMode.COMPASS) PointingMode.MANUAL else PointingMode.COMPASS
-            }, modifier = big.weight(1.1f), contentPadding = pad) { Label(t(if (state.mode == PointingMode.COMPASS) "Compass" else "Manual")) }
+            OutlinedButton(onClick = { state.nextMode() }, modifier = big.weight(1.1f), contentPadding = pad) {
+                Label(t(when (state.mode) { PointingMode.COMPASS -> "Compass"; PointingMode.MANUAL -> "Manual"; PointingMode.FREE -> "Free look" }))
+            }
         }
     }
 }
 
 /** One-line button label that steps its font down (15 to 11 sp) until it fits, so no label is ever cut off. */
 @Composable
-private fun Label(text: String) = BoxWithConstraints(contentAlignment = Alignment.Center) {
+internal fun Label(text: String) = BoxWithConstraints(contentAlignment = Alignment.Center) {
     val measurer = rememberTextMeasurer()
     val base = LocalTextStyle.current
     val maxPx = constraints.maxWidth
@@ -331,47 +346,24 @@ private fun Label(text: String) = BoxWithConstraints(contentAlignment = Alignmen
 }
 
 @Composable
-private fun SearchSheet(state: SkyState, catalog: Catalog?, moving: List<MovingObject>, onClose: () -> Unit) {
-    var query by remember { mutableStateOf("") }
-    val results = remember(query, catalog, moving) {
-        val q = query.trim()
-        // Empty box: what is above the horizon right now, so there is always something to pick.
-        if (q.isEmpty()) (moving.filter { it.kind != MovingObject.Kind.SUN }.map { it.obj } + state.userObjects).filter { state.ray(it)[2] > 0 }
-        else (moving.map { it.obj } + state.userObjects).filter { it.name.contains(q, ignoreCase = true) } + (catalog?.search(q).orEmpty())
-    }
-    val pick = { o: org.astrofixxer.astro.SkyObject -> state.target = o; onClose() }
-    SheetFrame(t("Find"), onClose) {
-        OutlinedTextField(value = query, onValueChange = { query = it }, singleLine = true, modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text(t("M42, Orion Nebula, NGC 7000, Sirius, Jupiter…")) },
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            keyboardActions = KeyboardActions(onSearch = { results.firstOrNull()?.let(pick) }))
-        if (query.isBlank() && results.isNotEmpty()) Text(t("Visible now"), color = MaterialTheme.colorScheme.primary, fontSize = 14.sp,
-            modifier = Modifier.padding(top = 8.dp))
-        if (query.isNotBlank() && results.isEmpty()) Text(t("Nothing found. Try a catalogue number like M31 or NGC 7000."),
-            color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(top = 8.dp))
-        LazyColumn(Modifier.fillMaxWidth().padding(top = 8.dp)) {
-            items(results) { o ->
-                val up = state.ray(o)[2] > 0
-                Column(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { pick(o) }.padding(vertical = 10.dp)) {
-                    Text(o.name, color = MaterialTheme.colorScheme.onSurface, fontSize = 17.sp)
-                    val sub = listOfNotNull(TYPE_NAMES[o.type]?.let { t(it) }, o.mag?.let { "mag %.1f".format(it) }, t(if (up) "up now" else "below horizon"),
-                        o.otherNames.firstOrNull())
-                    Text(sub.joinToString(" · "), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+private fun EventsSheet(state: SkyState, events: List<EventItem>?, onClose: () -> Unit) {
+    var days by remember { mutableStateOf(Int.MAX_VALUE) }
+    // Filtered here, not inside the list builder, so a filter change always redraws the list. Counted from the time
+    // the sky shows, so the filters follow time travel.
+    val shown = events.orEmpty().filter { days == Int.MAX_VALUE || jdToMillis(it.jd) - state.timeMillis <= days * 86_400_000L }
+    SheetFrame(t("Events"), onClose) {
+        LazyColumn(Modifier.fillMaxWidth()) {
+            item { TonightCard(state) }
+            item {
+                Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    for ((label, d) in listOf("This week" to 7, "This month" to 31, "All" to Int.MAX_VALUE)) {
+                        if (days == d) Button(onClick = { days = d }, modifier = Modifier.weight(1f).heightIn(min = 48.dp), contentPadding = PaddingValues(horizontal = 4.dp)) { Label(t(label)) }
+                        else OutlinedButton(onClick = { days = d }, modifier = Modifier.weight(1f).heightIn(min = 48.dp), contentPadding = PaddingValues(horizontal = 4.dp)) { Label(t(label)) }
+                    }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun EventsSheet(state: SkyState, events: List<EventItem>?, onClose: () -> Unit) {
-    SheetFrame(t("Events"), onClose) {
-        if (events == null) {
-            Text(t("Working out what's coming up…"), color = MaterialTheme.colorScheme.onSurface)
-            return@SheetFrame
-        }
-        LazyColumn(Modifier.fillMaxWidth()) {
-            items(events) { e ->
+            if (events == null) item { Text(t("Working out what's coming up…"), color = MaterialTheme.colorScheme.onSurface) }
+            items(shown) { e ->
                 Column(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable {
                     state.live = false
                     state.timeMillis = jdToMillis(e.jd)
@@ -388,60 +380,19 @@ private fun EventsSheet(state: SkyState, events: List<EventItem>?, onClose: () -
 }
 
 @Composable
-private fun SkyOptionsSheet(state: SkyState, onClose: () -> Unit, onLists: () -> Unit, onHelp: () -> Unit, onTutorial: () -> Unit) {
-    SheetFrame(t("Sky & viewing"), onClose) {
-        LazyColumn(Modifier.fillMaxWidth()) {
-            item {
-                // Own row for the long label: in Hindi it doesn't fit a third of a narrow phone in every font.
-                val pad = PaddingValues(horizontal = 8.dp)
-                Column(Modifier.fillMaxWidth().padding(bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = onLists, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp), contentPadding = pad) { Label(t("My objects & lists")) }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = onHelp, modifier = Modifier.weight(1f).heightIn(min = 48.dp), contentPadding = pad) { Label(t("Help")) }
-                        OutlinedButton(onClick = onTutorial, modifier = Modifier.weight(1f).heightIn(min = 48.dp), contentPadding = pad) { Label(t("Tutorial")) }
-                    }
-                }
-            }
-            item { Toggle(t("Constellation lines and names"), state.showConstellations) { state.showConstellations = it } }
-            item { Toggle(t("Deep-sky objects"), state.showDeepSky) { state.showDeepSky = it } }
-            item { Toggle(t("Milky Way"), state.showMilkyWay) { state.showMilkyWay = it } }
-            item { Toggle(t("Constellation artwork"), state.showArt) { state.showArt = it } }
-            item { Toggle(t("Atmosphere (daylight and twilight)"), state.showAtmosphere) { state.showAtmosphere = it } }
-            item { Toggle(t("Alt/Az grid"), state.showGrid) { state.showGrid = it } }
-            item {
-                Stepper(t("Light pollution (Bortle)"), state.bortle.toString(),
-                    onMinus = { state.bortle = (state.bortle - 1).coerceAtLeast(1) }, onPlus = { state.bortle = (state.bortle + 1).coerceAtMost(9) })
-            }
-            item {
-                val all = Landscape.values()
-                Stepper(t("Landscape"), t(state.landscape.label),
-                    onMinus = { state.landscape = all[(state.landscape.ordinal + all.size - 1) % all.size] },
-                    onPlus = { state.landscape = all[(state.landscape.ordinal + 1) % all.size] })
-            }
-            item {
-                val toggle = { state.skyCulture = if (state.skyCulture == "indian") "modern" else "indian" }
-                Stepper(t("Sky culture"), t(if (state.skyCulture == "indian") "Indian (Vedic)" else "Western"), onMinus = toggle, onPlus = toggle)
-            }
-            item {
-                val langs = I18n.languages
-                val next = { langs[(langs.indexOfFirst { it.first == I18n.language } + 1) % langs.size].first.also { I18n.language = it } }
-                Stepper(t("Language"), langs.first { it.first == I18n.language }.second, onMinus = { next() }, onPlus = { next() })
-            }
-            item { LocationEditor(state) }
-        }
-    }
-}
-
-@Composable
-private fun GuideBubble(state: SkyState) {
+private fun GuideBubble(state: SkyState, onAskText: (String) -> Unit) {
     Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surface) {
-        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                if (state.guideListening || state.guideHeard.isNotEmpty()) Text(if (state.guideListening) t("Listening…") else "“${state.guideHeard}”",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
-                state.guideAnswer?.let { Text(it, color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp) }
+        Column(Modifier.padding(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    if (state.guideListening || state.guideHeard.isNotEmpty()) Text(if (state.guideListening) t("Listening…") else "“${state.guideHeard}”",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+                    state.guideAnswer?.let { Text(it, color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp) }
+                }
+                OutlinedButton(onClick = { state.guideAnswer = null; state.guideListening = false }, modifier = Modifier.heightIn(min = 48.dp)) { Text(t("×")) }
             }
-            OutlinedButton(onClick = { state.guideAnswer = null; state.guideListening = false }, modifier = Modifier.heightIn(min = 48.dp)) { Text(t("×")) }
+            // Suggestions: one tap asks the question, useful when speaking isn't possible.
+            GuideSuggestions(onAskText)
         }
     }
 }
@@ -516,6 +467,9 @@ private val HELP = listOf(
     "Aligning" to "Point the telescope at a bright star or planet near your target, tap Align, then tap that star on the screen. Re-align for each new target; phone sensors drift over a few minutes.",
     "Finding a target" to "Tap an object on the sky or use Find. Follow the arrows in the guidance panel until both numbers are close to zero.",
     "Compass and Manual" to "Compass uses the phone's compass. If the alignment star isn't on screen, switch to Manual and drag the sky sideways until it is, then Align.",
+    "Free look" to "The third pointing mode: the sky ignores the phone's sensors and you drag it in any direction, like a planetarium. Tap the Compass / Manual / Free look button to switch.",
+    "Object info" to "Tap the target card at the top left, or long-press any object, for its names, constellation, rise and set times, a graph of its altitude tonight and how it looks in your eyepiece.",
+    "Telescope settings" to "In Sky & viewing, Telescope: enter the telescope's and eyepiece's focal lengths and the eyepiece's apparent field. The circle around the crosshair is your eyepiece's view, and On target means the target is inside it. Equatorial mounts get directions in RA and Dec.",
     "Zoom" to "Pinch or use + and −. Fainter stars and deep-sky objects appear as you zoom in.",
     "Events" to "Moon phases, eclipses, meteor showers, conjunctions, transits, occultations and bright comets for the next 60 days, all worked out on the phone. Tap one to show the sky at that time; Now returns to the present.",
     "Time travel" to "Tap the clock at the top right to step the sky by hours or days. While you are away from the present the clock turns pink; Now returns to the present.",
@@ -527,9 +481,12 @@ private val HELP = listOf(
 
 @Composable
 private fun HelpSheet(onClose: () -> Unit) {
+    var query by remember { mutableStateOf("") }
     SheetFrame(t("Help"), onClose) {
+        OutlinedTextField(query, { query = it }, singleLine = true, modifier = Modifier.fillMaxWidth(), placeholder = { Text(t("Search help")) })
+        val shown = HELP.filter { (title, body) -> query.isBlank() || t(title).contains(query.trim(), true) || t(body).contains(query.trim(), true) }
         LazyColumn(Modifier.fillMaxWidth()) {
-            items(HELP) { (title, body) ->
+            items(shown) { (title, body) ->
                 Column(Modifier.padding(vertical = 8.dp)) {
                     Text(t(title), color = MaterialTheme.colorScheme.primary, fontSize = 17.sp, fontWeight = FontWeight.Bold)
                     Text(t(body), color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp)
@@ -567,7 +524,7 @@ private fun Onboarding(onDone: () -> Unit) {
 }
 
 @Composable
-private fun Toggle(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+internal fun Toggle(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     // The whole row is the switch (one 56 dp target, read out as a switch by TalkBack).
     Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).toggleable(checked, role = Role.Switch, onValueChange = onChange),
         verticalAlignment = Alignment.CenterVertically) {
@@ -577,30 +534,12 @@ private fun Toggle(label: String, checked: Boolean, onChange: (Boolean) -> Unit)
 }
 
 @Composable
-private fun Stepper(label: String, value: String, onMinus: () -> Unit, onPlus: () -> Unit) {
+internal fun Stepper(label: String, value: String, onMinus: () -> Unit, onPlus: () -> Unit) {
     Row(Modifier.fillMaxWidth().heightIn(min = 56.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(label, color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp, modifier = Modifier.weight(1f))
         OutlinedButton(onClick = onMinus, modifier = Modifier.heightIn(min = 48.dp)) { Text(t("‹")) }
         Text(value, color = MaterialTheme.colorScheme.primary, fontSize = 16.sp, modifier = Modifier.padding(horizontal = 12.dp))
         OutlinedButton(onClick = onPlus, modifier = Modifier.heightIn(min = 48.dp)) { Text(t("›")) }
-    }
-}
-
-@Composable
-private fun LocationEditor(state: SkyState) {
-    var lat by remember { mutableStateOf("%.4f".format(java.util.Locale.ROOT, state.lat)) }
-    var lon by remember { mutableStateOf("%.4f".format(java.util.Locale.ROOT, state.lon)) }
-    val latOk = lat.toDoubleOrNull()?.let { it in -90.0..90.0 } == true
-    val lonOk = lon.toDoubleOrNull()?.let { it in -180.0..180.0 } == true
-    Column(Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
-        Text(t("Location (overrides GPS)"), color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(lat, { lat = it }, label = { Text(t("Latitude")) }, isError = !latOk, singleLine = true, modifier = Modifier.weight(1f))
-            OutlinedTextField(lon, { lon = it }, label = { Text(t("Longitude")) }, isError = !lonOk, singleLine = true, modifier = Modifier.weight(1f))
-        }
-        Button(onClick = { state.setManualLocation(lat.toDouble(), lon.toDouble()) }, enabled = latOk && lonOk,
-            modifier = Modifier.padding(top = 8.dp).heightIn(min = 48.dp)) { Text(t("Use this location")) }
-        if (!latOk || !lonOk) Text(t("Latitude −90 to 90, longitude −180 to 180 (east positive)."), color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
     }
 }
 

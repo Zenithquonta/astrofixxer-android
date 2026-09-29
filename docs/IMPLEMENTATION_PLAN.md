@@ -113,7 +113,7 @@ The web app now lives in `web/`, copied from upstream `6af76ce`. The original re
 | Output | Contents |
 |---|---|
 | web data (embedded in `web/astrofixxer.html`) | 10,438 objects, only those named in commonly searched catalogues |
-| `data/android/sky_catalog.json.gz` (2.4 MB) | 93,997 deep-sky objects with all IDs, names and dark-nebula opacity; 8,912 stars with Western + Indian names; modern + Indian constellations |
+| `data/android/sky_catalog.json.gz` (2.4 MB) | 93,997 deep-sky objects with all IDs, names and dark-nebula opacity; 8,913 stars (8,912 from HYG plus M40, which Stellarium's deep-sky list lacks) with Western + Indian names and B−V colour; modern + Indian constellations; 781 IAU boundary edges precessed from B1875 to J2000 |
 | `data/events/meteor_showers.json` | 43 showers × 2026–2028 |
 
 8 importer tests pass.
@@ -156,7 +156,38 @@ Build from the Stitch designs (`STITCH_UI_PROMPT.md`).
 - **Sensors:** rotation-vector sensors, `remapCoordinateSystem`, adjustable low-pass filter, drift hint, `FLAG_KEEP_SCREEN_ON`.
 - **Localisation:** move `i18n_dicts` / `po/` to `values-*/strings.xml` (`uk`, `hu`, `ru`, `iw`, new `hi`). Test RTL with Hebrew.
 
+**Status (29 Sep 2026): built.**
+
+- Sky View, done:
+  - star colours from B−V, the Milky Way, and the atmosphere;
+  - several landscapes, cardinal points, the Alt/Az and RA/Dec grids, and the meridian and ecliptic;
+  - constellation lines, names, IAU boundaries and artwork, and the Bortle slider;
+  - pinch zoom with a zoom-dependent limit, tap to select, and a long-press menu (target, align, add to list, info).
+- Time travel, done: the clock chip with ±1 h and ±1 d, a date and time picker, and events that jump to their time.
+- Telescope layer, done:
+  - the crosshair, the eyepiece circle from focal lengths, and Align;
+  - Compass / Manual / Free look;
+  - guidance with ΔAlt/ΔAz (or ΔRA/ΔDec for equatorial mounts), a bullseye and a haptic pulse;
+  - the watch-list navigator.
+- Other screens, done:
+  - Search (Object / Position / Lists: Messier, Caldwell, bright stars, nakshatras, my objects, watch lists);
+  - Events, with the Tonight card and week/month filters;
+  - Sky & Viewing tabs (Sky, Deep-sky, Markings, Culture, Landscape, Telescope, Place & time, More);
+  - Location, with an offline list of 58 cities, and Date & Time;
+  - Object Info: constellation, rise/transit/set, the altitude-over-tonight graph and an eyepiece preview;
+  - Telescope settings and general settings (data info, reset with confirmation);
+  - Onboarding, and Help with search;
+  - AstroGuide suggestion chips.
+- Left out on purpose (`ponytail:`):
+  - Wikipedia summaries: online only, against the offline rule;
+  - `values-*/strings.xml`: the in-code `I18n` table works in the desktop tests and on Android alike;
+  - uk/hu/ru/he: these need translators;
+  - the twinkle, font-size, compact-toolbar and brightness-cap controls;
+  - the adjustable sensor filter and the drift hint: tune them in the field test.
+- Proof: `tools/desktop-check`. Journeys drive every new screen, and the audit covers every tab in English and Hindi, day and night, at 360 and 411 dp.
+
 ---
+
 
 ## 5b. Phase 5b: Offline events (7–9 days)
 

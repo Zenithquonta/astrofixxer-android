@@ -11,6 +11,7 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.click
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.runSkikoComposeUiTest
 import androidx.compose.ui.text.TextLayoutResult
@@ -70,7 +71,7 @@ object BackButton {
 /** SkyScreen wired like MainActivity does it. */
 @Composable
 fun AppScreen(state: SkyState, events: List<EventItem>? = Fixtures.sampleEvents) {
-    SkyScreen(state, Fixtures.catalog, solarSystem(state), events, onAsk = {},
+    SkyScreen(state, Fixtures.catalog, solarSystem(state), events, onAsk = null,
         backHandler = { enabled, onBack -> SideEffect { BackButton.handler = if (enabled) onBack else null } })
 }
 
@@ -106,3 +107,11 @@ fun ComposeUiTest.clickStepper(rowLabel: String, arrow: String = "›") {
  */
 @OptIn(ExperimentalTestApi::class)
 fun androidx.compose.ui.test.SemanticsNodeInteraction.tap() = performTouchInput { click() }
+
+/** Opens a tab by its label, scrolling the tab strip first if the tab is off-screen (as a person would swipe). */
+@OptIn(ExperimentalTestApi::class)
+fun ComposeUiTest.tab(label: String) {
+    val node = onNode(androidx.compose.ui.test.hasText(label) and androidx.compose.ui.test.hasClickAction())
+    runCatching { node.performScrollTo() } // fixed tab rows don't scroll
+    node.tap()
+}
