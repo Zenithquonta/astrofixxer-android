@@ -22,7 +22,7 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 
 ## TAKEOVER: read this first (updated 2026-10-01; W7 verification resumed)
 
-Work resumed on 1 October 2026 in a fresh Windows checkout. The integration checkout is `C:/Users/kush/Desktop/astrofixxer`; W7 is isolated at `C:/Users/kush/Desktop/astrofixxer-w7` on commit `ae2e203`. The implementation agent is inspecting W7; no local tests have started. Docker Desktop could not start because its inference-manager socket cannot be accessed; no container or test ran. An isolated Ubuntu WSL runtime is being imported outside the repository without resetting the existing Docker installation. Its Ubuntu Base archive matches the official SHA-256 manifest; runtime availability is not yet verified. Genuine Noto/Lohit Devanagari remains a reproduction requirement. CI run 36780057330 at integration commit `461d0f3` is in progress: secret-scan passed; build and ui-check have not completed. The supervisor owns review, independent tests, merges and this handoff. Read the steps below; W4, docs, main merge and W8 remain gated in that order.
+Work resumed on 1 October 2026 in a fresh Windows checkout. The integration checkout is `C:/Users/kush/Desktop/astrofixxer`; W7 is isolated at `C:/Users/kush/Desktop/astrofixxer-w7` on commit `ae2e203`. The implementation agent is inspecting W7; no local tests have started. Docker Desktop could not start because its inference-manager socket cannot be accessed; no container or test ran. The isolated Ubuntu WSL runtime is ready with OpenJDK 17.0.20.1, Noto Devanagari and Lohit Devanagari; `fc-match sans:lang=hi` selects Lohit. The first detached baseline launch produced no Gradle process or test log, so no audit result exists yet; retry using a persistent execution session. Genuine Noto/Lohit Devanagari remains a reproduction requirement. CI run 36780057330 at integration commit `461d0f3` is in progress: secret-scan passed; build and ui-check have not completed. The supervisor owns review, independent tests, merges and this handoff. Read the steps below; W4, docs, main merge and W8 remain gated in that order.
 
 ### 1. Branch map (all on GitHub)
 | Branch | What it holds | State |
@@ -159,6 +159,19 @@ Real phone sensors, Camera2 capture and exposure, solving real sky photos, the D
 ---
 
 ## Entries
+
+### 2026-10-01: Genuine-font runtime ready; initial baseline launch did not start
+
+**Result / review**
+- Isolated `AstroFixxerCheck` WSL runtime provisioned successfully: OpenJDK 17.0.20.1, fontconfig, Noto Sans/Serif Devanagari and Lohit Devanagari, standard desktop X/GL libraries. `fc-cache -f` passed; `fc-match sans:lang=hi` selects Lohit Devanagari Regular.
+- Copied clean integration `7c75ac6` to `/root/checks/w7-baseline` outside the repository for efficient Linux I/O; no code edits in the mirror.
+- The detached `nohup` launch returned without producing a Gradle process or audit log. Follow-up inspection confirmed no test had started. No test counts or pass/fail assertion is available.
+
+**Files changed / dependencies**
+- `docs/HANDOFF.md`: environment and launch failure recorded. No repository dependencies added; runtime-only packages installed outside the repository.
+
+**Next step**
+- Retry baseline `bash gradlew test --tests AuditTest --no-daemon` in a persistent execution session. Keep the original full audit unchanged and use genuine Devanagari fonts.
 
 ### 2026-10-01: Isolated Linux fallback archive verified
 
