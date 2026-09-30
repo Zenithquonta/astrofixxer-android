@@ -73,6 +73,12 @@ Branch `feature/telescope-setup-alignment-platesolve`. Sonnet agents wrote the c
 - Desktop UI suite (W3 branch before the merge): 82 tests, 0 failures. The audit checked 440 screen variants with no findings. The re-run on the merged branch is in progress.
 - Android compile check (W3 branch): clean.
 
+**CI status (supervisor, 30 Sep 20:30 UTC)**
+- Since the W3 merge (runs 11 to 13), the `build` job (real Android build, R8, APKs) passes and `ui-check` fails.
+- The failure is AuditTest: 16 findings, all Hindi labels cut off on the GitHub runner's Devanagari font ("समायोजन रीसेट करें", "अभी संरेखित करें", "अपवर्तक (रिफ्रैक्टर)").
+- It passes here because this machine has no real Devanagari font.
+- W7 (Sonnet) is reproducing it with the runner's fonts and fixing the layouts. `main` is not merged until ui-check is green.
+
 **W5, in-app GitHub updater (merged, commits 90bf6cf and 2072256)**
 - Pure logic in `update/`: URL policy, strict JSON parser, HTTPS GET with hand-checked redirects, the checker, SHA-256.
 - UI: `ui/Updater.kt` and `ui/UpdaterPanel.kt` (Sky & viewing → More → App updates). Android host: `host/AndroidUpdater.kt` (DownloadManager, re-hash before install, install-permission screen, `ACTION_VIEW` through a non-exported FileProvider).
