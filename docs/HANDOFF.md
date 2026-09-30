@@ -20,64 +20,125 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 | Codebase analysis (web page) | https://claude.ai/artifact/SMf5adtidjB5CsJt5ZrxNW |
 | Bug-hunt and UI proof report | https://claude.ai/artifact/WxJfBipQQCRwaAE9qAkGYb |
 
-## TAKEOVER: read this first (updated 2026-09-30 21:00 UTC; usage about 80% spent)
+## TAKEOVER: read this first (updated 2026-09-30 21:20 UTC; all work STOPPED at about 94% usage)
 
-For an agent or person picking up from here. The dated entries below have the full history.
+All agents and test runs were stopped deliberately. Nothing is running. Every piece of work is pushed to GitHub (Zenithquonta/astrofixxer-android). The owner will say when and where to resume, possibly with a different tool (Codex). Read this whole section before doing anything.
 
-### Branches on GitHub (Zenithquonta/astrofixxer-android)
-- `feature/telescope-setup-alignment-platesolve`: the integration branch. It has W1 precession, W2 plate solver, W3 setup/alignment/guidance, W5 in-app updater and W6 legal policy. **Nothing from Phase 7b is on `main`.**
-- `feature/tsap-w4`: camera plate-solve flow (commit `b5dc645`). **Not merged.** Last full UI run (16:46 UTC): 107/108 passed, including all 26 PlateSolveFlowTest tests. The failure was the audit script not finding a "Next" button (a test-navigation issue, not a layout finding). A re-run was in progress when this was written.
-- `feature/tsap-w8`: README showcase, **work in progress, paused, not reviewed** (commit `469a7c9`). It holds animated pixel-art GIFs and a draft guide section.
-- `feature/tsap-w7` (local worktree only, uncommitted when written): the Hindi-clipping fix. If it's lost, redo it (see below).
+### 1. Branch map (all on GitHub)
+| Branch | What it holds | State |
+|---|---|---|
+| `feature/telescope-setup-alignment-platesolve` | **Integration branch.** W1 precession, W2 plate solver and solver stars, W3 setup wizard / alignment / drag-to-align / guidance, W5 in-app updater, W6 legal policy, this handoff | Reviewed and merged. CI: `build` green, **`ui-check` red** (see 2.1). Not on `main` |
+| `feature/tsap-w7` | Hindi-clipping fix (commit `ae2e203`, WIP) | **Unfinished, not reviewed.** Stopped while applying a `ButtonRow` helper in `ui/TelescopeTab.kt` and updating the `Segmented` control |
+| `feature/tsap-w4` | Camera plate-solve flow, Camera2 host, hints, photo alignment, camera offset (commits `b5dc645` and WIP `9ba3ff1`) | **Not reviewed, not merged.** Last full UI run: 107/108 pass (all 26 PlateSolveFlowTest). The 1 failure: AuditTest could not find a "Next" button (test navigation, not a layout finding) |
+| `feature/tsap-w8` | README showcase: pixel-art GIFs, draft guide (commit `469a7c9`, WIP) | **Paused, not reviewed.** Merge last |
+| `main` | Last release state before Phase 7b | Untouched. Do not merge into it until 2.4 |
 
-### What failed
-1. **CI `ui-check` is red on the integration branch** (runs 11 to 14). The CI `build` job (real Android build, R8) is green.
-   - AuditTest: Hindi labels are cut off on the GitHub runner's Devanagari font: "समायोजन रीसेट करें" (CENTER_STAR panel, `ui/AlignPanels.kt`), "अभी संरेखित करें" (mounting-changed dialog) and "अपवर्तक (रिफ्रैक्टर)" (Telescope & orientation tab).
-   - Reproduce locally by installing `fonts-noto-core` / `fonts-lohit-deva`; without them the audit passes falsely.
-   - Fix: `Label` shrink-to-fit or stacked/wrapping buttons.
-2. **Sonnet agents were stopped repeatedly by usage limits.**
-3. **Full desktop runs get killed by tool time limits.** Run them detached: `nohup ./gradlew test --offline > log 2>&1 &`. The suite takes 20 to 55 min.
-4. **This machine restarted once, around 20:20 UTC**, and killed a W4 run.
-5. `/x` (an empty stray file at the filesystem root) couldn't be deleted by the agent; the owner should run `rm /x`.
+### 2. What to do next, step by step
 
-### What is left, in order
-1. Finish the Hindi-clipping fix (W7), and get the full desktop suite to "No findings" with Devanagari fonts installed.
-2. W4: fix the audit "Next" navigation, re-run the full suite, review, and merge into the integration branch. Review points:
-   - the camera permission is asked only when the camera opens;
-   - an unreal solve is never reported;
-   - Apply is enabled only for an eyepiece camera or a calibrated side camera;
-   - nothing is uploaded.
-3. Docs pass:
-   - `PRIVACY.md`: a typed location is saved; Ask is tap-to-start; complete the storage list; the camera section comes from W4.
-   - `CONTRIBUTING.md`: the DCO (`git commit -s`).
-   - In-app licence text (`SkyScreen.kt` LICENCES): add the Gaia/ESA and CelesTrak credits and a privacy link. Only the modern art is Free Art License; the Indian art is CC BY-SA.
-   - Plan section 0: drop the NASA eclipse tables (unused).
-4. Push and get CI fully green (build, ui-check, secret-scan). **Then** merge the integration branch into `main` (`git merge --no-ff`), push, and tag `v0.2.0` if releasing. `release.yml` needs the Play keystore secrets and now numbers builds (run number + 1000).
-5. W8 README showcase:
-   - resume from `feature/tsap-w8`: regenerate screens with `tools/repo-art/readme_screens.py` (if present) after the merges;
-   - review it: every picture is a real render, labelled a desktop render, with an eye-safety note and an honest "tested so far" box;
-   - merge.
-6. Owner actions:
-   - the `PREVIEW_KEYSTORE_*` secrets (so updates install over each other);
-   - GitHub private vulnerability reporting;
-   - confirm the right to use the name "AstroFixxer";
-   - permission for, or a redraw of, `web/images/qs_*.png` (© Maxim Tonkikh);
-   - the paper's author details;
-   - make the repository public;
-   - the field test (`docs/FIELD_TEST.md`).
-7. Never run anywhere yet: real phone sensors, Camera2 capture and exposure, solving real sky photos, the DownloadManager/installer path, and the live GitHub API.
+**2.1 Finish the Hindi-clipping fix (branch `feature/tsap-w7`), which blocks CI.**
+- CI `ui-check` fails AuditTest with 16 findings, all Hindi text cut off on the GitHub runner's Devanagari font:
+  - "समायोजन रीसेट करें": the Reset adjustment button in the CENTER_STAR panel, `ui/AlignPanels.kt`;
+  - "अभी संरेखित करें": the Align now button in the mounting-changed dialog;
+  - "अपवर्तक (रिफ्रैक्टर)": the Refractor option, `ui/TelescopeTab.kt` (and the same options in the setup wizard).
+- Reproduce first:
+  - `apt-get install -y fonts-noto-core fonts-lohit-deva && fc-cache -f`. Without a real Devanagari font the audit passes falsely; this machine only had FreeSans.
+  - Then run `cd tools/desktop-check && nohup ./gradlew test --offline --tests AuditTest > audit.log 2>&1 &` and wait for it.
+- Fix: use the shrink-to-fit `Label` composable (`ui/SkyScreen.kt`), or buttons that stack vertically or wrap when narrow (the WIP `ButtonRow` helper). Keep touch targets ≥ 48 dp. Never weaken the audit.
+- Then run the FULL desktop suite with the fonts installed. It takes 20 to 55 min; run it detached. Done when: all tests pass and `build/screens/audit.txt` says "No findings". Also sweep the updater panel and the setup-wizard screens.
+- Merge `feature/tsap-w7` into the integration branch, push, and confirm CI `ui-check` goes green.
 
-### Latest verified numbers
-- JVM tests: 85 on the integration branch before W5; 126 on the W5 branch.
-- Desktop UI: 82 (W3) / 93 (W5); audit 440 / 688 variants, clean locally but failing on CI fonts.
-- Importer: 19.
-- Precession: 28″ worst against astropy.
-- Solver: 29/29 synthetic solves and 28/28 negatives refused.
+**2.2 Review and merge the camera flow (branch `feature/tsap-w4`).**
+- First merge the integration branch into `feature/tsap-w4`. Expect small conflicts in `MainActivity.kt`, `ui/SkyScreen.kt`, `ui/I18n.kt`, `AuditTest.kt`, `CHANGELOG.md` and `PRIVACY.md`, because W5 and W7 touched them too. Keep both sides.
+- Fix the AuditTest "Next" navigation failure (the audit clicks a "Next" button that isn't on screen in one plate-solve step).
+- Run: the JVM unit tests, the Android compile check (see section 4), and the full desktop suite with the Devanagari fonts.
+- Review checklist, where every item must hold:
+  - The CAMERA permission is requested only when the live view opens. Refused → the gallery is offered. Permanently refused → an "Open app settings" button. No camera → gallery only.
+  - Every solver failure reason (TOO_FEW_STARS, IMAGE_TOO_BRIGHT, STARS_TRAILED, NO_MATCH, no usable hint) shows its own advice.
+  - A solve or alignment is reported ONLY after `SolveResult.Solved`, and after the new calibration puts the solved point on the telescope axis within 0.01°. Failed or cancelled changes nothing.
+  - "Apply to alignment":
+    - phone at the eyepiece: uses the image centre;
+    - camera beside the tube: disabled until the camera-to-telescope offset is calibrated;
+    - flat on the tube: solving is explained as impossible, since the camera faces the tube.
+  - Dragging the camera image never changes the alignment.
+  - No image is saved or uploaded, and there is no network use.
+  - Camera2 only, with no new Gradle dependency. The manifest has `CAMERA` plus `uses-feature android.hardware.camera.any required="false"`.
+- Merge into the integration branch, push, and check CI.
 
-### How to run the checks
-- Unit tests: point a JVM Gradle project's `kotlin.srcDir` at `app/src/main/java/org/astrofixxer/{astro,update}`. CI runs `./gradlew test` at the root.
-- UI: `cd tools/desktop-check && ./gradlew test` (screens and `audit.txt` go to `build/screens/`).
-- Android compile without an SDK: the scratch `activitycheck` project (Robolectric android-all plus stubs). CI does the real build.
+**2.3 Docs pass** (small; do it after 2.2 because W4 edits PRIVACY.md):
+- `PRIVACY.md`:
+  - a typed location IS saved;
+  - Ask is tap-to-start, not hold;
+  - list everything stored on the phone (lists, settings, telescope setup, alignment, the typed location, `tle.txt`);
+  - camera: on-device only, never saved or sent;
+  - the update check runs only when tapped.
+- `CONTRIBUTING.md`: the DCO sign-off (`git commit -s`), inbound=outbound GPLv3, no CLA, link to POLICY.md.
+- In-app licence text (`LICENCES` in `ui/SkyScreen.kt`):
+  - add Gaia DR3/Hipparcos (ESA) and CelesTrak, plus links to PRIVACY and NOTICE;
+  - Free Art License covers only the modern constellation art; the Indian sky culture is CC BY-SA 4.0.
+- `docs/IMPLEMENTATION_PLAN.md` section 0: remove the "NASA eclipse tables" row. Nothing uses them; eclipses are computed in `astro/Events.kt`.
+
+**2.4 Get CI green, then merge to `main`.**
+- All three CI jobs must be green on the integration branch: `build` (tests, APKs, R8, sky-data check, APK integrity, Play-build permission check), `ui-check`, and `secret-scan`.
+- Only then: `git checkout main && git merge --no-ff feature/telescope-setup-alignment-platesolve && git push`.
+- Tag `v0.2.0` only if the owner confirms the Play keystore secrets exist (`release.yml` fails without them).
+
+**2.5 Finish the README showcase (branch `feature/tsap-w8`).**
+- Merge `main` into it.
+- Regenerate the screenshots from the merged code with the desktop harness. The WIP has `tools/repo-art` scripts and a planned `ReadmeShotsTest`. Every image must be a real render, captioned as a desktop render.
+- Check the GIFs are deterministic and under about 1.5 MB each, and that every image has alt text.
+- The guide must cover:
+  - setup;
+  - align (tap a star → "Align using this star" → centre in the eyepiece → drag the map under the + → Confirm; Reset adjustment and Retry);
+  - next-star guidance;
+  - camera plate solving;
+  - the orientation check;
+  - in-app updates (GitHub build only).
+- Add a bold never-point-at-the-Sun warning, and an honest "tested so far / not yet" box linking `docs/FIELD_TEST.md`.
+- Review it, merge it, push.
+
+### 3. What failed in the most recent session
+- CI `ui-check`: Hindi clipping on runner fonts (2.1).
+- W4 audit navigation: "Next" not found (2.2).
+- Agents were repeatedly cut off by usage limits; W4, W7 and W8 were finally stopped on purpose at about 94% usage.
+- Local full UI runs are killed by tool time limits unless started detached with `nohup`.
+- The machine restarted once, around 20:20 UTC.
+- An empty stray file `/x` at the filesystem root could not be deleted by the agent. The owner should run `rm /x`.
+
+### 4. How to run the checks (no Android SDK needed locally; CI does the real build)
+- **Unit tests:** use a small JVM Gradle project (Kotlin 2.0, JUnit 4, org.json). Its `kotlin.srcDir` points at `app/src/main/java/org/astrofixxer/astro` (plus `astro/vsop87` for Java) and `app/src/main/java/org/astrofixxer/update`, and its tests at `app/src/test/java` (resources `app/src/test/resources`). Working dir: `app/`. CI runs `./gradlew test` at the repo root.
+- **UI:** `cd tools/desktop-check && ./gradlew test` (Compose Desktop). Screens and `audit.txt` go to `build/screens/`. Install the Devanagari fonts first.
+- **Android API compile check:** compile `app/src/main/java` with Compose Desktop plus `compileOnly org.robolectric:android-all:14-robolectric-10818077`, plus stubs for AndroidX, BuildConfig and FileProvider. Keep the stubs outside the repo.
+
+### 5. Latest verified numbers
+- JVM: 85 tests on the integration branch before W5; 126 on the W5 branch (41 are updater tests).
+- Desktop: 82 (W3) / 93 (W5) / 108 (W4, 107 pass).
+- Audit: 440 / 688 variants, clean locally without Devanagari fonts, failing on CI.
+- Importer: 19 tests.
+- Precession: worst error 28.3″ vs astropy (was 801″).
+- Solver: 29/29 synthetic solves, 28/28 negatives refused.
+
+### 6. Never tested anywhere
+Real phone sensors, Camera2 capture and exposure, solving real sky photos, the DownloadManager/installer/FileProvider path, the live GitHub API, and alignment accuracy on a real telescope. Treat all of these as unverified until the field test (`docs/FIELD_TEST.md`).
+
+### 7. Owner actions (an agent can't do these)
+- Add the `PREVIEW_KEYSTORE_*` and Play keystore secrets.
+- Enable GitHub private vulnerability reporting.
+- Confirm the right to use the name "AstroFixxer".
+- Get permission for, or redraw, `web/images/qs_*.png` (© Maxim Tonkikh).
+- Provide the paper's author details (the paper is private, kept locally, not in git).
+- Delete `/x`.
+- Make the repo public.
+- Run the field test.
+
+### 8. Rules that must not break
+- **CI and merging:** merge to `main` only with CI fully green. No force-push, no history rewrites.
+- **Honest results:** never report an unreal solve or alignment, and never claim device results.
+- **The updater:** preview/debug builds only; HTTPS and this repo's release URLs only; SHA-256 checked before install; the installer always asks the user.
+- **Secrets and names:** no secrets in git; no AI model names or IDs in the repo.
+- **Licence:** GPLv3, and all credits kept.
+- **Code layout:** `ui/`, `astro/` and `update/` have no Android imports. Every string goes through `t("...")` with a Hindi entry.
+- **UI:** night mode stays red on black, and touch targets are at least 48 dp.
+- **Handoff:** keep this handoff current after every step.
 
 ## Current status
 
