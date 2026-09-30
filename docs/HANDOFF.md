@@ -22,7 +22,7 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 
 ## TAKEOVER: read this first (updated 2026-10-01; W7 verification resumed)
 
-Work resumed on 1 October 2026 in a fresh Windows checkout. The integration checkout is `C:/Users/kush/Desktop/astrofixxer`; W7 is isolated at `C:/Users/kush/Desktop/astrofixxer-w7` on commit `ae2e203`. The implementation agent is inspecting W7; no local tests have started. Docker Desktop could not start because its inference-manager socket cannot be accessed; no container or test ran. An isolated Linux runtime alternative is being investigated without resetting the existing Docker installation. Genuine Noto/Lohit Devanagari remains a reproduction requirement. CI run 36780057330 at integration commit `461d0f3` is in progress: secret-scan passed; build and ui-check have not completed. The supervisor owns review, independent tests, merges and this handoff. Read the steps below; W4, docs, main merge and W8 remain gated in that order.
+Work resumed on 1 October 2026 in a fresh Windows checkout. The integration checkout is `C:/Users/kush/Desktop/astrofixxer`; W7 is isolated at `C:/Users/kush/Desktop/astrofixxer-w7` on commit `ae2e203`. The implementation agent is inspecting W7; no local tests have started. Docker Desktop could not start because its inference-manager socket cannot be accessed; no container or test ran. An isolated Ubuntu WSL runtime is being imported outside the repository without resetting the existing Docker installation. Its Ubuntu Base archive matches the official SHA-256 manifest; runtime availability is not yet verified. Genuine Noto/Lohit Devanagari remains a reproduction requirement. CI run 36780057330 at integration commit `461d0f3` is in progress: secret-scan passed; build and ui-check have not completed. The supervisor owns review, independent tests, merges and this handoff. Read the steps below; W4, docs, main merge and W8 remain gated in that order.
 
 ### 1. Branch map (all on GitHub)
 | Branch | What it holds | State |
@@ -159,6 +159,19 @@ Real phone sensors, Camera2 capture and exposure, solving real sky photos, the D
 ---
 
 ## Entries
+
+### 2026-10-01: Isolated Linux fallback archive verified
+
+**Result / review**
+- The first archive-check script stopped because the HTTP response content was a byte array rather than text. The script decoded it correctly on retry; the Ubuntu Base 22.04.5 amd64 archive matched the official manifest SHA-256 `242cd8898b33ea806ef5f13b1076ed7c76f9f989d18384452f7166692438ff1a`.
+- Import of the isolated `AstroFixxerCheck` WSL distribution is in progress outside the repository, at `C:/Users/kush/.cache/astrofixxer-check/distro`. No test suite has run.
+- A Windows Android SDK was found at `C:/Users/kush/AppData/Local/Android/Sdk`; platform 35 is absent. A real Android build may be possible after installing the required platform; no device verification is implied.
+
+**Files changed / dependencies**
+- `docs/HANDOFF.md`: runtime diagnostics and takeover state. No repository dependencies added; environment provisioning is incomplete.
+
+**Next step**
+- Verify the isolated runtime, provision JDK17 and the genuine fonts, then reproduce the unchanged integration audit before editing W7.
 
 ### 2026-10-01: Linux runtime startup failed before W7 tests
 
