@@ -73,6 +73,18 @@ Branch `feature/telescope-setup-alignment-platesolve`. Sonnet agents wrote the c
 - Desktop UI suite (W3 branch before the merge): 82 tests, 0 failures. The audit checked 440 screen variants with no findings. The re-run on the merged branch is in progress.
 - Android compile check (W3 branch): clean.
 
+**W6, legal policy (merged)**
+- New `POLICY.md`: scope and relationship to GPLv3 (adds no restriction), no warranty, limitation of liability, eye safety, accuracy, data handling, third-party services and data licences, contributions (DCO sign-off, inbound=outbound GPLv3, no CLA), security reporting, names, governing law and contact.
+- Governing law, per the owner: Indian law for the policy only; the user's mandatory home-country rights prevail; no exclusive court; the GPL is not modified.
+- New `NOTICE.md` (attributions). `README.md` has a footer linking LICENSE, POLICY, NOTICE, PRIVACY, SECURITY and CONTRIBUTING.
+- Review: every data-flow claim was checked against `MainActivity.kt`, the manifests and the W4/W5 branches.
+- Found and queued for the docs pass after W4/W5 merge:
+  - `PRIVACY.md` is wrong on two points: a typed location is saved, and Ask is tap-to-start, not hold. Its storage list is incomplete, and camera, TTS and the update check are missing.
+  - `CONTRIBUTING.md` needs the DCO.
+  - The in-app licence text needs the Gaia/CelesTrak credits and a privacy link. Only the modern art is Free Art License; the Indian art is CC BY-SA.
+  - The plan lists NASA eclipse tables that nothing uses: eclipses are computed in `Events.kt`.
+- For a lawyer: liability limits for personal injury (eye damage); Gaia CC BY-SA 3.0 IGO next to GPLv3 (treated as separate data); ePrivacy/DPDP for on-device-only processing; the "AstroFixxer" name (upstream web app); `web/images/qs_*.png` © Maxim Tonkikh.
+
 **Known issues / not done**
 - Nothing here has run on a phone or telescope: sensors, the camera, real star photos and alignment accuracy are all untested. The solver has only seen synthetic images.
 - W4 (Camera2 plate-solve flow) and W5 (in-app GitHub updater) are in progress.
