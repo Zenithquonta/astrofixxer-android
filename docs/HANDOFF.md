@@ -22,7 +22,7 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 
 ## TAKEOVER: read this first (updated 2026-10-01; W7 verification resumed)
 
-Work resumed on 1 October 2026 in a fresh Windows checkout. The integration checkout is `C:/Users/kush/Desktop/astrofixxer`; W7 is isolated at `C:/Users/kush/Desktop/astrofixxer-w7` on commit `ae2e203`. The implementation agent is inspecting W7; no local tests have started. Docker Desktop could not start because its inference-manager socket cannot be accessed; no container or test ran. The isolated Ubuntu WSL runtime is ready with OpenJDK 17.0.20.1, Noto Devanagari and Lohit Devanagari; `fc-match sans:lang=hi` selects Lohit. The detached launch did not start; the persistent retry failed before Gradle because the Windows checkout wrapper has CRLF line endings. Both the checkout copy and default `git archive` retained Windows CRLF behavior. Tracked wrappers are LF (`git ls-files --eol`); retry export with explicit `git -c core.autocrlf=false archive`. No audit has run yet. Genuine Noto/Lohit Devanagari remains a reproduction requirement. CI run 36780057330 at integration commit `461d0f3` is in progress: secret-scan passed; build and ui-check have not completed. The supervisor owns review, independent tests, merges and this handoff. Read the steps below; W4, docs, main merge and W8 remain gated in that order.
+Work resumed on 1 October 2026 in a fresh Windows checkout. The integration checkout is `C:/Users/kush/Desktop/astrofixxer`; W7 is isolated at `C:/Users/kush/Desktop/astrofixxer-w7` on commit `ae2e203`. The implementation agent is inspecting W7; no local tests have started. Docker Desktop could not start because its inference-manager socket cannot be accessed; no container or test ran. The isolated Ubuntu WSL runtime is ready with OpenJDK 17.0.20.1, Noto Devanagari and Lohit Devanagari; `fc-match sans:lang=hi` selects Lohit. The detached launch did not start; the persistent retry failed before Gradle because the Windows checkout wrapper has CRLF line endings. Both the checkout copy and default `git archive` retained Windows CRLF behavior. Tracked wrappers are LF (`git ls-files --eol`); retry export with explicit `git -c core.autocrlf=false archive`. Baseline AuditTest is now running from the exact LF archive of integration `7c75ac6` at `/root/checks/w7-baseline-exact`, with log `/root/checks/w7-baseline-exact-audit.log`. No result yet. Android SDK setup failed before compile on split package arguments and is being retried. Genuine Noto/Lohit Devanagari remains a reproduction requirement. CI run 36780057330 at integration commit `461d0f3` is in progress: secret-scan passed; build and ui-check have not completed. The supervisor owns review, independent tests, merges and this handoff. Read the steps below; W4, docs, main merge and W8 remain gated in that order.
 
 ### 1. Branch map (all on GitHub)
 | Branch | What it holds | State |
@@ -159,6 +159,19 @@ Real phone sensors, Camera2 capture and exposure, solving real sky photos, the D
 ---
 
 ## Entries
+
+### 2026-10-01: Baseline started; Android SDK argument failure
+
+**Result / review**
+- Baseline full, unfiltered AuditTest started from exact integration `7c75ac6` source exported with `core.autocrlf=false`; LF verified with `od`. Desktop wrapper bootstrapped Gradle 8.5. Command: `LANG=C.UTF-8 LC_ALL=C.UTF-8 bash gradlew test --tests AuditTest --no-daemon`, in `/root/checks/w7-baseline-exact/tools/desktop-check`. Test result pending.
+- Latest official Android command-line SDK archive matched Google's manifest checksum. SDK package setup then failed before any Android compile: delegated CLI split semicolon-containing package identifiers, reporting `Package platforms not found` and `android-35` / `35.0.0` command-not-found. No Android tests or compile ran.
+- Retrying package installation through direct CLI with safe arguments; existing accepted SDK license files are reused. SDK and provisioning files stay outside this repository.
+
+**Files changed / dependencies**
+- `docs/HANDOFF.md` only. No repository dependencies added. Runtime setup and baseline verification remain in progress.
+
+**Next step**
+- Observe baseline Hindi clipping, record the result before implementation, and finish SDK provisioning for later real Android checks.
 
 ### 2026-10-01: Archive export also applied checkout line-ending conversion
 
