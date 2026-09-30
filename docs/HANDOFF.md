@@ -22,7 +22,7 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 
 ## TAKEOVER: read this first (updated 2026-10-01; STOPPED at owner request)
 
-The owner said **"enough for today"**. All implementation and local test work is stopped. Do not resume until the owner asks. There is no complete W7 candidate verification and no merge to integration or main. The next session must read this entire handoff, especially the newest entries, plan section 7b, POLICY, PRIVACY, SECURITY, CONTRIBUTING, NOTICE, README and CHANGELOG before acting.
+The owner said **"enough for today"**. All implementation and local test work remains stopped. The owner subsequently authorized only this handoff cleanup; do not resume feature work until asked. There is no complete W7 candidate verification and no merge to integration or main. The next session must read this entire handoff, especially the newest entries, plan section 7b, POLICY, PRIVACY, SECURITY, CONTRIBUTING, NOTICE, README and CHANGELOG before acting.
 
 ### 1. Pushed branches and checkout ownership
 
@@ -46,10 +46,12 @@ The owner requires the implementation agent to author all feature code, tests an
 - Forced repeat with genuine Noto Sans Devanagari preferred: **4 tests, 1 failure**, 0 skipped/errors, same font-scale assertion; original controls still passed. Noto run BUILD FAILED in 1m 2s. These are baseline tests, not tests of W7 candidate code.
 - Full unchanged baseline AuditTest was started, then deliberately stopped after **33 screenshots** to avoid repeating a long diagnostic when focused evidence was available. It did not complete and produced no valid full audit result. Never report 33 as passed test variants.
 - No full W7 candidate suite, JVM suite, Android build or device test ran this session.
-- Supervisor read all existing W7 diff lines and the new regression. Open findings: WIP AuditTest environment filters could permit misleading partial/empty coverage (remove or safely validate; final acceptance must be unfiltered); shared Label caches omit density/measurer changes; two-line fallback can still clip; inherited fixed line-height plus fallback-font metrics may explain original runner-only overflow. Current labels really rendered Hindi and visibly fit in inspected local Noto screenshots. Next investigate runner font parity/CI artifacts, especially Latin default plus Devanagari fallback metrics.
+- Supervisor read all existing W7 diff lines and the new regression. Open findings: WIP AuditTest environment filters could permit misleading partial/empty coverage (remove or safely validate; final acceptance must be unfiltered); shared Label caches omit density/measurer changes; two-line fallback can still clip; inherited fixed line-height plus fallback-font metrics may explain original runner-only overflow. Current labels really rendered Hindi and visibly fit in inspected local Noto screenshots. On resumption, prioritize minimal fixes and review using the historical CI findings and confirmed font-scale defect. Exact local runner-font parity or local reproduction of the original clipping is not a prerequisite; investigate font differences only if needed to fix or verify the candidate. Do not claim the original clipping was reproduced or fixed without evidence.
 
 **Historical checks only — not rerun or newly accepted today:** W5 JVM **126 tests, 0 failures** and desktop **93 tests, 0 failures** were earlier font-limited local results; they do not supersede the later CI Hindi failure. W4's previous desktop run was **108 tests, 107 passed**, with AuditTest navigation failure. Importer **19 passed**; synthetic solver **29/29 solves**, **28/28 negatives refused**. Precession's earlier worst error was 28.3 arcseconds against astropy. All are inherited evidence and none proves real-device behavior.
 ### 3. Reusable runtime, commands and evidence
+
+Reuse the installed WSL/JDK/fonts/SDK and saved baseline evidence below. Do not rebuild the environment or repeat unchanged baseline diagnostics without a new reason.
 
 Docker Desktop could not start (inference-manager socket access error). Do not reset the owner's Docker installation. Instead this session provisioned **isolated WSL distro `AstroFixxerCheck`**, Ubuntu 22.04, outside the repository at `C:/Users/kush/.cache/astrofixxer-check/distro`. Ubuntu Base archive matched its official SHA-256 `242cd8898b33ea806ef5f13b1076ed7c76f9f989d18384452f7166692438ff1a`.
 
@@ -81,7 +83,7 @@ At stop, the baseline wrapper/daemon/test-worker PIDs 77/186/735 were already te
 
 ### 4. Resume sequence — keep this order
 
-1. **Finish W7** on its worktree. Inspect actual CI evidence/font selection and reproduce original clipping if possible; preserve the separately confirmed font-scale defect. Have implementation make minimal responsive-label fixes and focused regressions. Supervisor reviews every line; implementation runs focused candidate tests; supervisor independently runs **the full unfiltered desktop suite**, including those tests, updater and all wizard screens. Require every test pass and `build/screens/audit.txt` say **No findings**. A targeted pass is not a full audit. Inspect relevant screenshots; never weaken the audit. Merge W7 into integration only after approval, sign/push, log immediately, verify CI.
+1. **Finish W7** on its worktree. Use the existing historical CI findings and separately confirmed font-scale defect to make minimal responsive-label fixes and focused regressions; exact local reproduction of the original clipping is not a prerequisite. Investigate font parity only if needed to fix or verify the candidate. Supervisor reviews every line; implementation runs focused candidate tests; supervisor independently runs **one full unfiltered desktop suite** on the candidate, including those tests, updater and all wizard screens. Repeat checks when code changes, failures or another unresolved verification concern justify them. Require every test pass and `build/screens/audit.txt` say **No findings**. A targeted pass is not a full audit. Inspect relevant screenshots; never weaken the audit. Merge W7 into integration only after approval, sign/push, log immediately, verify CI.
 2. **W4 camera flow**: supervisor merges integration into `feature/tsap-w4`; expect conflicts in MainActivity, SkyScreen, I18n, AuditTest, CHANGELOG and PRIVACY, keeping both features. Fix AuditTest's missing Next navigation. Run JVM tests, a real Android build/compile with the installed SDK, and full desktop suite with genuine fonts. Review checklist:
    - CAMERA requested only when live view opens; denial offers gallery; permanent denial offers Open app settings; no camera means gallery only.
    - Each failure (TOO_FEW_STARS, IMAGE_TOO_BRIGHT, STARS_TRAILED, NO_MATCH, missing usable hint) has distinct advice.
@@ -93,13 +95,13 @@ At stop, the baseline wrapper/daemon/test-worker PIDs 77/186/735 were already te
 4. **Integration CI gate**: build, ui-check and secret-scan all green on the integration candidate before `git merge --no-ff` to main; sign/push and log every result/merge. No main merge today. **No v0.2.0 tag without owner confirmation of required Play signing secrets.**
 5. **W8 last**: merge main into its worktree; regenerate real desktop-render screenshots and deterministic GIFs about 1.5 MB max, alt text on every image. Guide covers setup, tap star→Align using this star→eyepiece centring→drag under+→Confirm, Reset/Retry, next-star guidance, camera plate solve, orientation, GitHub-only updates. Bold Sun warning; honest tested/not-tested box linking FIELD_TEST. Correct stale instant-tap-alignment, unconditional same-signing-key, manual versionCode and artwork-license statements. Review, test/render, merge/push.
 
-After **every test run, CI result, merge or failure**, append dated exact results/files/dependencies/review and rewrite this TAKEOVER; **commit -s and push integration immediately before the next action**. After any future "enough for today", stop agents/tests first, preserve every branch/result, and push a detailed current handoff. Never hide incomplete or cancelled runs.
+After **every test run, CI result, merge or failure**, append dated exact results/files/dependencies/review and rewrite this TAKEOVER; **commit -s and push integration immediately before the next action**. For handoff-only documentation checkpoints with no executable, build or CI configuration change, use `[skip ci]` to avoid redundant CI runs. Do not skip CI for code changes or required candidate verification; the fully green integration-candidate gate above still applies. After any future "enough for today", stop agents/tests first, preserve every branch/result, and push a detailed current handoff. Never hide incomplete or cancelled runs.
 
 ### 5. Non-negotiable limits and owner actions
 
 Preserve GPL and all credits; no Android imports in ui/astro/update; user-visible strings through `t()` with Hindi; night mode red-on-black; touch targets at least 48 dp; private paper stays out of git; no new dependency without reason. Updater remains preview/debug only, HTTPS and this repository's release URLs, SHA-256 before user-confirmed installation.
 
-**Still never verified on a device/telescope:** real sensors, Camera2 capture/exposure, real sky-photo solving, alignment accuracy, DownloadManager/installer/FileProvider, and live updater API behavior. Build success cannot substitute for these. The repository was verified publicly readable this session; making it public is not pending. Owner actions remain: signing secrets, private vulnerability reporting, project-name rights, permission/redraw for `web/images/qs_*.png` credits, paper author details privately, maintaining public source distribution, field testing. The historical `/x` cleanup request refers to the old environment, not this Windows clone.
+**Still never verified on a device/telescope:** real sensors, Camera2 capture/exposure, real sky-photo solving, alignment accuracy, DownloadManager/installer/FileProvider, and live updater API behavior. Build success cannot substitute for these. The repository was verified publicly readable this session; making it public is not pending. Owner actions remain: signing secrets, private vulnerability reporting, project-name rights, permission/redraw for `web/images/qs_*.png` credits, maintaining public source distribution, field testing.
 
 ## Current status
 
@@ -120,6 +122,21 @@ Preserve GPL and all credits; no Android imports in ui/astro/update; user-visibl
 ---
 
 ## Entries
+
+Historical entries retain the evidence and instructions recorded at the time. Their **Next step** instructions are superseded by the current TAKEOVER above.
+
+### 2026-10-01: Remove unnecessary resume prerequisites from the active handoff
+
+**Authorized cleanup / reasons**
+- Explained the proposed removals to the owner before editing. Feature work remains stopped; this was handoff-only maintenance.
+- Removed exact local runner-font parity and original-clipping reproduction as prerequisites to W7 fixes: existing CI proves 16 findings, and the separate font-scale baseline failure is already demonstrated. Font investigation remains available when needed; no original-reproduction or fix claim was added.
+- Removed redundant setup and unchanged-baseline repetition from the active workflow: reuse the installed runtime and saved evidence. Writer-focused candidate checks followed by one independent supervisor full suite remain required; new changes or failures can justify reruns.
+- Removed private-paper author details and old-environment `/x` cleanup from active owner actions because neither is needed for this implementation sequence. The private-paper-out-of-git restriction, historical records and signing/licensing/security/device actions remain.
+- Marked historical Next step instructions as superseded by TAKEOVER, without deleting or rewriting their evidence. Handoff-only documentation checkpoints use `[skip ci]`; code changes and required candidate CI must still run, and the fully green integration gate is unchanged.
+
+**Files / review / verification**
+- Only `docs/HANDOFF.md` changed. Entire diff reviewed; `git diff --check` passed. No dependencies added, tests run, runtime changes or CI polling. Signed documentation commit and immediate integration push preserve the checkpoint requirement.
+
 
 ### 2026-10-01: Owner requested stop; work and diagnostic evidence preserved
 
