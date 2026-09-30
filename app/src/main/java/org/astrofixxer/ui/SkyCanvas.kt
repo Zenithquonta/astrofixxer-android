@@ -315,7 +315,7 @@ private fun DrawScope.drawSky(
  * The + that marks where the telescope points: four short arms with a small gap in the middle so the star under it
  * stays visible. Always drawn at exactly the centre, and never turned with the eyepiece view.
  */
-private fun DrawScope.drawPlusMarker(mid: Offset, color: Color) {
+internal fun DrawScope.drawPlusMarker(mid: Offset, color: Color) {
     val near = 3.dp.toPx()
     val far = 9.dp.toPx()
     for (dir in listOf(Offset(1f, 0f), Offset(-1f, 0f), Offset(0f, 1f), Offset(0f, -1f))) {

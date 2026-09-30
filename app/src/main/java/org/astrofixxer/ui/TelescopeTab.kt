@@ -21,7 +21,7 @@ import androidx.compose.ui.unit.sp
  * view, and the check. Mounting changes (where the phone sits) break an alignment and say so; everything else does not.
  */
 @Composable
-internal fun TelescopeSettings(state: SkyState, onCheckOrientation: () -> Unit) {
+internal fun TelescopeSettings(state: SkyState, onCheckOrientation: () -> Unit, onSolveWithCamera: (() -> Unit)? = null) {
     val c = MaterialTheme.colorScheme
     val s = state.setup
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -77,6 +77,11 @@ internal fun TelescopeSettings(state: SkyState, onCheckOrientation: () -> Unit) 
         EyepieceViewControls(state)
         Button(onClick = onCheckOrientation, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Label(t("Check orientation")) }
         Text(t("Checks which way the phone points along the telescope, and how the eyepiece shows the sky."), color = c.onSurfaceVariant, fontSize = 13.sp)
+        if (onSolveWithCamera != null) {
+            SectionTitle(t("Camera"))
+            Button(onClick = onSolveWithCamera, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Label(t("Solve with camera")) }
+            Text(t("Takes a photo of the stars and finds where the telescope points. The photo stays on the phone."), color = c.onSurfaceVariant, fontSize = 13.sp)
+        }
     }
 }
 

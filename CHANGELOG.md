@@ -8,6 +8,16 @@ Every update and fix to AstroFixxer, newest first. Dates are when the work lande
 The first Android version: a Kotlin + Jetpack Compose port of the AstroFixxer web app, which grew out of
 [AstroHopper / skyhopper](https://github.com/artyom-beilis/skyhopper) by Artyom Beilis.
 
+### Solve with the camera (30 Sep 2026)
+
+- **Solve with camera.** A guided full-screen flow from More, Sky & viewing → Telescope & orientation, and the alignment panel ("Align with a photo"): confirm the arrangement, capture tips, a live camera view, solving, and the result. It finds where the telescope points from a photo of the stars, entirely on the phone. Photos are never saved or uploaded; the app does not use the network for this.
+- **Result.** Where the camera pointed (RA/Dec, constellation, matched stars, scale, mirrored or not), **Show on map** (moves Free look there), and **Apply to alignment**, which is enabled only when it is allowed and says exactly what it will do. A failed solve gives advice for each cause (too few stars, too bright, trailed stars, no match, no rough position for a narrow field) and changes nothing. A photo that could not be solved never changes the alignment or the map.
+- **Phone on the eyepiece:** the photo centre is the telescope. **Camera beside the tube:** pick a star, centre it in the eyepiece and take a photo to calibrate the camera-to-telescope offset once (saved; Reset offset clears it). Until then the flow says where the *camera* points and Apply is disabled with the reason. **Phone flat on the tube:** the flow explains that the camera cannot see the sky and offers to change the phone placement.
+- **Settings for the solver come from the setup:** the scale from the phone camera's field of view (reported by Camera2) divided by the eyepiece magnification (±35 %) or the camera's own field (±25 %); 65° with a wide range for gallery photos, said on screen; the search around where the sensors point (10° when aligned, 30° with a compass, else the whole sky). Narrow fields with nothing to say where to look are refused, not guessed.
+- **Camera:** Camera2 (no new libraries), manual 1, 2 and 4 s exposures at ISO about 1600 where the phone supports them, otherwise automatic. The camera permission is asked for only when the live view opens; if it is refused there is "Use a photo from the gallery" (Android's photo picker) and "Open app settings". Phones with no camera can still solve gallery photos.
+- Apply uses the phone's rotation and the time at the moment the photo was taken. It is refused when the phone moved more than 0.3° during the exposure, and for gallery photos (nothing records where the telescope was pointing).
+- Not yet tested on a device: real Camera2 capture, manual exposure, the reported field of view, real star photos and the permission dialogs. See the camera section of docs/FIELD_TEST.md.
+
 ### Telescope setup, alignment and guidance (30 Sep 2026)
 
 - **First-run wizard.** Four to six short steps with pictures: telescope type, mount, where the phone is mounted (flat on the tube, camera facing along it, or on the eyepiece) and the follow-ups that placement needs. "Set up later" keeps the defaults. People who already had the app see the wizard once and keep all their other settings.

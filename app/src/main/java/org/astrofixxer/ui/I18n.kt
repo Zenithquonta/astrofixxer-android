@@ -318,6 +318,197 @@ object I18n {
         "Down" to "नीचे",
         "Left" to "बाएँ",
         "Right" to "दाएँ",
+        // Camera plate solving
+        "%d s" to
+            "%d सेक.",
+        "%s s" to
+            "%s सेक.",
+        "%d stars matched" to
+            "%d तारे मिले",
+        "%d stars were found, but they do not match the sky at the size expected. Check the telescope and eyepiece focal lengths (Sky, Telescope & orientation), that the phone camera sees the whole eyepiece circle, and that the stars are in focus. Then try again." to
+            "%d तारे मिले, पर वे अपेक्षित आकार में आकाश से मेल नहीं खाते। टेलीस्कोप और आईपीस की फ़ोकल लंबाई (आकाश, टेलीस्कोप और दिशा) जाँचें, देखें कि फ़ोन का कैमरा पूरा आईपीस-वृत्त देख रहा है और तारे फ़ोकस में हैं। फिर कोशिश करें।",
+        "%s is at %d%% across and %d%% down the photo." to
+            "%s फ़ोटो में %d%% दाएँ और %d%% नीचे है।",
+        "%s is not on the photo, so the offset cannot be found. Check that it was centred in the eyepiece and take the photo again." to
+            "%s फ़ोटो में नहीं है, इसलिए ऑफ़सेट नहीं मिल सकता। जाँचें कि वह आईपीस के बीच में था और फ़ोटो फिर से लें।",
+        "%s is not on the photo, so the offset could not be found. Nothing was changed." to
+            "%s फ़ोटो में नहीं है, इसलिए ऑफ़सेट नहीं मिला। कुछ नहीं बदला।",
+        "%s · magnitude %.1f · %d° up" to
+            "%s · कांतिमान %.1f · %d° ऊपर",
+        "A gallery photo does not record where the telescope pointed when it was taken. Use Take photo to align." to
+            "गैलरी की फ़ोटो में दर्ज नहीं होता कि खींचते समय टेलीस्कोप कहाँ था। संरेखण के लिए फ़ोटो लें दबाएँ।",
+        "Align with a photo" to
+            "फ़ोटो से संरेखित करें",
+        "Aligned from a photo. Correction %.1f°." to
+            "फ़ोटो से संरेखित। सुधार %.1f°।",
+        "Allow the camera when Android asks. It is used only to take the picture for solving; nothing is saved or sent anywhere." to
+            "जब Android पूछे तो कैमरे की अनुमति दें। यह केवल हल करने के लिए तस्वीर लेने में काम आता है; कुछ भी सहेजा या कहीं भेजा नहीं जाता।",
+        "Another app is using the camera. Close it, then try again." to
+            "कोई दूसरा ऐप कैमरा इस्तेमाल कर रहा है। उसे बंद करें, फिर कोशिश करें।",
+        "Apply to alignment" to
+            "संरेखण में लागू करें",
+        "Ask again" to
+            "फिर से पूछें",
+        "Auto" to
+            "स्वचालित",
+        "Before you take the photo" to
+            "फ़ोटो लेने से पहले",
+        "Calibrate camera offset" to
+            "कैमरा ऑफ़सेट मापें",
+        "Calibrating the camera offset with %s" to
+            "%s से कैमरा ऑफ़सेट मापा जा रहा है",
+        "Camera" to
+            "कैमरा",
+        "Camera field of view unknown: 65° will be assumed" to
+            "कैमरे का दृश्य-क्षेत्र अज्ञात: 65° मान लिया जाएगा",
+        "Camera field of view: %.0f°" to
+            "कैमरे का दृश्य-क्षेत्र: %.0f°",
+        "Camera offset saved. Aim the telescope at the sky and take a photo to align." to
+            "कैमरा ऑफ़सेट सहेजा गया। टेलीस्कोप को आकाश की ओर करें और संरेखण के लिए फ़ोटो लें।",
+        "Camera offset: calibrated. The telescope is at %d%% across and %d%% down the photo." to
+            "कैमरा ऑफ़सेट: मापा हुआ। टेलीस्कोप फ़ोटो में %d%% दाएँ और %d%% नीचे है।",
+        "Camera offset: not calibrated" to
+            "कैमरा ऑफ़सेट: मापा नहीं गया",
+        "Camera permission" to
+            "कैमरे की अनुमति",
+        "Centre %s in the eyepiece first." to
+            "पहले %s को आईपीस के बीच में लाएँ।",
+        "Centre %s in the eyepiece, then take the photo." to
+            "%s को आईपीस के बीच में लाएँ, फिर फ़ोटो लें।",
+        "Centre the bright eyepiece circle in the camera view and focus on stars" to
+            "चमकीले आईपीस-वृत्त को कैमरा दृश्य के बीच में लाएँ और तारों पर फ़ोकस करें",
+        "Change phone placement" to
+            "फ़ोन की जगह बदलें",
+        "Change these in Sky, Telescope & orientation." to
+            "इन्हें आकाश, टेलीस्कोप और दिशा में बदलें।",
+        "Check these two numbers: they tell the app how big the star pattern should look." to
+            "इन दो संख्याओं को जाँचें: इनसे ऐप जानता है कि तारों का पैटर्न कितना बड़ा दिखना चाहिए।",
+        "Focus at infinity or on a bright star." to
+            "अनंत पर या किसी चमकीले तारे पर फ़ोकस करें।",
+        "In the constellation %s" to
+            "तारामंडल: %s",
+        "Keep the Moon and bright lights out of the view." to
+            "चंद्रमा और तेज़ रोशनी को दृश्य से बाहर रखें।",
+        "Keep the phone steady, and do not touch the telescope while the photo is taken." to
+            "फ़ोन स्थिर रखें, और फ़ोटो लेते समय टेलीस्कोप को न छुएँ।",
+        "Looking for stars in the photo and matching them to the sky. This can take up to 25 seconds. The photo stays on the phone." to
+            "फ़ोटो में तारे खोजे और आकाश से मिलाए जा रहे हैं। इसमें 25 सेकंड तक लग सकते हैं। फ़ोटो फ़ोन पर ही रहती है।",
+        "Mirrored: the photo is a mirror image of the sky." to
+            "दर्पण जैसा उलटा: फ़ोटो आकाश का प्रतिबिंब है।",
+        "Move the telescope until the star reaches the +" to
+            "टेलीस्कोप को तब तक हिलाएँ जब तक तारा + पर न आ जाए",
+        "No bright star is high enough right now. Try again later." to
+            "अभी कोई चमकीला तारा पर्याप्त ऊँचाई पर नहीं है। बाद में फिर कोशिश करें।",
+        "No camera on this phone" to
+            "इस फ़ोन में कैमरा नहीं है",
+        "Nothing was changed: the alignment and the map are as they were." to
+            "कुछ नहीं बदला: संरेखण और नक्शा पहले जैसे हैं।",
+        "Open app settings" to
+            "ऐप सेटिंग खोलें",
+        "Pick the star you will centre in the eyepiece" to
+            "वह तारा चुनें जिसे आप आईपीस के बीच में लाएँगे",
+        "Reset offset" to
+            "ऑफ़सेट रीसेट करें",
+        "Save camera offset" to
+            "कैमरा ऑफ़सेट सहेजें",
+        "Scale: %.1f″ per pixel, the photo is %.1f° wide" to
+            "पैमाना: %.1f″ प्रति पिक्सेल, फ़ोटो %.1f° चौड़ी है",
+        "Show on map" to
+            "नक्शे पर दिखाएँ",
+        "Solve again" to
+            "फिर हल करें",
+        "Solved" to
+            "हल हो गया",
+        "Solving is not possible with the phone flat on the tube" to
+            "फ़ोन नली पर सपाट हो तो हल करना संभव नहीं",
+        "Solving…" to
+            "हल हो रहा है…",
+        "Take photo" to
+            "फ़ोटो लें",
+        "Takes a photo of the stars and finds where the telescope points. The photo stays on the phone." to
+            "तारों की फ़ोटो लेकर पता लगाता है कि टेलीस्कोप कहाँ है। फ़ोटो फ़ोन पर ही रहती है।",
+        "Taking the photo… keep the phone still." to
+            "फ़ोटो ली जा रही है… फ़ोन स्थिर रखें।",
+        "Telescope %.0f mm, eyepiece %.0f mm: magnification ×%.0f" to
+            "टेलीस्कोप %.0f mm, आईपीस %.0f mm: आवर्धन ×%.0f",
+        "That picture could not be read. Try another one." to
+            "वह तस्वीर पढ़ी नहीं जा सकी। कोई दूसरी आज़माएँ।",
+        "The app does not know which way the phone points along the telescope. Say whether the eyepiece goes straight in or at a right angle first." to
+            "ऐप नहीं जानता कि फ़ोन टेलीस्कोप के किस ओर इशारा करता है। पहले बताएँ कि आईपीस सीधा लगता है या समकोण पर।",
+        "The app needs the camera to take the picture for solving. It is used for nothing else, and nothing is saved or sent anywhere. You can allow it, or use a photo from the gallery." to
+            "हल करने के लिए तस्वीर लेने को ऐप को कैमरा चाहिए। इसका कोई और उपयोग नहीं है, और कुछ भी सहेजा या कहीं भेजा नहीं जाता। आप अनुमति दे सकते हैं, या गैलरी की फ़ोटो इस्तेमाल करें।",
+        "The camera and telescope don't point exactly the same way. Calibrate the camera offset first." to
+            "कैमरा और टेलीस्कोप ठीक एक ही दिशा में नहीं देखते। पहले कैमरा ऑफ़सेट मापें।",
+        "The camera and telescope don't point exactly the same way. Until the offset is calibrated, a photo tells where the camera points, not the telescope, so it cannot align the telescope." to
+            "कैमरा और टेलीस्कोप ठीक एक ही दिशा में नहीं देखते। ऑफ़सेट मापे जाने तक फ़ोटो बताती है कि कैमरा कहाँ देख रहा है, टेलीस्कोप नहीं, इसलिए उससे टेलीस्कोप संरेखित नहीं हो सकता।",
+        "The camera failed. Try again, or use a photo from the gallery." to
+            "कैमरा विफल हुआ। फिर कोशिश करें, या गैलरी की फ़ोटो इस्तेमाल करें।",
+        "The camera is not working" to
+            "कैमरा काम नहीं कर रहा",
+        "The camera looks along the telescope, beside the tube" to
+            "कैमरा नली के बगल से टेलीस्कोप की दिशा में देखता है",
+        "The camera offset is not calibrated, so this photo will say where the camera points, not the telescope." to
+            "कैमरा ऑफ़सेट मापा नहीं गया, इसलिए यह फ़ोटो बताएगी कि कैमरा कहाँ देख रहा है, टेलीस्कोप नहीं।",
+        "The camera offset needs a photo taken with the camera here, not one from the gallery." to
+            "कैमरा ऑफ़सेट के लिए यहीं कैमरे से ली गई फ़ोटो चाहिए, गैलरी की नहीं।",
+        "The camera offset only applies when the camera faces along the telescope." to
+            "कैमरा ऑफ़सेट तभी लागू होता है जब कैमरा टेलीस्कोप की दिशा में हो।",
+        "The camera permission is blocked" to
+            "कैमरे की अनुमति बंद है",
+        "The camera permission was refused" to
+            "कैमरे की अनुमति नहीं दी गई",
+        "The camera pointed at" to
+            "कैमरा यहाँ देख रहा था",
+        "The camera was disconnected. Try again." to
+            "कैमरा कट गया। फिर कोशिश करें।",
+        "The camera's field of view was not known, so 65° was assumed. Use Take photo for a better guess." to
+            "कैमरे का दृश्य-क्षेत्र पता नहीं था, इसलिए 65° मान लिया गया। बेहतर अनुमान के लिए फ़ोटो लें इस्तेमाल करें।",
+        "The phone moved while the photo was taken, so it cannot be used. Keep it still and take another photo." to
+            "फ़ोटो लेते समय फ़ोन हिल गया, इसलिए वह काम नहीं आ सकती। फ़ोन स्थिर रखकर दूसरी फ़ोटो लें।",
+        "The phone's camera faces the tube here, so a photo cannot show where the telescope points." to
+            "यहाँ फ़ोन का कैमरा नली की ओर है, इसलिए फ़ोटो से पता नहीं चल सकता कि टेलीस्कोप कहाँ देख रहा है।",
+        "The phone's camera faces the tube, so it cannot see the sky: a photo would only show the tube." to
+            "फ़ोन का कैमरा नली की ओर है, इसलिए आकाश नहीं देख सकता: फ़ोटो में केवल नली दिखेगी।",
+        "The photo covers only about %.1f° of sky, and the app does not know roughly where the telescope points, so a search could only guess. Align on a bright star first (or use a phone with a compass), then try again." to
+            "फ़ोटो में आकाश का केवल लगभग %.1f° हिस्सा है, और ऐप को मोटा अंदाज़ा नहीं कि टेलीस्कोप कहाँ है, इसलिए खोज केवल अनुमान लगाती। पहले किसी चमकीले तारे पर संरेखित करें (या कम्पास वाला फ़ोन लें), फिर कोशिश करें।",
+        "The photo points below the horizon for your location and time, so nothing was changed. Check the location and the time." to
+            "आपके स्थान और समय के लिए फ़ोटो की दिशा क्षितिज के नीचे है, इसलिए कुछ नहीं बदला। स्थान और समय जाँचें।",
+        "The picture is too bright: the sky is washed out or the stars are overexposed. Move away from lights, keep the Moon and streetlights out of the view, wait for a darker sky, and use a shorter exposure (1 s) or Auto." to
+            "तस्वीर बहुत चमकीली है: आकाश धुला हुआ है या तारे ज़्यादा एक्सपोज़ हो गए हैं। रोशनी से दूर जाएँ, चंद्रमा और स्ट्रीट लाइट को दृश्य से बाहर रखें, अँधेरे आकाश की प्रतीक्षा करें, और कम एक्सपोज़र (1 सेक.) या स्वचालित चुनें।",
+        "The solver could not run on this picture. Nothing was changed. Try another photo." to
+            "इस तस्वीर पर हल करने वाला चल नहीं सका। कुछ नहीं बदला। कोई दूसरी फ़ोटो आज़माएँ।",
+        "The stars are streaks, not dots. The phone or telescope moved, or the exposure was too long for a telescope that does not track. Hold the phone steady, do not touch the telescope, and use a shorter exposure of 1 or 2 s." to
+            "तारे बिंदु नहीं, लकीरें हैं। फ़ोन या टेलीस्कोप हिल गया, या बिना ट्रैकिंग वाले टेलीस्कोप के लिए एक्सपोज़र बहुत लंबा था। फ़ोन स्थिर रखें, टेलीस्कोप को न छुएँ, और 1 या 2 सेक. का छोटा एक्सपोज़र लें।",
+        "The telescope is at the + spot on the photo" to
+            "टेलीस्कोप फ़ोटो में + वाली जगह पर है",
+        "The telescope is at the centre of the photo" to
+            "टेलीस्कोप फ़ोटो के बीच में है",
+        "The telescope now points where the photo says. Check with a star if you like." to
+            "टेलीस्कोप अब वहीं है जहाँ फ़ोटो बताती है। चाहें तो किसी तारे से जाँचें।",
+        "The telescope points at RA %s  Dec %s" to
+            "टेलीस्कोप यहाँ देख रहा है: RA %s  Dec %s",
+        "This phone has no camera the app can use. You can still solve a photo from the gallery." to
+            "इस फ़ोन में ऐप के काम लायक कैमरा नहीं है। फिर भी आप गैलरी की फ़ोटो हल कर सकते हैं।",
+        "This photo could not be solved" to
+            "यह फ़ोटो हल नहीं हो सकी",
+        "To solve with the camera, put the phone on the eyepiece, or fix it with its camera pointing along the telescope, and change the phone placement." to
+            "कैमरे से हल करने के लिए फ़ोन को आईपीस पर लगाएँ, या उसका कैमरा टेलीस्कोप की दिशा में लगाएँ, और फ़ोन की जगह बदलें।",
+        "Too few stars were found (%d). Try a darker, clearer part of the sky, focus on a bright star, and use a longer exposure (2 to 4 s) if the camera offers one. Cloud, haze and city lights hide the faint stars." to
+            "बहुत कम तारे मिले (%d)। आकाश का ज़्यादा अँधेरा, साफ़ हिस्सा आज़माएँ, किसी चमकीले तारे पर फ़ोकस करें, और कैमरे में हो तो लंबा एक्सपोज़र (2 से 4 सेक.) लें। बादल, धुंध और शहर की रोशनी धुंधले तारे छिपा देती हैं।",
+        "Use a 1 to 4 second exposure if the camera offers one." to
+            "कैमरे में हो तो 1 से 4 सेकंड का एक्सपोज़र लें।",
+        "Use a dark site: city lights wash out the stars." to
+            "अँधेरी जगह चुनें: शहर की रोशनी तारों को धुँधला कर देती है।",
+        "Use a photo from the gallery" to
+            "गैलरी से फ़ोटो इस्तेमाल करें",
+        "You can solve a photo without knowing, but it cannot be applied to the alignment." to
+            "बिना जाने भी फ़ोटो हल हो सकती है, पर उसे संरेखण में लागू नहीं किया जा सकता।",
+        "You centre it in the eyepiece, then take a photo. Where the star lands on the photo is where the telescope points." to
+            "आप उसे आईपीस के बीच में लाते हैं, फिर फ़ोटो लेते हैं। फ़ोटो में तारा जहाँ आता है, टेलीस्कोप वहीं देखता है।",
+        "You chose not to be asked again, so Android will not show the question any more. Allow the camera in the phone's settings for this app, or use a photo from the gallery." to
+            "आपने दोबारा न पूछने को चुना, इसलिए Android अब सवाल नहीं दिखाएगा। फ़ोन की सेटिंग में इस ऐप के लिए कैमरे की अनुमति दें, या गैलरी की फ़ोटो इस्तेमाल करें।",
+        "Put the phone on the eyepiece, or with its camera along the telescope, then tap Solve with camera (under More, in Sky & viewing, Telescope & orientation, or Align with a photo). Take a 1 to 4 second photo of the stars: the app finds where the telescope points, on the phone, and aligns to it if you ask. Photos are never saved or sent anywhere." to
+            "फ़ोन को आईपीस पर लगाएँ, या उसका कैमरा टेलीस्कोप की दिशा में रखें, फिर कैमरे से हल करें दबाएँ (अधिक में, आकाश और दृश्य → टेलीस्कोप और दिशा में, या फ़ोटो से संरेखित करें से)। तारों की 1 से 4 सेकंड की फ़ोटो लें: ऐप फ़ोन पर ही पता लगाता है कि टेलीस्कोप कहाँ है, और आप कहें तो उसी से संरेखित करता है। फ़ोटो कभी सहेजी या कहीं भेजी नहीं जाती।",
         // Cardinal points
         "N" to "उ", "NE" to "उपू", "E" to "पू", "SE" to "दपू", "S" to "द", "SW" to "दप", "W" to "प", "NW" to "उप",
     )

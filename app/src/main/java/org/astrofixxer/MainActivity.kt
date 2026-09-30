@@ -39,6 +39,8 @@ import org.astrofixxer.astro.JulianDate
 import org.astrofixxer.astro.MinorBody
 import org.astrofixxer.astro.Sgp4
 import org.astrofixxer.astro.SkyObject
+import org.astrofixxer.camera.AndroidPlateSolveHost
+import org.astrofixxer.camera.rememberPlateSolveHost
 import org.astrofixxer.ui.AstroGuide
 import org.astrofixxer.ui.EventItem
 import org.astrofixxer.ui.MeteorShower
@@ -73,6 +75,8 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     private var latestCatalog: Catalog? = null
     private var latestMoving: List<MovingObject> = emptyList()
     private var latestEvents: List<EventItem>? = null
+    /** The camera side of "Solve with camera"; closed when the app leaves the screen. */
+    private var cameraHost: AndroidPlateSolveHost? = null
     private val micPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> if (granted) listen() }
     private val guideListener = object : RecognitionListener {
         override fun onResults(results: Bundle?) {
@@ -204,13 +208,15 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                     else MovingObject(SkyObject("Comet ${c.name}", p.ra * 180 / PI, p.dec * 180 / PI, mag, "C"), MovingObject.Kind.COMET)
                 }
             }
+            val plateSolve = rememberPlateSolveHost(this@MainActivity)
             SideEffect {
+                cameraHost = plateSolve
                 latestCatalog = catalog
                 latestMoving = moving
                 latestEvents = events
             }
             SkyScreen(state, catalog, moving, events, art, onAsk = if (recognizer != null) ::ask else null,
-                backHandler = { enabled, onBack -> BackHandler(enabled, onBack) }, onAskText = ::respond)
+                backHandler = { enabled, onBack -> BackHandler(enabled, onBack) }, onAskText = ::respond, plateSolve = plateSolve)
         }
     }
 
@@ -260,6 +266,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     }
 
     override fun onDestroy() {
+        cameraHost?.close()
         recognizer?.destroy()
         tts?.shutdown()
         super.onDestroy()
@@ -280,10 +287,12 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         super.onResume()
         rotationSensor?.let { sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME) }
         updateLocation()
+        cameraHost?.resume()
     }
 
     override fun onPause() {
         super.onPause()
+        cameraHost?.pause() // the camera is never held while the app is in the background
         sensorManager.unregisterListener(this)
     }
 

@@ -96,10 +96,14 @@ fun SkyScreen(
     backHandler: @Composable (enabled: Boolean, onBack: () -> Unit) -> Unit = { _, _ -> },
     /** Answers a typed or suggested AstroGuide question; the host adds speech. Default: answer on screen only. */
     onAskText: ((String) -> Unit)? = null,
-    /** Solves where the telescope points from a camera picture, wired by the host; null hides the button. */
-    onSolveWithCamera: (() -> Unit)? = null,
+    /** What the camera plate-solve flow needs from the phone (camera, photo picker, permission); null hides every "Solve with camera" button. */
+    plateSolve: PlateSolveHost? = null,
+    /** The plate-solve flow's state; the host does not need to pass one (tests do, to swap the solver). */
+    solveModel: PlateSolveModel = remember { PlateSolveModel() },
 ) {
     var sheet by remember { mutableStateOf(Sheet.NONE) }
+    var skyTab by remember { mutableStateOf(0) }
+    val openSolve: (() -> Unit)? = if (plateSolve == null) null else ({ sheet = Sheet.NONE; solveModel.start() })
     var wizardStep by remember { mutableStateOf(0) }
     var showTime by remember { mutableStateOf(false) }
     var infoObject by remember { mutableStateOf<org.astrofixxer.astro.SkyObject?>(null) }
@@ -114,13 +118,14 @@ fun SkyScreen(
     val guideOpen = state.guideListening || state.guideAnswer != null
     val wizardOpen = !state.setupDone
     backHandler(state.mountingChangedNotice || (wizardOpen && wizardStep > 0) || quick != null || (state.showOnboarding && !wizardOpen) || sheet != Sheet.NONE ||
-        state.aligning || guideOpen || showTime) {
+        solveModel.open || state.aligning || guideOpen || showTime) {
         when {
             state.mountingChangedNotice -> state.mountingChangedNotice = false
             wizardOpen -> wizardStep--
             quick != null -> quick = null
             state.showOnboarding -> state.showOnboarding = false
             sheet != Sheet.NONE -> sheet = Sheet.NONE
+            solveModel.open -> solveModel.back()
             state.aligning -> state.cancelAlign()
             guideOpen -> { state.guideAnswer = null; state.guideListening = false }
             else -> showTime = false
@@ -140,9 +145,9 @@ fun SkyScreen(
             }
             Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 when (state.align) {
-                    AlignState.PICK_STAR -> PickStarPanel(state)
+                    AlignState.PICK_STAR -> PickStarPanel(state, openSolve)
                     AlignState.CENTER_STAR -> CenterStarPanel(state)
-                    AlignState.ALIGNED -> if (state.alignResult != null) AlignResultCard(state) else if (state.target != null) GuidancePanel(state, onSolveWithCamera)
+                    AlignState.ALIGNED -> if (state.alignResult != null) AlignResultCard(state, openSolve) else if (state.target != null) GuidancePanel(state, openSolve)
                     AlignState.NOT_ALIGNED -> if (state.target != null) AlignHint(state)
                 }
                 // While centring a star only its panel is shown, so the + and the star stay clear of everything else.
@@ -154,7 +159,7 @@ fun SkyScreen(
                     Toolbar(state, onAsk,
                         onSearch = { sheet = Sheet.SEARCH },
                         onEvents = { sheet = Sheet.EVENTS },
-                        onSky = { sheet = Sheet.SKY })
+                        onSky = { skyTab = 0; sheet = Sheet.SKY })
                 }
             }
             when (sheet) {
@@ -162,7 +167,7 @@ fun SkyScreen(
                 Sheet.EVENTS -> EventsSheet(state, events) { sheet = Sheet.NONE }
                 Sheet.SKY -> SkyOptionsSheet(state, catalog, onClose = { sheet = Sheet.NONE }, onLists = { sheet = Sheet.LISTS },
                     onHelp = { sheet = Sheet.HELP }, onTutorial = { sheet = Sheet.NONE; state.showOnboarding = true },
-                    onCheckOrientation = { sheet = Sheet.CHECK })
+                    onCheckOrientation = { sheet = Sheet.CHECK }, onSolveWithCamera = openSolve, initialTab = skyTab)
                 Sheet.CHECK -> OrientationCheckSheet(state) { sheet = Sheet.NONE }
                 Sheet.LISTS -> ListsSheet(state, catalog) { sheet = Sheet.NONE }
                 Sheet.HELP -> HelpSheet { sheet = Sheet.NONE }
@@ -174,13 +179,17 @@ fun SkyScreen(
                     onAlign = if (state.canAlignOn(o)) ({ state.beginCentering(o) }) else null,
                     onAdd = { state.addToWatchList(o.name, catalog) }, onInfo = { openInfo(o) })
             }
+            // The camera plate-solve flow covers everything but the first-run setup.
+            if (solveModel.open && plateSolve != null && !wizardOpen) PlateSolveFlow(state, catalog, plateSolve, solveModel, onChangePlacement = {
+                solveModel.close(); skyTab = TELESCOPE_TAB; sheet = Sheet.SKY
+            })
             // First launch: the setup wizard, then the tutorial.
             if (wizardOpen) SetupWizard(state, wizardStep) { wizardStep = it }
             else if (state.showOnboarding) Onboarding { state.showOnboarding = false }
             if (state.mountingChangedNotice) ConfirmDialog(
                 t("The phone is mounted differently now, so the old alignment no longer fits. Align on a star again."),
                 confirm = t("Align now"), dismiss = t("Later"),
-                onConfirm = { state.mountingChangedNotice = false; sheet = Sheet.NONE; state.startAlign() },
+                onConfirm = { state.mountingChangedNotice = false; sheet = Sheet.NONE; solveModel.close(); state.startAlign() },
                 onDismiss = { state.mountingChangedNotice = false })
         }
     }
@@ -432,6 +441,7 @@ private val HELP = listOf(
     "Free look" to "The other pointing mode: the sky ignores the phone's sensors and you drag it in any direction, like a planetarium. Tap the Compass / Free look button to switch.",
     "Checking the alignment" to "In the guidance panel tap More, then Check with another star. Centre a second star and confirm: the app says how far off the alignment was and refines it using both stars.",
     "Eyepiece view" to "Eyepieces can show the sky upside down, reversed or turned. In Sky & viewing, Telescope & orientation, tap Check orientation to find out which, then turn on Match eyepiece view to draw the map the same way. Directions never change.",
+    "Solve with camera" to "Put the phone on the eyepiece, or with its camera along the telescope, then tap Solve with camera (under More, in Sky & viewing, Telescope & orientation, or Align with a photo). Take a 1 to 4 second photo of the stars: the app finds where the telescope points, on the phone, and aligns to it if you ask. Photos are never saved or sent anywhere.",
     "Object info" to "Tap the target card at the top left, or long-press any object, for its names, constellation, rise and set times, a graph of its altitude tonight and how it looks in your eyepiece.",
     "Telescope settings" to "In Sky & viewing, Telescope & orientation: enter the telescope's and eyepiece's focal lengths and the eyepiece's apparent field. The circle around the + is your eyepiece's view, and On target means the target is inside it. Equatorial mounts get directions in RA and Dec.",
     "Zoom" to "Pinch or use + and −. Fainter stars and deep-sky objects appear as you zoom in.",
