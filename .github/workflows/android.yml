@@ -7,6 +7,11 @@ on:
 permissions:
   contents: write # to publish the latest-build release
 
+env:
+  # Added to the run number to make versionCode. Only ever raise it, never lower it (versionCode must keep growing).
+  # Independent of release.yml: that builds org.astrofixxer (Play), this builds org.astrofixxer.preview.
+  VERSION_CODE_OFFSET: 1000
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -32,9 +37,9 @@ jobs:
             echo "::warning::PREVIEW_KEYSTORE_BASE64 is not set: the published APK is signed with this run's throwaway debug key."
           fi
       # versionCode = the run number plus an offset, so it only ever grows: the in-app updater offers a build only when its
-      # versionCode is higher than the installed one. (The offset keeps it above the 1 that earlier builds have.)
+      # versionCode is higher than the installed one. (The offset, VERSION_CODE_OFFSET above, keeps it above the 1 that earlier builds have.)
       - name: Number the build
-        run: echo "ASTROFIXXER_VERSION_CODE=$((GITHUB_RUN_NUMBER + 1000))" >> "$GITHUB_ENV"
+        run: echo "ASTROFIXXER_VERSION_CODE=$((GITHUB_RUN_NUMBER + VERSION_CODE_OFFSET))" >> "$GITHUB_ENV"
       # assembleRelease runs R8 and release lint on every push, so shrinking problems show up before a release.
       - run: ./gradlew test assembleDebug assembleRelease assemblePreview
         env:
