@@ -98,6 +98,8 @@ fun SkyScreen(
     onAskText: ((String) -> Unit)? = null,
     /** Solves where the telescope points from a camera picture, wired by the host; null hides the button. */
     onSolveWithCamera: (() -> Unit)? = null,
+    /** The in-app updater, only in preview and debug builds; null (Google Play builds) hides the "App updates" block. */
+    updater: Updater? = null,
 ) {
     var sheet by remember { mutableStateOf(Sheet.NONE) }
     var wizardStep by remember { mutableStateOf(0) }
@@ -162,7 +164,7 @@ fun SkyScreen(
                 Sheet.EVENTS -> EventsSheet(state, events) { sheet = Sheet.NONE }
                 Sheet.SKY -> SkyOptionsSheet(state, catalog, onClose = { sheet = Sheet.NONE }, onLists = { sheet = Sheet.LISTS },
                     onHelp = { sheet = Sheet.HELP }, onTutorial = { sheet = Sheet.NONE; state.showOnboarding = true },
-                    onCheckOrientation = { sheet = Sheet.CHECK })
+                    onCheckOrientation = { sheet = Sheet.CHECK }, updater = updater)
                 Sheet.CHECK -> OrientationCheckSheet(state) { sheet = Sheet.NONE }
                 Sheet.LISTS -> ListsSheet(state, catalog) { sheet = Sheet.NONE }
                 Sheet.HELP -> HelpSheet { sheet = Sheet.NONE }

@@ -7,6 +7,11 @@ on:
 permissions:
   contents: write # to publish the latest-build release
 
+env:
+  # Added to the run number to make versionCode. Only ever raise it, never lower it (versionCode must keep growing).
+  # Independent of release.yml: that builds org.astrofixxer (Play), this builds org.astrofixxer.preview.
+  VERSION_CODE_OFFSET: 1000
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -31,6 +36,10 @@ jobs:
           else
             echo "::warning::PREVIEW_KEYSTORE_BASE64 is not set: the published APK is signed with this run's throwaway debug key."
           fi
+      # versionCode = the run number plus an offset, so it only ever grows: the in-app updater offers a build only when its
+      # versionCode is higher than the installed one. (The offset, VERSION_CODE_OFFSET above, keeps it above the 1 that earlier builds have.)
+      - name: Number the build
+        run: echo "ASTROFIXXER_VERSION_CODE=$((GITHUB_RUN_NUMBER + VERSION_CODE_OFFSET))" >> "$GITHUB_ENV"
       # assembleRelease runs R8 and release lint on every push, so shrinking problems show up before a release.
       - run: ./gradlew test assembleDebug assembleRelease assemblePreview
         env:
@@ -41,6 +50,25 @@ jobs:
           for f in assets/sky_catalog.json assets/minor_bodies.json assets/meteor_showers.json assets/art/modern/ assets/art/indian/; do
             unzip -l app/build/outputs/apk/preview/app-preview.apk | grep -q " $f" || { echo "::error::$f is missing from the APK"; exit 1; }
           done
+      # update.json describes the preview APK for the in-app updater: version, applicationId, SHA-256, size, commit, and
+      # whether it carries the permanent key. Version and applicationId are read from the built APK with aapt2, not from
+      # the environment. It is uploaded next to AstroFixxer.apk when the release is published below.
+      - name: Write update.json
+        run: |
+          cp app/build/outputs/apk/preview/app-preview.apk AstroFixxer.apk
+          if [ -n "${ASTROFIXXER_PREVIEW_KEYSTORE:-}" ]; then PERMANENT_KEY=true; else PERMANENT_KEY=false; fi
+          export PERMANENT_KEY
+          tools/ci/make-update-json.sh AstroFixxer.apk update.json
+          cat update.json
+      # Fails the job if the APK's signature is bad, or if what aapt2 finds inside it (versionCode, applicationId,
+      # versionName) or the file's SHA-256 and size differ from update.json, or from what this build was told to use.
+      - name: Verify APK integrity
+        env:
+          EXPECTED_APPLICATION_ID: org.astrofixxer.preview
+        run: EXPECTED_VERSION_CODE="$ASTROFIXXER_VERSION_CODE" tools/ci/verify-apk.sh AstroFixxer.apk update.json
+      # Google Play forbids apps that update themselves: the release build must not carry the install permission.
+      - name: Check the Play build has no self-update permission
+        run: tools/ci/check-play-build.sh app/build/outputs/apk/release/*.apk
       - uses: actions/upload-artifact@v4
         with:
           name: app-debug
@@ -52,18 +80,27 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp app/build/outputs/apk/preview/app-preview.apk AstroFixxer.apk
+          ours=$(jq -r .versionCode update.json)
+          # Two pushes in quick succession can finish out of order: never replace a newer build with an older one.
+          published=$(gh release download latest-build --pattern update.json --output - 2>/dev/null | jq -r '.versionCode // 0' 2>/dev/null) || published=0
+          [[ "$published" =~ ^[0-9]+$ ]] || published=0
+          if [ "$published" -gt "$ours" ]; then
+            echo "::notice::latest-build already holds build $published, newer than this build ($ours); leaving it alone."
+            exit 0
+          fi
           if [ -n "$ASTROFIXXER_PREVIEW_KEYSTORE" ]; then
             update="New builds install over the old one and keep your lists."
           else
             update="Each build is signed with a new one-off key, so uninstall the old AstroFixxer before installing a newer one."
           fi
           gh release delete latest-build --cleanup-tag --yes || true
-          gh release create latest-build AstroFixxer.apk --latest --target "$GITHUB_SHA" \
-            --title "AstroFixxer for Android" \
-            --notes "Built and tested automatically from ${GITHUB_SHA::7}.
+          gh release create latest-build AstroFixxer.apk update.json --latest --target "$GITHUB_SHA" \
+            --title "AstroFixxer for Android (build $ours)" \
+            --notes "Build $ours, built and tested automatically from ${GITHUB_SHA::7}.
 
           **Install:** on an Android 8+ phone, tap **AstroFixxer.apk** below, open the downloaded file, and allow installing unknown apps if asked. $update
+
+          **Update:** in the app, Sky & viewing → More → App updates → Check for updates. \`update.json\` is what it reads.
 
           What changed: see [CHANGELOG.md](https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_SHA/CHANGELOG.md)."
 

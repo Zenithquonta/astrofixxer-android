@@ -39,6 +39,7 @@ import org.astrofixxer.astro.JulianDate
 import org.astrofixxer.astro.MinorBody
 import org.astrofixxer.astro.Sgp4
 import org.astrofixxer.astro.SkyObject
+import org.astrofixxer.host.AndroidUpdater
 import org.astrofixxer.ui.AstroGuide
 import org.astrofixxer.ui.EventItem
 import org.astrofixxer.ui.MeteorShower
@@ -66,6 +67,8 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     private var rotationSensor: Sensor? = null
     private val smoothed = DoubleArray(9)
     private var hasReading = false
+    /** In-app updater: only in preview and debug builds. Google Play forbids self-updating, so release builds never create it (every use is behind BuildConfig.UPDATER_ENABLED, so R8 drops the class there). */
+    private var updater: AndroidUpdater? = null
 
     // AstroGuide: offline speech in, text-to-speech out. Latest sky data mirrored from composition.
     private var recognizer: SpeechRecognizer? = null
@@ -116,6 +119,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             recognizer = SpeechRecognizer.createSpeechRecognizer(this).apply { setRecognitionListener(guideListener) }
         }
         tts = TextToSpeech(this) {}
+        if (BuildConfig.UPDATER_ENABLED) updater = AndroidUpdater(this)
 
         setContent {
             var catalog by remember { mutableStateOf<Catalog?>(null) }
@@ -210,7 +214,8 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 latestEvents = events
             }
             SkyScreen(state, catalog, moving, events, art, onAsk = if (recognizer != null) ::ask else null,
-                backHandler = { enabled, onBack -> BackHandler(enabled, onBack) }, onAskText = ::respond)
+                backHandler = { enabled, onBack -> BackHandler(enabled, onBack) }, onAskText = ::respond,
+                updater = updater)
         }
     }
 
@@ -262,6 +267,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     override fun onDestroy() {
         recognizer?.destroy()
         tts?.shutdown()
+        if (BuildConfig.UPDATER_ENABLED) updater?.close()
         super.onDestroy()
     }
 
@@ -280,6 +286,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         super.onResume()
         rotationSensor?.let { sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME) }
         updateLocation()
+        if (BuildConfig.UPDATER_ENABLED) updater?.onResume()
     }
 
     override fun onPause() {

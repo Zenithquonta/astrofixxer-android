@@ -38,7 +38,8 @@ import java.io.File
  */
 @OptIn(ExperimentalTestApi::class)
 class AuditTest {
-    private class Screen(val name: String, val overlayOpen: Boolean, val setup: (SkyState) -> Unit, val open: ComposeUiTest.() -> Unit = {})
+    private class Screen(val name: String, val overlayOpen: Boolean, val setup: (SkyState) -> Unit, val open: ComposeUiTest.() -> Unit = {},
+        val updater: org.astrofixxer.ui.UpdateStatus? = null)
 
     private val catalog get() = Fixtures.catalog
     private fun button(label: String) = hasText(label) and hasClickAction()
@@ -162,6 +163,10 @@ class AuditTest {
             Fixtures.pointAt(s, catalog.find("Vega")!!); Fixtures.align(s, catalog.find("Vega")!!); s.target = catalog.find("M57")
         }),
         Screen("tutorial", true, { it.showOnboarding = true }),
+        // Sky & viewing → More → App updates (preview and debug builds), every state.
+        *updaterStates.map { (name, status) ->
+            Screen("updater-$name", true, {}, { onNode(button(I18n.t("Sky"))).tap(); tab(I18n.t("More")); onNode(hasText(I18n.t("App updates"))).performScrollTo() }, status)
+        }.toTypedArray(),
     )
 
     @Test fun everyScreenPassesTheAudit() {
@@ -172,7 +177,7 @@ class AuditTest {
             try {
                 phoneTest(widthDp = width) {
                     val state = Fixtures.state().apply { this.night = night; screen.setup(this) }
-                    setContent { AppScreen(state) }
+                    setContent { AppScreen(state, updater = screen.updater?.let { FakeUpdater(it) }) }
                     screen.open(this)
                     waitForIdle()
                     val where = "${screen.name} [$width dp, $lang, ${if (night) "night" else "day"}]"
