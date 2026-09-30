@@ -62,9 +62,10 @@ internal fun CenterStarPanel(state: SkyState) {
         Text(t("Step 1 moves the telescope. Step 2 only lines up the map on screen."), color = c.onSurfaceVariant, fontSize = 13.sp)
         state.alignNote?.let { Text(it.render(), color = c.error, fontSize = 15.sp) }
         Button(onClick = { state.confirmAlignment() }, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Label(t("Confirm alignment")) }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = { state.resetAdjustment() }, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) { Label(t("Reset adjustment")) }
-            OutlinedButton(onClick = { state.cancelAlign() }, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) { Label(t("Cancel")) }
+        // Side by side when both labels fit, stacked full-width when a translation is too long for half the panel.
+        ButtonRow(listOf(t("Reset adjustment"), t("Cancel"))) { i, m, pad ->
+            if (i == 0) OutlinedButton(onClick = { state.resetAdjustment() }, modifier = m, contentPadding = pad) { Label(t("Reset adjustment")) }
+            else OutlinedButton(onClick = { state.cancelAlign() }, modifier = m, contentPadding = pad) { Label(t("Cancel")) }
         }
     }
 }
@@ -94,9 +95,9 @@ internal fun AlignResultCard(state: SkyState) {
             Text(t("Aligned on %s. Correction %.1f°.").format(r.star.name, r.correctionDeg), color = c.primary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             if (r.large) Text(t("That's a large correction. Is %s really centred in the eyepiece?").format(r.star.name), color = c.error, fontSize = 15.sp)
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = { state.retryAlignment() }, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) { Label(t("Retry")) }
-            Button(onClick = { state.dismissAlignResult() }, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) { Label(t("Done")) }
+        ButtonRow(listOf(t("Retry"), t("Done")), primaryFirstWhenStacked = true) { i, m, pad ->
+            if (i == 0) OutlinedButton(onClick = { state.retryAlignment() }, modifier = m, contentPadding = pad) { Label(t("Retry")) }
+            else Button(onClick = { state.dismissAlignResult() }, modifier = m, contentPadding = pad) { Label(t("Done")) }
         }
     }
 }
@@ -110,9 +111,10 @@ internal fun ConfirmDialog(message: String, confirm: String, dismiss: String, on
             border = androidx.compose.foundation.BorderStroke(1.dp, c.outline)) {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(message, color = c.onSurface, fontSize = 17.sp)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) { Label(dismiss) }
-                    Button(onClick = onConfirm, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) { Label(confirm) }
+                // The dialog is narrow, so a long label stacks the buttons (main action on top) instead of being squeezed.
+                ButtonRow(listOf(dismiss, confirm), primaryFirstWhenStacked = true) { i, m, pad ->
+                    if (i == 0) OutlinedButton(onClick = onDismiss, modifier = m, contentPadding = pad) { Label(dismiss) }
+                    else Button(onClick = onConfirm, modifier = m, contentPadding = pad) { Label(confirm) }
                 }
             }
         }

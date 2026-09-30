@@ -172,7 +172,8 @@ class AuditTest {
     @Test fun everyScreenPassesTheAudit() {
         val findings = mutableListOf<String>()
         var checked = 0
-        for (width in listOf(360, 411)) for (lang in listOf("en", "hi")) for (night in listOf(false, true)) for (screen in screens) {
+        val only = System.getenv("AUDIT_ONLY")?.split(",")
+        for (width in listOf(360, 411)) for (lang in (System.getenv("AUDIT_LANG")?.split(",") ?: listOf("en", "hi"))) for (night in listOf(false, true)) for (screen in screens.filter { sc -> only == null || only.any { o -> sc.name == o } }) {
             I18n.language = lang
             try {
                 phoneTest(widthDp = width) {

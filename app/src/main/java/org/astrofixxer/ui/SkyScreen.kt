@@ -46,6 +46,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -54,7 +55,10 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.astrofixxer.astro.Catalog
@@ -293,17 +297,58 @@ private fun Toolbar(state: SkyState, onAsk: (() -> Unit)?, onSearch: () -> Unit,
     }
 }
 
-/** One-line button label that steps its font down (15 to 11 sp) until it fits, so no label is ever cut off. */
+/**
+ * Button label that steps its font down (15 to 11 sp) until it fits on one line. If even 11 sp is too wide (a long Hindi label
+ * in a font with wide Devanagari glyphs on a narrow phone), it wraps onto a second line at 12 sp instead of being cut off; the
+ * button grows to fit, because every button is given a minimum height, never a fixed one.
+ */
 @Composable
 internal fun Label(text: String, color: Color = Color.Unspecified) = BoxWithConstraints(contentAlignment = Alignment.Center) {
     val measurer = rememberTextMeasurer()
     val base = LocalTextStyle.current
     val maxPx = constraints.maxWidth
-    val style = remember(text, maxPx, base) {
+    val oneLine = remember(text, maxPx, base) {
         listOf(15, 14, 13, 12, 11).map { base.copy(fontSize = it.sp) }
-            .firstOrNull { measurer.measure(text, it, maxLines = 1, softWrap = false).size.width <= maxPx } ?: base.copy(fontSize = 11.sp)
+            .firstOrNull { measurer.measure(text, it, maxLines = 1, softWrap = false).size.width <= maxPx }
     }
-    Text(text, style = style, color = color, maxLines = 1, softWrap = false)
+    if (oneLine != null) Text(text, style = oneLine, color = color, maxLines = 1, softWrap = false)
+    else {
+        val wrapped = remember(text, maxPx, base) {
+            listOf(13, 12, 11).map { base.copy(fontSize = it.sp) }.firstOrNull {
+                !measurer.measure(text, it, maxLines = 2, softWrap = true, constraints = Constraints(maxWidth = maxPx)).hasVisualOverflow
+            } ?: base.copy(fontSize = 11.sp)
+        }
+        Text(text, style = wrapped, color = color, maxLines = 2, softWrap = true, textAlign = TextAlign.Center)
+    }
+}
+
+/** True if every one of [labels] fits on one line at [sizeSp] in a slot [slot] wide, less [sidePadding] on each side. */
+@Composable
+internal fun labelsFit(labels: List<String>, slot: Dp, sidePadding: Dp, sizeSp: Int): Boolean {
+    val measurer = rememberTextMeasurer()
+    val style = MaterialTheme.typography.labelLarge.copy(fontSize = sizeSp.sp)
+    val room = with(LocalDensity.current) { (slot - sidePadding * 2).roundToPx() }
+    return remember(labels, room, style) { labels.all { measurer.measure(it, style, maxLines = 1, softWrap = false).size.width <= room } }
+}
+
+/** Side padding for buttons placed by [ButtonRow], small so a label gets as much of a narrow button as possible. */
+internal val RowButtonPadding = PaddingValues(horizontal = 12.dp)
+
+/**
+ * A row of equal-width buttons that becomes a column of full-width buttons when any of the [labels] would not fit on one line
+ * at 13 sp, so a long translation gets the whole width instead of being squeezed. [content] draws button number `index` with
+ * the modifier and padding it must use. With [primaryFirstWhenStacked] the last button (the main action) moves to the top of
+ * the column.
+ */
+@Composable
+internal fun ButtonRow(labels: List<String>, minHeight: Dp = 48.dp, primaryFirstWhenStacked: Boolean = false,
+                       content: @Composable (index: Int, modifier: Modifier, padding: PaddingValues) -> Unit) = BoxWithConstraints(Modifier.fillMaxWidth()) {
+    val sideBySide = labelsFit(labels, (maxWidth - 8.dp * (labels.size - 1)) / labels.size, 12.dp, 13)
+    if (sideBySide) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        for (i in labels.indices) content(i, Modifier.weight(1f).heightIn(min = minHeight), RowButtonPadding)
+    } else Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        for (i in if (primaryFirstWhenStacked) labels.indices.reversed() else labels.indices) content(i, Modifier.fillMaxWidth().heightIn(min = minHeight), RowButtonPadding)
+    }
 }
 
 @Composable

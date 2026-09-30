@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -197,11 +198,19 @@ internal fun EdgePicker(selected: PhoneEdge, drawing: Boolean, onSelect: (PhoneE
     }
 }
 
-/** A row of [options] to pick one from, as big buttons that share the width; the chosen one is filled. */
+/**
+ * [options] to pick one from, as big buttons that share the width (the chosen one is filled). When a label would not fit on one
+ * line in its share of a narrow phone, the options are stacked full-width instead, so nothing is cut off.
+ */
 @Composable
 internal fun <T> Segmented(options: List<Pair<String, T>>, selected: T, modifier: Modifier = Modifier, onSelect: (T) -> Unit) {
-    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        for ((label, value) in options) SelectChip(label, selected == value, Modifier.weight(1f)) { onSelect(value) }
+    BoxWithConstraints(modifier.fillMaxWidth()) {
+        val sideBySide = labelsFit(options.map { it.first }, (maxWidth - 8.dp * (options.size - 1)) / options.size, 6.dp, 13)
+        if (sideBySide) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            for ((label, value) in options) SelectChip(label, selected == value, Modifier.weight(1f)) { onSelect(value) }
+        } else Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            for ((label, value) in options) SelectChip(label, selected == value, Modifier.fillMaxWidth()) { onSelect(value) }
+        }
     }
 }
 

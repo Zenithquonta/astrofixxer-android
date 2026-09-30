@@ -95,11 +95,10 @@ internal fun EyepieceViewControls(state: SkyState, suggest: Boolean = true) {
     val s = state.setup
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Toggle(t("Match eyepiece view"), state.matchEyepieceView) { state.matchEyepieceView = it }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = { state.updateSetup(s.copy(viewRotationDeg = (s.viewRotationDeg + 90) % 360)) },
-                modifier = Modifier.weight(1f).heightIn(min = 48.dp)) { Label(t("Rotate view 90°")) }
-            if (s.viewMirrored) Button(onClick = { state.updateSetup(s.copy(viewMirrored = false)) }, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) { Label(t("Mirror view")) }
-            else OutlinedButton(onClick = { state.updateSetup(s.copy(viewMirrored = true)) }, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) { Label(t("Mirror view")) }
+        ButtonRow(listOf(t("Rotate view 90°"), t("Mirror view"))) { i, m, pad ->
+            if (i == 0) OutlinedButton(onClick = { state.updateSetup(s.copy(viewRotationDeg = (s.viewRotationDeg + 90) % 360)) }, modifier = m, contentPadding = pad) { Label(t("Rotate view 90°")) }
+            else if (s.viewMirrored) Button(onClick = { state.updateSetup(s.copy(viewMirrored = false)) }, modifier = m, contentPadding = pad) { Label(t("Mirror view")) }
+            else OutlinedButton(onClick = { state.updateSetup(s.copy(viewMirrored = true)) }, modifier = m, contentPadding = pad) { Label(t("Mirror view")) }
         }
         Text(t("Eyepiece view: %s").format(describeView(s.viewRotationDeg, s.viewMirrored)), color = c.onSurface, fontSize = 14.sp)
         val guess = s.viewGuess()
