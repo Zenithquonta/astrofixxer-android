@@ -15,13 +15,66 @@ import kotlin.math.tan
 object Pointing {
     private const val D2R = PI / 180
 
-    /** Unit vector toward a J2000 RA/Dec (degrees) for an observer, using the same simple sidereal time as the web app. */
+    /** Precession matrix (J2000 to mean equator of date, row-major) and Greenwich mean sidereal time for one instant. */
+    private class SkyClock(val timeMillis: Long, val precession: DoubleArray, val gmstRad: Double)
+
+    /** Single-entry cache: thousands of stars share one instant per frame; safe to read from any thread. */
+    @Volatile private var clock: SkyClock? = null
+
+    private fun clockAt(timeMillis: Long): SkyClock {
+        clock?.let { if (it.timeMillis == timeMillis) return it }
+        val jd = JulianDate.fromEpochMillis(timeMillis)
+        val d = jd - 2451545.0
+        val tc = d / 36525
+        // IAU 1982 GMST (Meeus 12.4), degrees.
+        val gmst = (280.46061837 + 360.98564736629 * d + 0.000387933 * tc * tc - tc * tc * tc / 38710000).mod(360.0)
+        return SkyClock(timeMillis, precessionMatrix(tc), gmst * D2R).also { clock = it }
+    }
+
+    /**
+     * IAU 1976 (Lieske) precession from J2000 to the mean equator and equinox of date, for [t] Julian centuries after
+     * J2000; same formula as precess() in tools/stellarium_import/build_sky_data.py. Multiply a J2000 equatorial vector by it.
+     */
+    internal fun precessionMatrix(t: Double): DoubleArray {
+        val as2r = D2R / 3600
+        val zeta = (2306.2181 * t + 0.30188 * t * t + 0.017998 * t * t * t) * as2r
+        val z = (2306.2181 * t + 1.09468 * t * t + 0.018203 * t * t * t) * as2r
+        val theta = (2004.3109 * t - 0.42665 * t * t - 0.041833 * t * t * t) * as2r
+        val rz1 = doubleArrayOf(cos(zeta), -sin(zeta), 0.0, sin(zeta), cos(zeta), 0.0, 0.0, 0.0, 1.0)
+        val ry = doubleArrayOf(cos(theta), 0.0, -sin(theta), 0.0, 1.0, 0.0, sin(theta), 0.0, cos(theta))
+        val rz2 = doubleArrayOf(cos(z), -sin(z), 0.0, sin(z), cos(z), 0.0, 0.0, 0.0, 1.0)
+        return matMul(rz2, matMul(ry, rz1))
+    }
+
+    /**
+     * Unit vector toward a J2000 RA/Dec (degrees) for an observer. Precesses to the mean equator of date and uses
+     * Greenwich mean sidereal time, so it agrees with astropy to well under an arcminute.
+     * ponytail: nutation (up to 17"), aberration (up to 20") and TT-UTC are ignored.
+     */
     fun rayFromPos(raDeg: Double, decDeg: Double, timeMillis: Long, latDeg: Double, lonDeg: Double): DoubleArray {
-        val ra = raDeg * D2R
-        val de = decDeg * D2R
-        val tu = JulianDate.fromEpochMillis(timeMillis) - 2451545.0
-        val angle = 2 * PI * (0.7790572732640 + 1.00273781191135448 * tu)
-        val h = angle + lonDeg * D2R - ra
+        val c = clockAt(timeMillis)
+        val r = raDeg * D2R
+        val d = decDeg * D2R
+        val m = c.precession
+        val x = cos(d) * cos(r)
+        val y = cos(d) * sin(r)
+        val z = sin(d)
+        val xd = m[0] * x + m[1] * y + m[2] * z
+        val yd = m[3] * x + m[4] * y + m[5] * z
+        val zd = m[6] * x + m[7] * y + m[8] * z
+        return horizontal(atan2(yd, xd), asin(zd.coerceIn(-1.0, 1.0)), c.gmstRad, latDeg, lonDeg)
+    }
+
+    /**
+     * Like [rayFromPos] for an RA/Dec that is already of date (no precession), e.g. the equatorial grid, whose pole
+     * is then the true celestial pole.
+     */
+    fun rayFromPosOfDate(raDeg: Double, decDeg: Double, timeMillis: Long, latDeg: Double, lonDeg: Double): DoubleArray =
+        horizontal(raDeg * D2R, decDeg * D2R, clockAt(timeMillis).gmstRad, latDeg, lonDeg)
+
+    /** [east, north, up] for an RA/Dec of date (radians) at the given Greenwich sidereal time. */
+    private fun horizontal(ra: Double, de: Double, gmstRad: Double, latDeg: Double, lonDeg: Double): DoubleArray {
+        val h = gmstRad + lonDeg * D2R - ra
         val f = latDeg * D2R
         val az = atan2(sin(h), cos(h) * sin(f) - tan(de) * cos(f))
         val alt = asin(sin(f) * sin(de) + cos(f) * cos(de) * cos(h))
@@ -35,10 +88,16 @@ object Pointing {
         val f = latDeg * D2R
         val h = atan2(sin(az), cos(az) * sin(f) + tan(alt) * cos(f))
         val dec = asin((sin(f) * sin(alt) - cos(f) * cos(alt) * cos(az)).coerceIn(-1.0, 1.0))
-        val tu = JulianDate.fromEpochMillis(timeMillis) - 2451545.0
-        val lst = 2 * PI * (0.7790572732640 + 1.00273781191135448 * tu) + lonDeg * D2R
-        val ra = ((lst - h) / D2R).mod(360.0)
-        return Pair(ra, dec / D2R)
+        val c = clockAt(timeMillis)
+        val ra = c.gmstRad + lonDeg * D2R - h // of date
+        val x = cos(dec) * cos(ra)
+        val y = cos(dec) * sin(ra)
+        val z = sin(dec)
+        val m = c.precession // transpose takes of-date back to J2000
+        val x0 = m[0] * x + m[3] * y + m[6] * z
+        val y0 = m[1] * x + m[4] * y + m[7] * z
+        val z0 = m[2] * x + m[5] * y + m[8] * z
+        return Pair((atan2(y0, x0) / D2R).mod(360.0), asin(z0.coerceIn(-1.0, 1.0)) / D2R)
     }
 
     /** W3C DeviceOrientation ZXY rotation matrix from alpha/beta/gamma in degrees. */
