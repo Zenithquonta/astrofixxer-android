@@ -22,7 +22,7 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 
 ## TAKEOVER: read this first (updated 2026-10-01; W7 verification resumed)
 
-Work resumed on 1 October 2026 in a fresh Windows checkout. The integration checkout is `C:/Users/kush/Desktop/astrofixxer`; W7 is isolated at `C:/Users/kush/Desktop/astrofixxer-w7` on commit `ae2e203`. The implementation agent is inspecting W7; no local tests have started. A Linux desktop-test runtime with genuine Devanagari fonts is being prepared. CI run 36780057330 at integration commit `461d0f3` is in progress: secret-scan passed; build and ui-check have not completed. The supervisor owns review, independent tests, merges and this handoff. Read the steps below; W4, docs, main merge and W8 remain gated in that order.
+Work resumed on 1 October 2026 in a fresh Windows checkout. The integration checkout is `C:/Users/kush/Desktop/astrofixxer`; W7 is isolated at `C:/Users/kush/Desktop/astrofixxer-w7` on commit `ae2e203`. The implementation agent is inspecting W7; no local tests have started. Docker Desktop could not start because its inference-manager socket cannot be accessed; no container or test ran. An isolated Linux runtime alternative is being investigated without resetting the existing Docker installation. Genuine Noto/Lohit Devanagari remains a reproduction requirement. CI run 36780057330 at integration commit `461d0f3` is in progress: secret-scan passed; build and ui-check have not completed. The supervisor owns review, independent tests, merges and this handoff. Read the steps below; W4, docs, main merge and W8 remain gated in that order.
 
 ### 1. Branch map (all on GitHub)
 | Branch | What it holds | State |
@@ -159,6 +159,19 @@ Real phone sensors, Camera2 capture and exposure, solving real sky photos, the D
 ---
 
 ## Entries
+
+### 2026-10-01: Linux runtime startup failed before W7 tests
+
+**Result / review**
+- Docker Desktop startup failed before a container could run. Its backend reported that the inference manager could not remove the local `Docker/run/dockerInference` socket because the file could not be accessed by the system.
+- No Gradle command or test suite ran; there are no new test counts, screenshots, or audit findings. No feature code changed.
+- This is a host runtime failure, not evidence of an application failure. Do not reset the owner's Docker data to bypass it.
+
+**Files changed / dependencies**
+- `docs/HANDOFF.md`: recorded the failure and current takeover state. No repository dependencies added.
+
+**Next step**
+- Inspect whether an isolated Linux runtime can provide JDK17 and genuine Noto/Lohit Devanagari for the baseline audit. Implementation remains paused until reproduction is possible. W4 and later work remain gated.
 
 ### 2026-10-01: Resume W7 inspection; current CI observed
 
