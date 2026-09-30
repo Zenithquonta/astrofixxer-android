@@ -199,3 +199,9 @@ GPLv3 (see `LICENSE`), as AstroHopper requires. Made for Smart India Hackathon 2
 - The planet series (VSOP87, via vsop87-multilang) and the position reduction (CPReduce) are by Greg Miller and are in the public domain (`app/src/main/java/org/astrofixxer/astro/vsop87/`).
 - The golden test values in `app/src/test/resources/golden.json` were generated from the web app's own code.
 - Hop and the pixel art are original, drawn in code in `tools/repo-art/`.
+
+---
+
+[LICENSE](LICENSE) · [POLICY.md](POLICY.md) · [NOTICE.md](NOTICE.md) · [PRIVACY.md](PRIVACY.md) · [SECURITY.md](SECURITY.md) · [CONTRIBUTING.md](CONTRIBUTING.md)
+
+No warranty. **Never point a telescope at the Sun without a certified solar filter; the app can be wrong.** See [POLICY.md](POLICY.md).
