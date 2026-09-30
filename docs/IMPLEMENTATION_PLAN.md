@@ -232,6 +232,40 @@ Every event is computed or bundled on the phone.
 
 ---
 
+## 7b. Phase 7b: Telescope setup, alignment and plate solving (owner request, 30 Sep 2026)
+
+Branch: `feature/telescope-setup-alignment-platesolve`. Sonnet agents write the code; each workstream is reviewed, re-tested and merged by the supervising agent.
+
+### Ponytail review
+
+Each request was taken up the ladder until a rung held.
+
+| Request | Rung that holds | Decision |
+|---|---|---|
+| Precession fix | 2 (already in the codebase) | Rewrite `Pointing.rayFromPos`/`rayToRaDec` using the IAU 1976 precession the importer already has (ported, 20 lines). **Not applied twice:** the current code uses the Earth rotation angle (ERA) with J2000 coordinates, which already cancels the RA part of precession. Measured against astropy it is off by 0.10–0.18° (not the 0.36° first estimated). The fix precesses J2000 → date and switches ERA to GMST, so each term is counted exactly once. Target: < 1′ against astropy. `ponytail:` nutation (≤ 17″) and aberration (≤ 20″) are left out; the eyepiece field is ≥ 15′. Planets already arrive as J2000 (`raJ2000`), so they go through the same path; nothing else changes. |
+| Setup wizard and saved setup | 7 (new, small) | One `TelescopeSetup` data class (type, mount, placement, phone edge, eyepiece angle, erecting prism, view rotation and mirror) saved with the existing `s.` settings keys. `setupDone` is a separate key, so existing users get the wizard once and keep everything else. Illustrations are Compose `Canvas` drawings, not image files. |
+| Phone placement → pointing | 2 | `Pointing.cameraRays` already takes the phone's top edge (+Y) as the telescope axis, which is "flat on the tube, top edge forward". Placement just picks the axis: ±Y, ±X or −Z. Phone on the eyepiece: the phone still moves rigidly with the tube, so the sensors stay valid. Straight-through → −Z; right angle (diagonal or Newtonian) → ask which edge points to the front of the telescope. |
+| Check orientation | 7 | Two checks, both pure maths with tests. (a) **Phone axis:** centre two stars in turn. The angle between them is known, and only the right phone axis reproduces it (a compass error can't change it), so the app reports the best axis and its error. (b) **Eyepiece view:** "Nudge the telescope up / right: which way did the star move?" gives the rotation and mirror. |
+| Rotation and mirroring | 7 | Applied only to drawings of the eyepiece view (the eyepiece preview, and the sky map when "Match eyepiece view" is on). Movement directions are computed from the telescope's pointing, never from the drawn image, so a mirrored view can't flip an instruction. |
+| Settings that break alignment | 7 | Changing placement, phone edge or eyepiece angle clears the alignment and says why, with a Realign button. Telescope type, mount, rotation and mirror don't affect alignment, and the UI says so. |
+| Alignment flow | 2 | The app keeps `Pointing.alignMatrix`. Fixed: tapping a star while picking **used to align immediately**, as if the telescope were already centred; "Align on this" did the same. New states: `PICK_STAR` → `CENTER_STAR` (star chosen; centre it in the eyepiece, then drag the map to put it under the +) → Confirm → a result card (the correction in degrees; a warning above 20°) with Retry. Only stars and planets above the horizon can be picked. |
+| Drag-to-align and the + marker | 2 | Drag-to-align replaces the old Manual mode's sideways drag, which also changed the calibration during ordinary browsing. `ponytail:` Manual mode is removed. Modes are now Compass and Free look, and dragging calibrates only during `CENTER_STAR`. The calibration is saved as the alignment rotation; catalogue coordinates are never changed. The + is small, with a gap in the middle so the star stays visible. It is red in night mode. |
+| Multi-star alignment | 7 | There was none. Added: "Check with another star" after aligning refines the alignment with two stars (TRIAD) and reports the error, without adding steps to basic alignment. |
+| Next-star guidance | 2 | Reuses `guidance()`/`guidanceEquatorial()`. A big arrow shows the telescope movement (up/down, left/right; RA east/west and Dec north/south on equatorial mounts), with the remaining degrees. Close = within 3 eyepiece fields; On target = within half a field. The numbers, alignment age, orientation controls and camera solve go behind an expandable "More". |
+| Plate-solving engine | 7 (no library fits) | astrometry.net is native C with large index files, and tetra3 is Python, so this is a small pure-Kotlin solver in `astro/`. Star detection (background, threshold, centroids), then pattern matching at a scale known from the setup, verified by projecting all stars. It must refuse a noise-only image. No uploads: `ponytail:` the online astrometry.net option is dropped, so no consent flow or API key is needed. |
+| Deep star data | 2 | Stellarium's Gaia-based `stars_0..3` files to magnitude 10.5 (~590k stars) are already in the importer's Stellarium checkout. Wide camera fields solve with the bundled 8,913 stars; a 1° eyepiece field needs the deep file (~11 stars per field on average). Packed binary asset of about 5 MB. |
+| Camera | 5 → CameraX | CameraX (Jetpack) for the live preview and capture, plus the Android photo picker for pictures taken with the phone's own night mode. The camera permission is asked for only when the camera opens. If it is refused, the photo picker still works. |
+| Camera beside the tube | 7 | Its own camera-to-telescope offset: centre a star in the eyepiece, take a photo, and the offset is saved. Until then a solve says where the *camera* points, and "Apply to alignment" is disabled with the reason shown. Flat on the tube: the camera faces the tube, so solving is explained as unavailable. |
+
+### Acceptance
+
+- Precession: < 1′ against astropy for 6 stars × 3 dates; ERA and precession counted once (a test fails if either is applied twice).
+- Wizard for new users and for existing users with missing setup keys; other settings survive.
+- Alignment: a tap never aligns by itself. The flow is tap → Align using this star → centre → drag under + → Confirm. Reset adjustment works, drags after Confirm don't change the calibration, and Retry works.
+- Plate solve on synthetic star fields (wide and 1°, rotated, mirrored, noisy, hot pixels): the centre is within 2′ (wide) or 20″ (1°). Noise, blank and saturated images fail with a helpful message.
+- Every new screen is in the UI audit (touch size, clipping, contrast), in English and Hindi, day and night.
+- Not testable here and flagged for the field test: real sensors, real camera capture and exposure, solving real sky photos, and accuracy on a real telescope.
+
 ## 8. Timeline
 
 | Phase | Effort | Depends on |
