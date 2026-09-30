@@ -232,7 +232,7 @@ class AuditTest {
             Screen("solve-live-forward-calibrated", true, { forward(it, true) }, { toLive() }, host()),
             Screen("solve-live-forward-uncalibrated", true, { forward(it, false) }, { toLive() }, host()),
             Screen("solve-live-calibrating", true, { forward(it, false) }, {
-                toPickStar(); onNode(hasText("Vega", substring = true) and hasClickAction()).tap(); next(2); waitForIdle()
+                toPickStar(); onNode(hasText("Vega", substring = true) and hasClickAction()).tap(); next(1); waitForIdle()
             }, host()),
             Screen("solve-live-no-exposure-choice", true, { eye(it) }, { toLive() }, host { exposures = emptyList(); hFovDeg = null }),
             Screen("solve-live-denied", true, { forward(it, false) }, { toLive() }, host { permission = CameraPermission.DENIED }),
@@ -253,12 +253,12 @@ class AuditTest {
                 waitUntil(60_000) { onAllNodes(hasText(I18n.t("Solving…"))).fetchSemanticsNodes().isEmpty() }; waitForIdle()
             }, host { gallery = org.astrofixxer.ui.GalleryResult.Picked(blank) }, solver = { _, _, _ -> solvedAt(ra, dec) }),
             Screen("solve-result-calibrating", true, { forward(it, false) }, {
-                toPickStar(); onNode(hasText("Vega", substring = true) and hasClickAction()).tap(); next(2); waitForIdle()
+                toPickStar(); onNode(hasText("Vega", substring = true) and hasClickAction()).tap(); next(1); waitForIdle()
                 onNode(button(I18n.t("Take photo"))).tap()
                 waitUntil(60_000) { onAllNodes(hasText(I18n.t("Solving…"))).fetchSemanticsNodes().isEmpty() }; waitForIdle()
             }, host(), solver = { _, _, _ -> solvedAt(ra, dec) }),
             Screen("solve-result-calibrating-star-off-photo", true, { forward(it, false) }, {
-                toPickStar(); onNode(hasText("Vega", substring = true) and hasClickAction()).tap(); next(2); waitForIdle()
+                toPickStar(); onNode(hasText("Vega", substring = true) and hasClickAction()).tap(); next(1); waitForIdle()
                 onNode(button(I18n.t("Take photo"))).tap()
                 waitUntil(60_000) { onAllNodes(hasText(I18n.t("Solving…"))).fetchSemanticsNodes().isEmpty() }; waitForIdle()
             }, host(), solver = { _, _, _ -> solvedAt((ra + 120) % 360, -dec) }),
