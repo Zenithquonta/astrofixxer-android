@@ -22,7 +22,7 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 
 ## TAKEOVER: read this first (updated 2026-10-01; W7 verification resumed)
 
-Work resumed on 1 October 2026 in a fresh Windows checkout. The integration checkout is `C:/Users/kush/Desktop/astrofixxer`; W7 is isolated at `C:/Users/kush/Desktop/astrofixxer-w7` on commit `ae2e203`. The implementation agent is inspecting W7; no local tests have started. Docker Desktop could not start because its inference-manager socket cannot be accessed; no container or test ran. The isolated Ubuntu WSL runtime is ready with OpenJDK 17.0.20.1, Noto Devanagari and Lohit Devanagari; `fc-match sans:lang=hi` selects Lohit. The detached launch did not start; the persistent retry failed before Gradle because the Windows checkout wrapper has CRLF line endings. Both the checkout copy and default `git archive` retained Windows CRLF behavior. Tracked wrappers are LF (`git ls-files --eol`); retry export with explicit `git -c core.autocrlf=false archive`. Baseline AuditTest is now running from the exact LF archive of integration `7c75ac6` at `/root/checks/w7-baseline-exact`, with log `/root/checks/w7-baseline-exact-audit.log`. No result yet. Android SDK setup failed before compile on split package arguments and is being retried. Genuine Noto/Lohit Devanagari remains a reproduction requirement. CI run 36780057330 at integration commit `461d0f3` is in progress: secret-scan passed; build and ui-check have not completed. The supervisor owns review, independent tests, merges and this handoff. Read the steps below; W4, docs, main merge and W8 remain gated in that order.
+Work resumed on 1 October 2026 in a fresh Windows checkout. The integration checkout is `C:/Users/kush/Desktop/astrofixxer`; W7 is isolated at `C:/Users/kush/Desktop/astrofixxer-w7` on commit `ae2e203`. The implementation agent is inspecting W7; no local tests have started. Docker Desktop could not start because its inference-manager socket cannot be accessed; no container or test ran. The isolated Ubuntu WSL runtime is ready with OpenJDK 17.0.20.1, Noto Devanagari and Lohit Devanagari; `fc-match sans:lang=hi` selects Lohit. The detached launch did not start; the persistent retry failed before Gradle because the Windows checkout wrapper has CRLF line endings. Both the checkout copy and default `git archive` retained Windows CRLF behavior. Tracked wrappers are LF (`git ls-files --eol`); retry export with explicit `git -c core.autocrlf=false archive`. Focused baseline checks on unchanged integration `7c75ac6` completed: 4 tests, 1 failure for Hindi Label clipping at font scale 2.0; the three original labels passed with Lohit, so the original CI clipping is still unreproduced. The redundant full baseline diagnostic was stopped after 33 screenshots, with no complete audit result. Next reproduce with Noto preferred. Android SDK API35/build-tools35.0.0 is ready outside the repository. Genuine Noto/Lohit Devanagari remains a reproduction requirement. CI run 36780057330 at integration commit `461d0f3` is in progress: secret-scan passed; build and ui-check have not completed. The supervisor owns review, independent tests, merges and this handoff. Read the steps below; W4, docs, main merge and W8 remain gated in that order.
 
 ### 1. Branch map (all on GitHub)
 | Branch | What it holds | State |
@@ -159,6 +159,21 @@ Real phone sensors, Camera2 capture and exposure, solving real sky photos, the D
 ---
 
 ## Entries
+
+### 2026-10-01: Focused baseline exposes font-scale clipping; original CI issue still open
+
+**Result / review**
+- Implementation authored `tools/desktop-check/src/test/kotlin/HindiLayoutTest.kt` (four actual-render regressions); supervisor reviewed every line before execution. The test was overlaid onto unchanged integration `7c75ac6` in `/root/checks/w7-focused-baseline`.
+- `bash ./gradlew test --tests HindiLayoutTest --console=plain`: **4 tests, 1 failure**, 0 skipped/errors. Failed assertion: `Label clipped after changing font scale to 2.0`. Reset adjustment, Align now, and Refractor/settings/wizard checks passed at 360/411 dp in day/night with Lohit. This does **not** reproduce the original 16 CI findings.
+- Log `/root/checks/w7-focused-baseline.log`; XML and screenshots under that mirror's `tools/desktop-check/build`. A wrapper status-variable expansion returned outer status 0 incorrectly; Gradle BUILD FAILED and JUnit XML establish the failure. Future commands must preserve literal shell variables or use the Gradle process status directly.
+- Stopped the redundant full baseline AuditTest deliberately (specific wrapper/daemon/test-worker PIDs terminated), retaining its log and **33 screenshots** in `/root/checks/w7-baseline-exact`. It did not finish; no full audit count or pass result is claimed.
+- Android SDK provisioning subsequently succeeded: `/opt/astrofixxer-android-sdk`, API35 revision2, build-tools35.0.0, platform-tools37.0.1; aapt2/adb version checks passed. No device was checked.
+
+**Files changed / dependencies**
+- Integration: `docs/HANDOFF.md`. W7 worktree: new regression test only, not yet committed; existing feature WIP unchanged. No repository dependency added.
+
+**Next step**
+- Prefer genuine Noto Devanagari in the isolated font configuration and rerun focused unchanged-source checks to reproduce original CI clipping before feature edits. Then implementation runs focused candidate checks; supervisor independently runs the full unfiltered desktop suite (including these regressions, updater and wizard) as the merge gate.
 
 ### 2026-10-01: Baseline started; Android SDK argument failure
 
