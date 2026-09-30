@@ -20,9 +20,9 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 | Codebase analysis (web page) | https://claude.ai/artifact/SMf5adtidjB5CsJt5ZrxNW |
 | Bug-hunt and UI proof report | https://claude.ai/artifact/WxJfBipQQCRwaAE9qAkGYb |
 
-## TAKEOVER: read this first (updated 2026-09-30 21:20 UTC; all work STOPPED at about 94% usage)
+## TAKEOVER: read this first (updated 2026-10-01; W7 verification resumed)
 
-All agents and test runs were stopped deliberately. Nothing is running. Every piece of work is pushed to GitHub (Zenithquonta/astrofixxer-android). The owner will say when and where to resume, possibly with a different tool (Codex). Read this whole section before doing anything.
+Work resumed on 1 October 2026 in a fresh Windows checkout. The integration checkout is `C:/Users/kush/Desktop/astrofixxer`; W7 is isolated at `C:/Users/kush/Desktop/astrofixxer-w7` on commit `ae2e203`. The implementation agent is inspecting W7; no local tests have started. A Linux desktop-test runtime with genuine Devanagari fonts is being prepared. CI run 36780057330 at integration commit `461d0f3` is in progress: secret-scan passed; build and ui-check have not completed. The supervisor owns review, independent tests, merges and this handoff. Read the steps below; W4, docs, main merge and W8 remain gated in that order.
 
 ### 1. Branch map (all on GitHub)
 | Branch | What it holds | State |
@@ -160,9 +160,28 @@ Real phone sensors, Camera2 capture and exposure, solving real sky photos, the D
 
 ## Entries
 
+### 2026-10-01: Resume W7 inspection; current CI observed
+
+**What was done**
+- Read this full handoff, plan section 7b, policy, privacy, security, contributing, notices, README and changelog before work.
+- Created a separate W7 worktree from the existing remote branch at `ae2e203`; implementation is inspecting the unfinished five-file change before reproducing Hindi clipping with genuine fonts.
+- Read-only push negotiation succeeded; this signed handoff push verifies actual write access.
+
+**Files changed / dependencies**
+- `docs/HANDOFF.md`: current takeover and dated status; historical implementation-role references made generic.
+- No dependencies added. No feature files changed; no test run yet.
+
+**Review and verification**
+- Current GitHub Actions observation: run [36780057330](https://github.com/Zenithquonta/astrofixxer-android/actions/runs/36780057330), source `461d0f3`: secret-scan success, build and ui-check in progress. No overall CI success claimed.
+- Initial W7 diff review identified points to inspect: audit filtering must not permit an empty or partial run to masquerade as a full audit, wrapped labels still have a two-line cap, and measurement caches must track font scaling. These are review questions pending reproduction, not verified fixes.
+
+**Next step / limitations**
+- Prepare Linux desktop runtime and genuine Noto/Lohit Devanagari, reproduce the baseline audit failure, then finish W7. Every result must be logged and pushed before the next action.
+- Nothing has been verified on a real phone or telescope. No main merge or release tag is authorized by these incomplete checks.
+
 ### 2026-09-30: Phase 7b (in progress): precession fix, plate solver, telescope setup and guided alignment
 
-Branch `feature/telescope-setup-alignment-platesolve`. Sonnet agents wrote the code, each in its own worktree and branch (`feature/tsap-w1` to `w5`). The supervising agent reviewed every diff, re-ran the tests and merged.
+Branch `feature/telescope-setup-alignment-platesolve`. Implementation agents wrote the code, each in its own worktree and branch (`feature/tsap-w1` to `w5`). The supervising agent reviewed every diff, re-ran the tests and merged.
 
 **What was done**
 - Plan: Phase 7b written with a ponytail review (`docs/IMPLEMENTATION_PLAN.md` section 7b). Decision: Camera2 instead of CameraX (rung 4). Google Maven is blocked here, and Camera2 adds no dependency.
@@ -197,7 +216,7 @@ Branch `feature/telescope-setup-alignment-platesolve`. Sonnet agents wrote the c
 - Since the W3 merge (runs 11 to 13), the `build` job (real Android build, R8, APKs) passes and `ui-check` fails.
 - The failure is AuditTest: 16 findings, all Hindi labels cut off on the GitHub runner's Devanagari font ("समायोजन रीसेट करें", "अभी संरेखित करें", "अपवर्तक (रिफ्रैक्टर)").
 - It passes here because this machine has no real Devanagari font.
-- W7 (Sonnet) is reproducing it with the runner's fonts and fixing the layouts. `main` is not merged until ui-check is green.
+- W7 (implementation agent) is reproducing it with the runner's fonts and fixing the layouts. `main` is not merged until ui-check is green.
 
 **W5, in-app GitHub updater (merged, commits 90bf6cf and 2072256)**
 - Pure logic in `update/`: URL policy, strict JSON parser, HTTPS GET with hand-checked redirects, the checker, SHA-256.
