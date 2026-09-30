@@ -22,7 +22,7 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 
 ## TAKEOVER: read this first (updated 2026-10-01; W7 verification resumed)
 
-Work resumed on 1 October 2026 in a fresh Windows checkout. The integration checkout is `C:/Users/kush/Desktop/astrofixxer`; W7 is isolated at `C:/Users/kush/Desktop/astrofixxer-w7` on commit `ae2e203`. The implementation agent is inspecting W7; no local tests have started. Docker Desktop could not start because its inference-manager socket cannot be accessed; no container or test ran. The isolated Ubuntu WSL runtime is ready with OpenJDK 17.0.20.1, Noto Devanagari and Lohit Devanagari; `fc-match sans:lang=hi` selects Lohit. The detached launch did not start; the persistent retry failed before Gradle because the Windows checkout wrapper has CRLF line endings. Both the checkout copy and default `git archive` retained Windows CRLF behavior. Tracked wrappers are LF (`git ls-files --eol`); retry export with explicit `git -c core.autocrlf=false archive`. Focused baseline checks on unchanged integration `7c75ac6` completed: 4 tests, 1 failure for Hindi Label clipping at font scale 2.0; the three original labels passed with Lohit, so the original CI clipping is still unreproduced. The redundant full baseline diagnostic was stopped after 33 screenshots, with no complete audit result. Focused Noto-first rerun also completed 4 tests/1 font-scale failure; original labels still pass, so original CI clipping remains unreproduced. Inspect CI font/render evidence before deciding the next reproduction adjustment. Android SDK API35/build-tools35.0.0 is ready outside the repository. Genuine Noto/Lohit Devanagari remains a reproduction requirement. CI run 36780057330 at integration commit `461d0f3` is in progress: secret-scan passed; build and ui-check have not completed. The supervisor owns review, independent tests, merges and this handoff. Read the steps below; W4, docs, main merge and W8 remain gated in that order.
+Work resumed on 1 October 2026 in a fresh Windows checkout. The integration checkout is `C:/Users/kush/Desktop/astrofixxer`; W7 is isolated at `C:/Users/kush/Desktop/astrofixxer-w7` on commit `ae2e203`. W7 now includes signed/pushed test-only commit `fd40967`, four focused Hindi render regressions. The existing feature WIP is still unchanged and unreviewed for merge. Docker Desktop could not start because its inference-manager socket cannot be accessed; no container or test ran. The isolated Ubuntu WSL runtime is ready with OpenJDK 17.0.20.1, Noto Devanagari and Lohit Devanagari; `fc-match sans:lang=hi` selects Lohit. The detached launch did not start; the persistent retry failed before Gradle because the Windows checkout wrapper has CRLF line endings. Both the checkout copy and default `git archive` retained Windows CRLF behavior. Tracked wrappers are LF (`git ls-files --eol`); retry export with explicit `git -c core.autocrlf=false archive`. Focused baseline checks on unchanged integration `7c75ac6` completed: 4 tests, 1 failure for Hindi Label clipping at font scale 2.0; the three original labels passed with Lohit, so the original CI clipping is still unreproduced. The redundant full baseline diagnostic was stopped after 33 screenshots, with no complete audit result. Focused Noto-first rerun also completed 4 tests/1 font-scale failure; original labels still pass, so original CI clipping remains unreproduced. Inspect CI font/render evidence before deciding the next reproduction adjustment. Android SDK API35/build-tools35.0.0 is ready outside the repository. Genuine Noto/Lohit Devanagari remains a reproduction requirement. CI run 36780057330 at integration commit `461d0f3` is in progress: secret-scan passed; build and ui-check have not completed. The supervisor owns review, independent tests, merges and this handoff. Read the steps below; W4, docs, main merge and W8 remain gated in that order.
 
 ### 1. Branch map (all on GitHub)
 | Branch | What it holds | State |
@@ -159,6 +159,16 @@ Real phone sensors, Camera2 capture and exposure, solving real sky photos, the D
 ---
 
 ## Entries
+
+### 2026-10-01: Focused regression source preserved on W7
+
+**What changed / review**
+- Signed test-only commit `fd409670b840d0e3e27166ef11c41a32be458cdc` pushed to `feature/tsap-w7`: `tools/desktop-check/src/test/kotlin/HindiLayoutTest.kt`.
+- Supervisor reviewed every added line: real screen rendering, independent text overflow/bounds and 48 dp checks, Hindi state restored after tests, screenshots captured before assertions, font-scale recomposition exercised. No new dependency.
+- No new test run in this checkpoint; unchanged-source baseline results remain 4 tests/1 font-scale failure with each tested font configuration. No candidate success or original CI reproduction claimed.
+
+**Next step**
+- Match the runner's Latin-default plus Devanagari fallback fonts, inspect CI evidence, then address verified clipping. W7 feature code is still the pre-existing WIP.
 
 ### 2026-10-01: Noto baseline repeats font-scale failure; original labels pass
 
