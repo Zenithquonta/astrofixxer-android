@@ -48,6 +48,7 @@ The owner requires the implementation agent to author all feature code, tests an
 - No full W7 candidate suite, JVM suite, Android build or device test ran this session.
 - Supervisor read all existing W7 diff lines and the new regression. Open findings: WIP AuditTest environment filters could permit misleading partial/empty coverage (remove or safely validate; final acceptance must be unfiltered); shared Label caches omit density/measurer changes; two-line fallback can still clip; inherited fixed line-height plus fallback-font metrics may explain original runner-only overflow. Current labels really rendered Hindi and visibly fit in inspected local Noto screenshots. Next investigate runner font parity/CI artifacts, especially Latin default plus Devanagari fallback metrics.
 
+**Historical checks only — not rerun or newly accepted today:** W5 JVM **126 tests, 0 failures** and desktop **93 tests, 0 failures** were earlier font-limited local results; they do not supersede the later CI Hindi failure. W4's previous desktop run was **108 tests, 107 passed**, with AuditTest navigation failure. Importer **19 passed**; synthetic solver **29/29 solves**, **28/28 negatives refused**. Precession's earlier worst error was 28.3 arcseconds against astropy. All are inherited evidence and none proves real-device behavior.
 ### 3. Reusable runtime, commands and evidence
 
 Docker Desktop could not start (inference-manager socket access error). Do not reset the owner's Docker installation. Instead this session provisioned **isolated WSL distro `AstroFixxerCheck`**, Ubuntu 22.04, outside the repository at `C:/Users/kush/.cache/astrofixxer-check/distro`. Ubuntu Base archive matched its official SHA-256 `242cd8898b33ea806ef5f13b1076ed7c76f9f989d18384452f7166692438ff1a`.
@@ -98,7 +99,7 @@ After **every test run, CI result, merge or failure**, append dated exact result
 
 Preserve GPL and all credits; no Android imports in ui/astro/update; user-visible strings through `t()` with Hindi; night mode red-on-black; touch targets at least 48 dp; private paper stays out of git; no new dependency without reason. Updater remains preview/debug only, HTTPS and this repository's release URLs, SHA-256 before user-confirmed installation.
 
-**Still never verified on a device/telescope:** real sensors, Camera2 capture/exposure, real sky-photo solving, alignment accuracy, DownloadManager/installer/FileProvider, and live updater API behavior. Build success cannot substitute for these. Owner actions remain: signing secrets, private vulnerability reporting, project-name rights, permission/redraw for `web/images/qs_*.png` credits, paper author details privately, public source/repository publishing, field testing. The historical `/x` cleanup request refers to the old environment, not this Windows clone.
+**Still never verified on a device/telescope:** real sensors, Camera2 capture/exposure, real sky-photo solving, alignment accuracy, DownloadManager/installer/FileProvider, and live updater API behavior. Build success cannot substitute for these. The repository was verified publicly readable this session; making it public is not pending. Owner actions remain: signing secrets, private vulnerability reporting, project-name rights, permission/redraw for `web/images/qs_*.png` credits, paper author details privately, maintaining public source distribution, field testing. The historical `/x` cleanup request refers to the old environment, not this Windows clone.
 
 ## Current status
 
@@ -113,7 +114,7 @@ Preserve GPL and all credits; no Android imports in ui/astro/update; user-visibl
 | 5b. Offline events | Done, including ISS/Tiangong passes and Sun/Moon transits (SGP4). The live TLE download is untested here (CelesTrak blocked) |
 | 6. AstroGuide v1 (offline voice) | Done: English and Hindi commands, speech in/out |
 | 7b. Telescope setup, alignment, plate solving | In progress on `feature/telescope-setup-alignment-platesolve`: precession fix, plate solver and setup/alignment/guidance merged. Updater merged; W7 Hindi verification, camera flow and final gates pending; stopped at owner request |
-| 7. Release | Prepared: signing via CI secrets, signed-bundle workflow on tags, R8 in CI, launcher icon, privacy policy, store listing, field-test protocol. Needs the owner: upload key, Play account, repo made public, field test, screenshots |
+| 7. Release | Prepared: signing via CI secrets, signed-bundle workflow on tags, R8 in CI, launcher icon, privacy policy, store listing, field-test protocol. Needs the owner: upload key, Play account, field test and device screenshots (repository is already publicly readable) |
 
 
 ---
