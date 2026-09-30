@@ -73,6 +73,34 @@ Branch `feature/telescope-setup-alignment-platesolve`. Sonnet agents wrote the c
 - Desktop UI suite (W3 branch before the merge): 82 tests, 0 failures. The audit checked 440 screen variants with no findings. The re-run on the merged branch is in progress.
 - Android compile check (W3 branch): clean.
 
+**W5, in-app GitHub updater (merged, commits 90bf6cf and 2072256)**
+- Pure logic in `update/`: URL policy, strict JSON parser, HTTPS GET with hand-checked redirects, the checker, SHA-256.
+- UI: `ui/Updater.kt` and `ui/UpdaterPanel.kt` (Sky & viewing → More → App updates). Android host: `host/AndroidUpdater.kt` (DownloadManager, re-hash before install, install-permission screen, `ACTION_VIEW` through a non-exported FileProvider).
+- Only in the preview (GitHub) and debug builds: `REQUEST_INSTALL_PACKAGES` and the FileProvider sit in `app/src/preview` and `app/src/debug`, and the `UPDATER_ENABLED` BuildConfig flag is false in release. Google Play forbids self-updating apps; CI fails if the release APK asks for the permission.
+- Versioning: `versionCode` comes from `ASTROFIXXER_VERSION_CODE`, set in CI to the run number plus `VERSION_CODE_OFFSET` (1000) in both `android.yml` and `release.yml`. The Play and preview sequences are independent because the applicationIds differ.
+- Release metadata: `update.json` (versionCode, versionName, applicationId, sha256, size, commit, permanentKey), generated from the built APK with aapt2.
+- CI integrity step: apksigner verify plus aapt2 checks; `tools/ci/*.sh`.
+- Race guard: an older build never replaces a newer `latest-build`.
+- Tag releases use `--latest=false`.
+- Dependencies added: none. The FileProvider comes from androidx.core, already on the classpath through activity-compose.
+- Tests (W5 branch):
+  - jvm: 126 tests, 0 failures (41 are updater tests);
+  - desktop: 93 tests, 0 failures; audit "Checked 688 screen variants. No findings.";
+  - Android compile check: clean;
+  - workflow YAML parses; CI scripts dry-run with a fake aapt2 and apksigner.
+- Security review (supervisor), no blocking findings:
+  - URL allowlist exact to this repo's release downloads;
+  - redirects re-checked per hop;
+  - size caps;
+  - SHA-256 checked twice;
+  - installer always asks the user;
+  - temporary-key builds need a second confirmation.
+  - Gap fixed: Play tag builds had a fixed versionCode 1 (commit 2072256).
+- Untested:
+  - the real DownloadManager, installer, permission screen and FileProvider on a device;
+  - the live GitHub API response;
+  - the real AGP manifest merge, R8 and aapt2/apksigner output (CI checks these on the next push).
+
 **W6, legal policy (merged)**
 - New `POLICY.md`: scope and relationship to GPLv3 (adds no restriction), no warranty, limitation of liability, eye safety, accuracy, data handling, third-party services and data licences, contributions (DCO sign-off, inbound=outbound GPLv3, no CLA), security reporting, names, governing law and contact.
 - Governing law, per the owner: Indian law for the policy only; the user's mandatory home-country rights prevail; no exclusive court; the GPL is not modified.
@@ -87,7 +115,7 @@ Branch `feature/telescope-setup-alignment-platesolve`. Sonnet agents wrote the c
 
 **Known issues / not done**
 - Nothing here has run on a phone or telescope: sensors, the camera, real star photos and alignment accuracy are all untested. The solver has only seen synthetic images.
-- W4 (Camera2 plate-solve flow) and W5 (in-app GitHub updater) are in progress.
+- W4 (Camera2 plate-solve flow) is in verification. W5 (updater) and W6 (legal policy) are merged.
 
 **Next step**
 - Merge W4 and W5, run the full suites, get CI green, then merge to `main`.
