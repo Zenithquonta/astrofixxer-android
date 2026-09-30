@@ -20,6 +20,50 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 | Codebase analysis (web page) | https://claude.ai/artifact/SMf5adtidjB5CsJt5ZrxNW |
 | Bug-hunt and UI proof report | https://claude.ai/artifact/WxJfBipQQCRwaAE9qAkGYb |
 
+## TAKEOVER: read this first (updated 2026-09-30 20:40 UTC)
+
+For an agent or person picking up from here. The dated entries below have the full history.
+
+### Where the work is
+- Feature branch: `feature/telescope-setup-alignment-platesolve` in `Zenithquonta/astrofixxer-android`. It holds Phase 7b: W1 precession, W2 plate solver, W3 setup/alignment/guidance, W5 in-app updater and W6 legal policy. **Nothing from Phase 7b is on `main` yet.**
+- Work branches (local worktrees under `/home/user/wt/`, not pushed):
+  - `feature/tsap-w4`: camera plate-solve flow. Commit `b5dc645`, not merged, final checks not confirmed.
+  - `feature/tsap-w7`: Hindi-clipping fix, in progress.
+- The research paper is deliberately **not** in git (owner request). It lives only in `astrofixer-baby/paper/` on the working machine. The owner has a zip.
+
+### What failed most recently
+1. **CI `ui-check` is red on the feature branch since the W3 merge (runs 11 to 14).**
+   - `AuditTest` finds Hindi labels cut off on the GitHub runner's Devanagari font: "समायोजन रीसेट करें" (CENTER_STAR panel), "अभी संरेखित करें" (mounting-changed dialog) and "अपवर्तक (रिफ्रैक्टर)" (Telescope & orientation tab).
+   - Local runs pass only because this machine has no real Devanagari font. Reproduce by installing Noto/Lohit Devanagari fonts.
+   - The CI `build` job (real Android build, R8, APKs) passes.
+2. **Sonnet agents were repeatedly cut off by usage limits** (W3, W4, W5 and the paper agent). W4 committed but never reported its final test results.
+3. **Local full desktop runs get killed by tool time limits.** Launch them detached (`nohup ./gradlew test --offline > log 2>&1 &`) and wait on the process.
+4. `/x` (empty stray file at the filesystem root) could not be deleted: a safety check blocks it. The owner should run `rm /x`.
+
+### What still needs doing, in order
+1. W7: fix the Hindi clipping (use `Label` shrink-to-fit, or stack/wrap the buttons), rerun the full desktop suite with Devanagari fonts installed ("No findings"), merge.
+2. W4: run the jvm tests, the Android compile check and the full desktop suite; review (camera permission, never report an unreal solve, "Apply" rules for eyepiece and camera-offset); merge.
+3. Docs pass queued by the W6 review:
+   - `PRIVACY.md`: a typed location is saved; Ask is tap-to-start; add the storage list, camera, TTS and update check.
+   - `CONTRIBUTING.md`: the DCO.
+   - In-app licence text: Gaia/CelesTrak credits and a privacy link. The Indian art is CC BY-SA, not Free Art License.
+   - Plan section 0: drop the NASA eclipse tables. Nothing uses them; eclipses are computed in `Events.kt`.
+4. Push and wait for CI green (build, ui-check, secret-scan). **Only then** `git checkout main && git merge --no-ff feature/telescope-setup-alignment-platesolve`, push, and tag if releasing (`v0.2.0`; `release.yml` needs the Play keystore secrets).
+5. Owner actions:
+   - add the `PREVIEW_KEYSTORE_*` secrets, so updates install over each other;
+   - enable GitHub private vulnerability reporting;
+   - confirm the right to use the name "AstroFixxer";
+   - give the paper's author details;
+   - make the repository public;
+   - run the field test (`docs/FIELD_TEST.md`).
+6. Untested anywhere so far: real phone sensors, Camera2 capture and exposure, solving real sky photos, the DownloadManager/installer path, and the live GitHub API. Treat all as unverified until the field test.
+
+### How to run the checks
+- `astro/` and `update/` unit tests: a JVM Gradle project that points `kotlin.srcDir` at `app/src/main/java/org/astrofixxer/{astro,update}` (see the `jvm-*` scratch projects); CI runs `./gradlew test` at the root.
+- UI: `cd tools/desktop-check && ./gradlew test` (about 20 to 55 min; screens and `audit.txt` go to `build/screens/`).
+- Android compile without an SDK: the scratch `activitycheck` project (Robolectric android-all plus stubs). CI does the real build.
+
+
 ## Current status
 
 | Phase (see plan) | Status |
