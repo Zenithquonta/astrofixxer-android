@@ -32,12 +32,53 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 | 5. Compose UI (Stellarium-style) | Done: Object Info with altitude graph, markings (grid, ecliptic, meridian, IAU boundaries), star colours, eyepiece field, telescope and place & time settings, Tonight card, Free look, sky view, atmosphere, Milky Way, landscapes, light pollution, artwork, alignment, guidance, search, events, lists, onboarding, help, night mode, Hindi. Built and UI-tested in CI |
 | 5b. Offline events | Done, including ISS/Tiangong passes and Sun/Moon transits (SGP4). The live TLE download is untested here (CelesTrak blocked) |
 | 6. AstroGuide v1 (offline voice) | Done: English and Hindi commands, speech in/out |
+| 7b. Telescope setup, alignment, plate solving | In progress on `feature/telescope-setup-alignment-platesolve`: precession fix, plate solver and setup/alignment/guidance merged. Camera flow and in-app updater in progress |
 | 7. Release | Prepared: signing via CI secrets, signed-bundle workflow on tags, R8 in CI, launcher icon, privacy policy, store listing, field-test protocol. Needs the owner: upload key, Play account, repo made public, field test, screenshots |
 
 
 ---
 
 ## Entries
+
+### 2026-09-30: Phase 7b (in progress): precession fix, plate solver, telescope setup and guided alignment
+
+Branch `feature/telescope-setup-alignment-platesolve`. Sonnet agents wrote the code, each in its own worktree and branch (`feature/tsap-w1` to `w5`). The supervising agent reviewed every diff, re-ran the tests and merged.
+
+**What was done**
+- Plan: Phase 7b written with a ponytail review (`docs/IMPLEMENTATION_PLAN.md` section 7b). Decision: Camera2 instead of CameraX (rung 4). Google Maven is blocked here, and Camera2 adds no dependency.
+- W1, precession:
+  - `Pointing.rayFromPos`/`rayToRaDec` now apply IAU 1976 precession and IAU 1982 GMST, each counted once. The old formula (the Earth rotation angle with J2000 coordinates) already cancelled the precession in RA.
+  - Worst error against astropy over 66 cases fell from 801″ to 28.3″.
+  - The equatorial grid uses coordinates of date (`rayFromPosOfDate`).
+- W2, plate solver:
+  - The importer decodes Stellarium's Gaia DR3/Hipparcos star files. The new asset `solver_stars.bin` holds 579,984 stars to V 10.5 (2.94 MB, 5 bytes per star, a cell index).
+  - Pure-Kotlin `StarDetector`, `PlateSolver` and `SolverStars`: triangle matching at a known scale, then a least-squares similarity fit with parity.
+  - Acceptance: at least 6 matches, stars spread over at least a quarter of the frame, scale inside the hint, and false-alarm probability × hypotheses < 1e-6.
+- W3, setup, alignment and guidance:
+  - `astro/Mounting.kt`: phone axis per placement, axis check, nudge → view orientation, TRIAD.
+  - First-run setup wizard, and the Telescope & orientation tab with a preview, an orientation check, and rotate/mirror.
+  - New alignment flow: PICK_STAR → CENTER_STAR → drag the map under the fixed + → Confirm → result card with Retry. The calibration is computed exactly from the star and verified to land within 0.01°.
+  - Drags outside alignment never change the calibration. Manual mode is removed.
+  - Checking with a second star refines the alignment (TRIAD).
+  - Next-star guidance: arrow, distance, Close/On target, and an expandable More section.
+  - `Pointing.alignMatrix` now uses atan2. The old asin was wrong for azimuth differences over 90°.
+  - Setup and calibration are saved (`setupDone`, `mountType`, `placement`, …, `alignMatrix`, `alignStar`, `alignedAt`). The old `equatorial` key is migrated.
+
+**Dependencies added**
+- None. The new asset is `app/src/main/assets/solver_stars.bin`.
+
+**How to verify (results on the merged branch, commit 5511495)**
+- JVM unit tests (`astro/`): 85 tests, 0 failures. They include PrecessionTest 7, PlateSolverTest 19, SolverStarsTest 7 and MountingTest 12.
+- Importer: 19 tests OK (`HYG_CSV=... STELLARIUM_DIR=... python3 -m unittest test_build_sky_data`).
+- Desktop UI suite (W3 branch before the merge): 82 tests, 0 failures. The audit checked 440 screen variants with no findings. The re-run on the merged branch is in progress.
+- Android compile check (W3 branch): clean.
+
+**Known issues / not done**
+- Nothing here has run on a phone or telescope: sensors, the camera, real star photos and alignment accuracy are all untested. The solver has only seen synthetic images.
+- W4 (Camera2 plate-solve flow) and W5 (in-app GitHub updater) are in progress.
+
+**Next step**
+- Merge W4 and W5, run the full suites, get CI green, then merge to `main`.
 
 ### 2026-09-29: New UI and sky plotting (Stitch brief, Phase 5)
 
