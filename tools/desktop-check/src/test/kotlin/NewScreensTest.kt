@@ -7,15 +7,24 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
 import org.astrofixxer.ui.AlignState
+import org.astrofixxer.ui.Erecting
+import org.astrofixxer.ui.EyepieceAngle
+import org.astrofixxer.ui.MountType
+import org.astrofixxer.ui.PhoneEdge
+import org.astrofixxer.ui.PhonePlacement
 import org.astrofixxer.ui.PointingMode
 import org.astrofixxer.ui.SkyState
+import org.astrofixxer.ui.TelescopeSetup
+import org.astrofixxer.ui.TelescopeType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -60,11 +69,14 @@ class NewScreensTest {
         Fixtures.pointAt(state, catalog.find("Vega")!!)
         setContent { AppScreen(state) }
         onRoot().performTouchInput { longClick(center) }
-        onNode(button("Align on this")).assertExists()
+        onNode(button("Align using this star")).assertExists()
         screenshot("new-long-press")
-        onNode(button("Align on this")).tap()
-        assertEquals(AlignState.ALIGNED, state.align)
-        assertEquals("Vega", state.alignStar?.name)
+        onNode(button("Align using this star")).tap()
+        // The menu starts centring; it never aligns by itself (the old "Align on this" assumed the telescope was centred).
+        assertEquals(AlignState.CENTER_STAR, state.align)
+        assertEquals("Vega", state.centerStar?.name)
+        assertNull(state.alignMatrix)
+        state.cancelAlign()
         onRoot().performTouchInput { longClick(center) }
         onNode(button("Add to list")).tap()
         assertTrue(state.watchListText.contains("Vega"))
@@ -78,7 +90,6 @@ class NewScreensTest {
         Fixtures.pointAt(state, catalog.find("Vega")!!)
         setContent { AppScreen(state) }
         onNode(button("Compass")).tap()
-        onNode(button("Manual")).tap()
         onNode(button("Free look")).assertExists()
         assertEquals(PointingMode.FREE, state.mode)
         val alt0 = state.freeAltDeg
@@ -94,13 +105,13 @@ class NewScreensTest {
         val state = Fixtures.state()
         setContent { AppScreen(state) }
         onNode(button("Sky")).tap()
-        tab("Telescope")
+        tab("Telescope & orientation")
         onNode(hasText("True field: 1.08° · magnification ×48")).assertExists()
         onAllNodes(hasSetTextAction())[1].performTextReplacement("10")
         onNode(hasText("True field: 0.43° · magnification ×120")).assertExists()
         screenshot("new-telescope")
-        clickStepper("Mount")
-        assertTrue(state.equatorialMount)
+        onNode(button("Equatorial")).performScrollTo().tap() // below the fold on a phone: scroll to it like a person
+        assertEquals(MountType.EQUATORIAL, state.setup.mount)
     }
 
     @Test fun placeAndTime() = phoneTest {
@@ -150,10 +161,14 @@ class NewScreensTest {
     @Test fun settingsSurviveARestart() {
         val a = Fixtures.state().apply {
             showEcliptic = true; showBoundaries = true; hiddenDsoTypes = setOf("Ga"); bortle = 7
-            telescopeFocalMm = 650.0; eyepieceFocalMm = 9.0; equatorialMount = true; landscape = org.astrofixxer.ui.Landscape.TREES
+            telescopeFocalMm = 650.0; eyepieceFocalMm = 9.0; landscape = org.astrofixxer.ui.Landscape.TREES
+            setup = TelescopeSetup(TelescopeType.REFLECTOR, MountType.EQUATORIAL, PhonePlacement.EYEPIECE, PhoneEdge.LEFT, EyepieceAngle.RIGHT_ANGLE, Erecting.NO, 90, true)
+            setupDone = true; matchEyepieceView = true
         }
         val b = SkyState(0, 0.0, 0.0).apply { applySettings(a.settings()) }
         assertEquals(a.settings(), b.settings())
+        assertEquals(a.setup, b.setup)
+        assertTrue(b.setupDone && b.matchEyepieceView)
         b.applySettings(mapOf("bortle" to "banana", "telescopeMm" to "-3")) // bad values keep what was there
         assertEquals(7, b.bortle)
         assertEquals(650.0, b.telescopeFocalMm, 0.0)

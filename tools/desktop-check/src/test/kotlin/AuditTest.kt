@@ -9,8 +9,15 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import org.astrofixxer.astro.Pointing
 import org.astrofixxer.ui.AlignState
+import org.astrofixxer.ui.Erecting
+import org.astrofixxer.ui.EyepieceAngle
+import org.astrofixxer.ui.MountType
+import org.astrofixxer.ui.PhonePlacement
+import org.astrofixxer.ui.TelescopeType
 import org.astrofixxer.ui.DayColors
 import org.astrofixxer.ui.DayPalette
 import org.astrofixxer.ui.I18n
@@ -36,13 +43,92 @@ class AuditTest {
     private val catalog get() = Fixtures.catalog
     private fun button(label: String) = hasText(label) and hasClickAction()
 
+    /** Opens Sky & viewing, Telescope & orientation, Check orientation. */
+    private fun ComposeUiTest.openCheck() {
+        onNode(button(I18n.t("Sky"))).tap()
+        tab(I18n.t("Telescope & orientation"))
+        onNode(button(I18n.t("Check orientation"))).performScrollTo().tap()
+    }
+
+    private fun ComposeUiTest.next(times: Int) = repeat(times) { onNode(button(I18n.t("Next"))).tap() }
+
+    /** Aligned on Vega with the compass [errorDeg] off, result card showing. */
+    private fun confirmed(s: SkyState, errorDeg: Double) {
+        Fixtures.pointAt(s, catalog.find("Vega")!!)
+        s.device = Pointing.matMul(Pointing.axisAngleMatrix(doubleArrayOf(0.0, 0.0, 1.0), Math.toRadians(errorDeg)), s.device)
+        s.startAlign(); s.pickStar(catalog.find("Vega")!!); s.confirmAlignment()
+    }
+
+    /** Aligned on Vega (card dismissed) with M57 as the target, the telescope a few degrees away from it. */
+    private fun guided(s: SkyState) {
+        Fixtures.pointAt(s, catalog.find("Vega")!!); Fixtures.align(s, catalog.find("Vega")!!)
+        s.target = catalog.find("M57")
+    }
+
+    /** A bright star 2-8° up, found by moving the clock; null if none within a day. */
+    private fun lowStar(s: SkyState): org.astrofixxer.astro.SkyObject? {
+        var t = Fixtures.start
+        while (t < Fixtures.start + 86_400_000L) {
+            s.timeMillis = t
+            catalog.objects.firstOrNull { it.type == "S" && (it.mag ?: 9.0) < 3.5 && Math.toDegrees(kotlin.math.asin(s.ray(it)[2])) in 2.0..8.0 }?.let { return it }
+            t += 1_800_000L
+        }
+        return null
+    }
+
     private val screens = listOf(
         Screen("sky", false, {}),
         Screen("sky-target-not-aligned", false, { it.target = catalog.find("M57") }),
-        Screen("sky-picking-star", false, { it.target = catalog.find("M57"); it.align = AlignState.PICK_STAR }),
+        Screen("sky-picking-star", false, { it.target = catalog.find("M57"); it.startAlign() }),
+        Screen("sky-picking-star-refused", false, { it.startAlign(); it.pickStar(catalog.find("M57")!!) }),
+        Screen("sky-picking-star-no-compass", false, { it.hasCompass = false; it.startAlign() }),
+        Screen("sky-centering-star", false, { Fixtures.pointAt(it, catalog.find("Vega")!!); it.startAlign(); it.pickStar(catalog.find("Vega")!!) }),
+        Screen("sky-centering-star-dragged", false, { s ->
+            Fixtures.pointAt(s, catalog.find("Vega")!!); s.startAlign(); s.pickStar(catalog.find("Vega")!!)
+            s.dragAdjust(-90f, 60f, 360f, 780f)
+        }),
+        Screen("sky-centering-low-star", false, { s -> lowStar(s)?.let { s.startAlign(); s.pickStar(it) } }),
+        Screen("sky-align-result", false, { s -> confirmed(s, 4.0) }),
+        Screen("sky-align-result-large", false, { s -> confirmed(s, 40.0) }),
+        Screen("sky-align-check-result", false, { s ->
+            confirmed(s, 0.0); s.dismissAlignResult(); s.startCheckWithAnotherStar()
+            val altair = catalog.find("Altair")!!
+            Fixtures.pointAt(s, altair); s.pickStar(altair); s.confirmAlignment()
+        }),
+        Screen("sky-guidance-collapsed", false, { s -> guided(s) }),
+        Screen("sky-guidance-expanded", false, { s -> guided(s) }, { onNode(button(I18n.t("More"))).tap() }),
+        Screen("sky-guidance-close", false, { s -> guided(s); s.telescopeFocalMm = 300.0 }), // M57 is within three fields
+        Screen("sky-guidance-on-target", false, { s -> guided(s); Fixtures.pointAt(s, catalog.find("M57")!!) }),
+        Screen("sky-guidance-equatorial", false, { s -> guided(s); s.setup = s.setup.copy(mount = MountType.EQUATORIAL) }),
+        Screen("sky-guidance-eyepiece-view", false, { s -> guided(s); s.matchEyepieceView = true; s.setup = s.setup.copy(viewRotationDeg = 90, viewMirrored = true) }),
+        Screen("mounting-changed-dialog", true, { s -> confirmed(s, 0.0); s.updateSetup(s.setup.copy(placement = PhonePlacement.CAMERA_FORWARD)) }),
+        // The first-run wizard, every step and both eyepiece branches.
+        Screen("wizard-1-type", true, { it.setupDone = false }),
+        Screen("wizard-2-mount", true, { it.setupDone = false }, { next(1) }),
+        Screen("wizard-3-placement", true, { it.setupDone = false }, { next(2) }),
+        Screen("wizard-4-edge", true, { it.setupDone = false }, { next(3) }),
+        Screen("wizard-5-summary-tube", true, { it.setupDone = false }, { next(4) }),
+        Screen("wizard-4-camera-summary", true, { it.setupDone = false; it.setup = it.setup.copy(placement = PhonePlacement.CAMERA_FORWARD) }, { next(3) }),
+        Screen("wizard-4-angle", true, { it.setupDone = false; it.setup = it.setup.copy(placement = PhonePlacement.EYEPIECE) }, { next(3) }),
+        Screen("wizard-4-angle-edge", true, { it.setupDone = false; it.setup = it.setup.copy(placement = PhonePlacement.EYEPIECE, eyepieceAngle = EyepieceAngle.RIGHT_ANGLE) }, { next(3) }),
+        Screen("wizard-5-prism", true, { it.setupDone = false; it.setup = it.setup.copy(placement = PhonePlacement.EYEPIECE) }, { next(4) }),
+        Screen("wizard-6-summary-eyepiece", true, { it.setupDone = false; it.setup = it.setup.copy(placement = PhonePlacement.EYEPIECE, eyepieceAngle = EyepieceAngle.RIGHT_ANGLE, erecting = Erecting.NO, type = TelescopeType.REFRACTOR) }, { next(5) }),
+        // Telescope & orientation, and the check.
+        Screen("sky-tab-telescope-eyepiece", true, { it.setup = it.setup.copy(placement = PhonePlacement.EYEPIECE, eyepieceAngle = EyepieceAngle.RIGHT_ANGLE) },
+            { onNode(button(I18n.t("Sky"))).tap(); tab(I18n.t("Telescope & orientation")) }),
+        Screen("orientation-menu", true, {}, { openCheck() }),
+        Screen("orientation-view-question", true, {}, { openCheck(); onNode(button(I18n.t("Check the eyepiece view"))).tap() }),
+        Screen("orientation-view-result", true, {}, {
+            openCheck(); onNode(button(I18n.t("Check the eyepiece view"))).tap()
+            onNode(button(I18n.t("Up"))).tap(); onNode(button(I18n.t("Right"))).tap()
+        }),
+        Screen("orientation-phone-no-stars", true, {}, { openCheck(); onNode(button(I18n.t("Check the phone position"))).tap() }),
+        Screen("orientation-phone-result", true, { s ->
+            for (n in listOf("Vega", "Altair")) { Fixtures.pointAt(s, catalog.find(n)!!); Fixtures.align(s, catalog.find(n)!!) }
+        }, { openCheck(); onNode(button(I18n.t("Check the phone position"))).tap() }),
         Screen("sky-guiding-busy", false, { s ->
             Fixtures.pointAt(s, catalog.find("Vega")!!)
-            s.alignOn(catalog.find("Vega")!!)
+            Fixtures.align(s, catalog.find("Vega")!!)
             s.target = catalog.find("M31") // long names: Andromeda Galaxy · …
             s.watchListText = "Autumn galaxies: M31 M33 NGC891 (edge-on, faint)"
             s.applyUserText(catalog)
@@ -61,7 +147,7 @@ class AuditTest {
         Screen("lists", true, {}, { onNode(button(I18n.t("Sky"))).tap(); tab(I18n.t("More")); onNode(button(I18n.t("My objects & lists"))).tap() }),
         Screen("help", true, {}, { onNode(button(I18n.t("Sky"))).tap(); tab(I18n.t("More")); onNode(button(I18n.t("Help"))).tap() }),
         // The new tabs of Sky & viewing, Find and the other new screens.
-        *listOf("Deep-sky", "Markings", "Culture", "Landscape", "Telescope", "Place & time", "More").map { name ->
+        *listOf("Deep-sky", "Markings", "Culture", "Landscape", "Telescope & orientation", "Place & time", "More").map { name ->
             Screen("sky-tab-$name", true, {}, { onNode(button(I18n.t("Sky"))).tap(); tab(I18n.t(name)) })
         }.toTypedArray(),
         Screen("find-position", true, {}, { onNode(button(I18n.t("Find"))).tap(); tab(I18n.t("Position")) }),
@@ -73,7 +159,7 @@ class AuditTest {
         Screen("guide-suggestions", false, {}, { onNode(button(I18n.t("Ask"))).tap() }),
         Screen("sky-all-markings", false, { s ->
             s.showEquatorialGrid = true; s.showMeridian = true; s.showEcliptic = true; s.showBoundaries = true
-            Fixtures.pointAt(s, catalog.find("Vega")!!); s.alignOn(catalog.find("Vega")!!); s.target = catalog.find("M57")
+            Fixtures.pointAt(s, catalog.find("Vega")!!); Fixtures.align(s, catalog.find("Vega")!!); s.target = catalog.find("M57")
         }),
         Screen("tutorial", true, { it.showOnboarding = true }),
     )

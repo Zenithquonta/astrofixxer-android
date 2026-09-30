@@ -6,7 +6,14 @@ import org.astrofixxer.astro.Pointing
 import org.astrofixxer.astro.UserLists
 import org.astrofixxer.ui.AlignState
 import org.astrofixxer.ui.AstroGuide
+import org.astrofixxer.ui.Erecting
+import org.astrofixxer.ui.EyepieceAngle
 import org.astrofixxer.ui.Landscape
+import org.astrofixxer.ui.MountType
+import org.astrofixxer.ui.PhoneEdge
+import org.astrofixxer.ui.PhonePlacement
+import org.astrofixxer.ui.TelescopeSetup
+import org.astrofixxer.ui.TelescopeType
 import org.astrofixxer.ui.PointingMode
 import org.astrofixxer.ui.SkyScreen
 import org.astrofixxer.ui.SkyState
@@ -100,6 +107,7 @@ class StressTest {
             val lat = when (i % 8) { 0 -> 90.0; 1 -> -90.0; 2 -> 0.0; else -> rnd.nextDouble(-90.0, 90.0) }
             val millis = (rnd.nextDouble(-2.2e12, 4.1e12)).toLong() // 1900 .. 2100
             val state = SkyState(millis, lat, rnd.nextDouble(-180.0, 180.0)).apply {
+                setupDone = true
                 fovDeg = listOf(0.5, 1.0, 15.0, 60.0, 120.0)[i % 5]
                 device = randomRotation()
                 night = rnd.nextBoolean()
@@ -107,11 +115,22 @@ class StressTest {
                 bortle = 1 + i % 9
                 showGrid = i % 3 == 0
                 showAtmosphere = i % 4 != 0
-                mode = if (i % 2 == 0) PointingMode.MANUAL else PointingMode.COMPASS
-                azOffsetDeg = rnd.nextDouble(-720.0, 720.0)
+                mode = if (i % 2 == 0) PointingMode.FREE else PointingMode.COMPASS
+                setup = TelescopeSetup(
+                    TelescopeType.values()[i % 3], MountType.values()[(i / 3) % 3], PhonePlacement.values()[i % 3], PhoneEdge.values()[i % 4],
+                    EyepieceAngle.values()[i % 3], Erecting.values()[i % 3], listOf(0, 90, 180, 270)[i % 4], i % 2 == 1,
+                )
+                matchEyepieceView = i % 3 != 0
                 target = catalog.objects[rnd.nextInt(catalog.objects.size)]
-                if (i % 3 == 1) alignOn(catalog.objects[rnd.nextInt(catalog.objects.size)])
-                if (i % 5 == 2) align = AlignState.PICK_STAR
+                if (i % 3 == 1) { // aligned on a random star that is up (others are refused, as in the app)
+                    val star = catalog.objects.filter { it.type == "S" }.let { stars -> (0 until 50).map { stars[rnd.nextInt(stars.size)] }.firstOrNull { canAlignOn(it) } }
+                    if (star != null) { startAlign(); pickStar(star); confirmAlignment() }
+                }
+                if (i % 5 == 2) { // mid-alignment with a dragged map
+                    startAlign()
+                    dragAdjust(rnd.nextFloat() * 400 - 200, rnd.nextFloat() * 400 - 200, 360f, 780f)
+                    if (i % 10 == 2) catalog.objects.firstOrNull { it.type == "S" && canAlignOn(it) }?.let { beginCentering(it) }
+                }
                 live = i % 6 != 0
             }
             val size = if (i % 2 == 0) (360 to 780) else (780 to 360) // portrait and landscape
@@ -128,6 +147,7 @@ class StressTest {
             }
             val g = state.guidance()!!
             assertTrue("guidance NaN at case $i", g.toList().none { it.isNaN() })
+            state.moveHint()!!.let { h -> assertTrue("move hint NaN at case $i", listOf(h.vertical, h.horizontal, h.separationDeg, h.arrowDeg).none { it.isNaN() }) }
         }
     }
 

@@ -4,7 +4,7 @@ The goal is to find out, before release, whether a person can actually get a tar
 
 ## Setup
 
-- **Phones (3):** one with a gyroscope and compass, one with no compass (Manual mode), and one older or low-end phone (Android 8-10).
+- **Phones (3):** one with a gyroscope and compass, one with no compass (fix the azimuth by dragging while aligning), and one older or low-end phone (Android 8-10).
 - **Telescopes (2):** a Dobsonian and a small alt-az refractor or reflector, with a low-power eyepiece (about 1°).
 - A dark or suburban site, at least 1 hour after sunset. Note the Bortle class.
 - Install the CI build (`app-debug.apk` from the Android workflow). On first launch, allow location. Turn on night mode.

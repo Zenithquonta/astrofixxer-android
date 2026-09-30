@@ -114,11 +114,16 @@ object Pointing {
         )
     }
 
-    /** Camera frame [top, left, forward] for a device rotation, optionally corrected by an alignment matrix. */
-    fun cameraRays(device: DoubleArray, align: DoubleArray? = null): Array<DoubleArray> {
-        val fwd = mvec(device, doubleArrayOf(0.0, 1.0, 0.0))
+    /**
+     * Camera frame [top, left, forward] for a device rotation, optionally corrected by an alignment matrix.
+     * The telescope axis in phone coordinates is [axis] (default +Y, the top edge); the frame is derived from where it
+     * points, so the map stays level whatever way the phone is rolled about the axis.
+     */
+    fun cameraRays(device: DoubleArray, align: DoubleArray? = null, axis: DoubleArray = doubleArrayOf(0.0, 1.0, 0.0)): Array<DoubleArray> {
+        val fwd = mvec(device, axis)
         val hlen = sqrt(fwd[0] * fwd[0] + fwd[1] * fwd[1])
-        val lft = doubleArrayOf(-fwd[1] / hlen, fwd[0] / hlen, 0.0)
+        // Pointing straight up or down has no "left"; any level direction will do there.
+        val lft = if (hlen < 1e-9) doubleArrayOf(-1.0, 0.0, 0.0) else doubleArrayOf(-fwd[1] / hlen, fwd[0] / hlen, 0.0)
         val top = cross(fwd, lft)
         return if (align == null) arrayOf(top, lft, fwd)
         else arrayOf(mvec(align, top), mvec(align, lft), mvec(align, fwd))
@@ -126,13 +131,17 @@ object Pointing {
 
     /**
      * Alignment matrix that rotates the uncorrected camera frame so its forward axis points at [star]:
-     * an azimuth rotation followed by an altitude rotation around the camera's left axis.
+     * an altitude rotation around the camera's left axis, then an azimuth rotation about the vertical. Exact for any
+     * azimuth difference (up to 180°). Not defined when the star or the camera points straight up or down.
      */
     fun alignMatrix(uncorrected: Array<DoubleArray>, star: DoubleArray): DoubleArray {
         val fw = uncorrected[2]
         val left = uncorrected[1]
-        val dAz = asin(cross(norm(doubleArrayOf(star[0], star[1], 0.0)), norm(doubleArrayOf(fw[0], fw[1], 0.0)))[2])
-        val dAlt = asin(star[2]) - asin(fw[2])
+        val sh = sqrt(star[0] * star[0] + star[1] * star[1])
+        val fh = sqrt(fw[0] * fw[0] + fw[1] * fw[1])
+        val dAz = if (sh < 1e-12 || fh < 1e-12) 0.0
+        else atan2((star[0] * fw[1] - star[1] * fw[0]) / (sh * fh), (star[0] * fw[0] + star[1] * fw[1]) / (sh * fh))
+        val dAlt = asin(star[2].coerceIn(-1.0, 1.0)) - asin(fw[2].coerceIn(-1.0, 1.0))
         val dazMat = doubleArrayOf(cos(dAz), sin(dAz), 0.0, -sin(dAz), cos(dAz), 0.0, 0.0, 0.0, 1.0)
         val (u0, u1, u2) = Triple(left[0], left[1], left[2])
         val w = doubleArrayOf(0.0, -u2, u1, u2, 0.0, -u0, -u1, u0, 0.0)
@@ -140,6 +149,17 @@ object Pointing {
         daltMat = matAdd(daltMat, 1.0, matMul(w, w), 2 * sin(-dAlt / 2) * sin(-dAlt / 2))
         return matMul(dazMat, daltMat)
     }
+
+    /** Rotation by [angleRad] (right-handed) about the unit vector [axis], row-major 3x3 (Rodrigues' formula). */
+    fun axisAngleMatrix(axis: DoubleArray, angleRad: Double): DoubleArray {
+        val (u0, u1, u2) = Triple(axis[0], axis[1], axis[2])
+        val w = doubleArrayOf(0.0, -u2, u1, u2, 0.0, -u0, -u1, u0, 0.0)
+        val k = matAdd(IDENTITY, 1.0, w, sin(angleRad))
+        return matAdd(k, 1.0, matMul(w, w), 1 - cos(angleRad))
+    }
+
+    /** Angle between two unit vectors, in degrees. */
+    fun angleBetweenDeg(a: DoubleArray, b: DoubleArray): Double = Math.toDegrees(kotlin.math.acos(dot(a, b).coerceIn(-1.0, 1.0)))
 
     /** Target direction in camera coordinates: x right, y up, z forward (z <= 0 means behind). */
     fun bearing(ray: DoubleArray, camera: Array<DoubleArray>) =

@@ -43,7 +43,6 @@ import org.astrofixxer.ui.AstroGuide
 import org.astrofixxer.ui.EventItem
 import org.astrofixxer.ui.MeteorShower
 import org.astrofixxer.ui.MovingObject
-import org.astrofixxer.ui.PointingMode
 import org.astrofixxer.ui.SkyScreen
 import org.astrofixxer.ui.SkyState
 import org.astrofixxer.ui.parseMeteorShowers
@@ -101,9 +100,10 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
         rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
         if (rotationSensor == null) {
-            // No compass: gyro + gravity only, so the user fixes azimuth by dragging the sky.
+            // No compass: gyro + gravity only. It starts in Compass mode with an arbitrary azimuth; the user fixes it
+            // by dragging the map while aligning.
             rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR)
-            state.mode = PointingMode.MANUAL
+            state.hasCompass = false
         }
         val prefs = getSharedPreferences("astrofixxer", MODE_PRIVATE)
         if (prefs.contains("manual_lat")) state.setManualLocation(prefs.getFloat("manual_lat", 0f).toDouble(), prefs.getFloat("manual_lon", 0f).toDouble())
@@ -161,6 +161,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 comets = bodies.filter { it.isComet }
                 catalog = withContext(Dispatchers.IO) { openCatalog().use { Catalog.load(it) } }
                 state.applyUserText(catalog)
+                state.restoreAlignStar(catalog) // a saved alignment only kept the star's name
                 val showers = withContext(Dispatchers.IO) { parseMeteorShowers(assets.open("meteor_showers.json").bufferedReader().readText()) }
                 val brightStars = catalog!!.objects.filter { it.type == "S" && (it.mag ?: 99.0) <= 3.5 }.map { Triple(it.name, it.ra, it.dec) }
                 eventInputs = EventInputs(showers, bodies, brightStars, loadSatellites())

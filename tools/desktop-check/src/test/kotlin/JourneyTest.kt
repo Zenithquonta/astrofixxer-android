@@ -20,6 +20,7 @@ import org.astrofixxer.ui.Projector
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -68,11 +69,19 @@ class JourneyTest {
         Fixtures.pointAt(state, vega) // telescope (and phone) on Vega
         setContent { AppScreen(state) }
         onNode(button("Align")).tap()
-        onNode(hasText("Tap the star the telescope points at")).assertExists()
+        onNode(hasText("Tap the star you will centre in the telescope")).assertExists()
         screenshot("journey-06-pick-star")
-        onRoot().performTouchInput { click(center) } // Vega is under the crosshair
+        onRoot().performTouchInput { click(center) } // Vega is under the +
+        assertEquals(AlignState.CENTER_STAR, state.align) // tapping only picks the star: nothing is aligned yet
+        assertNull(state.alignMatrix)
+        onNode(hasText("Drag the map to place Vega under the +")).assertExists()
+        screenshot("journey-06b-centre-star")
+        onNode(button("Confirm alignment")).tap()
         assertEquals(AlignState.ALIGNED, state.align)
         assertEquals("Vega", state.alignStar?.name)
+        onNode(hasText("Aligned on Vega. Correction 0.0°.")).assertExists() // the telescope was on Vega: nothing to correct
+        screenshot("journey-06c-aligned")
+        onNode(button("Done")).tap()
         onNode(hasText("Move to M57")).assertExists()
         onNode(hasText("Ring Nebula")).assertExists() // the card shows the friendly name, not catalogue numbers
         val (_, _, sep) = state.guidance()!!
@@ -86,11 +95,10 @@ class JourneyTest {
     @Test fun tappingAlignByMistakeKeepsTheAlignment() = phoneTest {
         val state = Fixtures.state()
         Fixtures.pointAt(state, catalog.find("Vega")!!)
-        setContent { AppScreen(state) }
-        onNode(button("Align")).tap()
-        onRoot().performTouchInput { click(center) }
+        Fixtures.align(state, catalog.find("Vega")!!)
         val alignment = state.alignMatrix
         assertNotNull(alignment)
+        setContent { AppScreen(state) }
         onNode(button("Align")).tap()
         onNode(button("Cancel")).tap()
         assertEquals(AlignState.ALIGNED, state.align)
@@ -98,6 +106,15 @@ class JourneyTest {
         onNode(button("Align")).tap()
         waitForIdle()
         assertTrue(BackButton.press()) // Back also cancels picking
+        waitForIdle()
+        assertEquals(AlignState.ALIGNED, state.align)
+        assertSame(alignment, state.alignMatrix)
+        // ... and centring: Back cancels that too, and the calibration is untouched.
+        onNode(button("Align")).tap()
+        onRoot().performTouchInput { click(center) }
+        assertEquals(AlignState.CENTER_STAR, state.align)
+        waitForIdle()
+        assertTrue(BackButton.press())
         waitForIdle()
         assertEquals(AlignState.ALIGNED, state.align)
         assertSame(alignment, state.alignMatrix)
@@ -168,17 +185,25 @@ class JourneyTest {
         }
     }
 
-    @Test fun manualModeDragMovesTheSkyWithTheFinger() = phoneTest {
-        val state = Fixtures.state().apply { mode = PointingMode.MANUAL }
+    @Test fun draggingTheSkyOutsideAlignmentNeverChangesTheCalibration() = phoneTest {
+        val state = Fixtures.state()
         val vega = catalog.find("Vega")!!
         Fixtures.pointAt(state, vega)
+        Fixtures.align(state, vega)
+        val calibration = state.alignMatrix!!.copyOf()
+        val before = state.camera()[2].copyOf()
         setContent { AppScreen(state) }
+        onRoot().performTouchInput { swipe(center, center + Offset(150f, 90f), 400) } // Compass mode: a drag is a no-op
+        waitForIdle()
+        assertTrue(calibration.contentEquals(state.alignMatrix!!))
+        assertTrue(before.contentEquals(state.camera()[2]))
+        assertEquals(0.0, state.adjustAzDeg, 0.0)
+        assertEquals(0.0, state.adjustAltDeg, 0.0)
+        onNode(button("Compass")).tap() // Free look browses the map, still without touching the calibration
+        assertEquals(PointingMode.FREE, state.mode)
         onRoot().performTouchInput { swipe(center, center + Offset(150f, 0f), 400) }
         waitForIdle()
-        val size = onRoot().fetchSemanticsNode().size
-        val p = Projector(state.camera(), size.width.toFloat(), size.height.toFloat(), state.fovDeg).project(state.ray(vega))!!
-        val moved = p.x - size.width / 2f
-        assertTrue("Vega should follow the finger ~150 px right (less the touch slop), moved $moved px", moved in 115f..165f)
+        assertTrue(calibration.contentEquals(state.alignMatrix!!))
     }
 
     @Test fun myObjectsShowErrorsAndWatchListSteps() = phoneTest {

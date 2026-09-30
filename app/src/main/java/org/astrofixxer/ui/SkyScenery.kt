@@ -155,10 +155,14 @@ fun DrawScope.drawLandscape(state: SkyState, proj: Projector, ground: Color, out
         return
     }
     val sorted = pts.sortedBy { it.x }
+    // Reaches well past the screen on the left, right and bottom, so a turned or mirrored view (see Projector) still ends up covered.
+    val far = size.maxDimension * 3
     val path = Path().apply {
-        moveTo(sorted.first().x, size.height + 10)
+        moveTo(sorted.first().x - far, size.height + far)
+        lineTo(sorted.first().x - far, sorted.first().y)
         for (p in sorted) lineTo(p.x, p.y)
-        lineTo(sorted.last().x, size.height + 10)
+        lineTo(sorted.last().x + far, sorted.last().y)
+        lineTo(sorted.last().x + far, size.height + far)
         close()
     }
     drawPath(path, ground)
