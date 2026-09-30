@@ -71,6 +71,8 @@ private fun DrawScope.polyline(points: List<Offset?>, color: Color, width: Float
 fun DrawScope.drawSkyMarkings(state: SkyState, catalog: Catalog?, proj: Projector, text: TextMeasurer) {
     val m = if (state.night) NightMarkings else DayMarkings
     fun radec(ra: Double, dec: Double) = proj.project(Pointing.rayFromPos(ra, dec, state.timeMillis, state.lat, state.lon))
+    // RA/Dec of date, for the equatorial grid only.
+    fun radecOfDate(ra: Double, dec: Double) = proj.project(Pointing.rayFromPosOfDate(ra, dec, state.timeMillis, state.lat, state.lon))
 
     if (state.showBoundaries && catalog != null) {
         for (edge in catalog.boundaries) {
@@ -80,11 +82,11 @@ fun DrawScope.drawSkyMarkings(state: SkyState, catalog: Catalog?, proj: Projecto
     }
     if (state.showEquatorialGrid) {
         for (dec in listOf(-60, -30, 0, 30, 60)) {
-            polyline((0..360 step 3).map { radec(it.toDouble(), dec.toDouble()) }, m.eqGrid, if (dec == 0) 1.4f else 0.8f)
+            polyline((0..360 step 3).map { radecOfDate(it.toDouble(), dec.toDouble()) }, m.eqGrid, if (dec == 0) 1.4f else 0.8f)
         }
         for (ra in 0 until 360 step 30) {
-            polyline((-88..88 step 4).map { radec(ra.toDouble(), it.toDouble()) }, m.eqGrid, 0.8f)
-            radec(ra.toDouble(), 0.0)?.let { safeText(text, "${ra / 15}h", it + Offset(4f, 2f), TextStyle(color = m.label, fontSize = 10.sp)) }
+            polyline((-88..88 step 4).map { radecOfDate(ra.toDouble(), it.toDouble()) }, m.eqGrid, 0.8f)
+            radecOfDate(ra.toDouble(), 0.0)?.let { safeText(text, "${ra / 15}h", it + Offset(4f, 2f), TextStyle(color = m.label, fontSize = 10.sp)) }
         }
     }
     if (state.showEcliptic) {
