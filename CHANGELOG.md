@@ -8,6 +8,16 @@ Every update and fix to AstroFixxer, newest first. Dates are when the work lande
 The first Android version: a Kotlin + Jetpack Compose port of the AstroFixxer web app, which grew out of
 [AstroHopper / skyhopper](https://github.com/artyom-beilis/skyhopper) by Artyom Beilis.
 
+### Telescope setup, alignment and guidance (30 Sep 2026)
+
+- **First-run wizard.** Four to six short steps with pictures: telescope type, mount, where the phone is mounted (flat on the tube, camera facing along it, or on the eyepiece) and the follow-ups that placement needs. "Set up later" keeps the defaults. People who already had the app see the wizard once and keep all their other settings.
+- **Sky & viewing → Telescope & orientation** replaces the Telescope tab: the setup, a picture of the arrangement, the eyepiece, and **Check orientation** (which phone axis points along the telescope, from two alignment stars; and which way the eyepiece shows the sky, from two nudges of the telescope).
+- **Alignment fixed.** Tapping a star used to align at once, as if the telescope were already centred. Now: Align, tap the star, centre it in the eyepiece, drag the map until it is under the +, Confirm. The result card says how big the correction was, warns above 20° and has Retry. "Align using this star" in the long-press menu and Object Info starts the same flow. The calibration is saved, so the chip can say "Aligned 3 h ago".
+- **Manual mode is gone.** Its sideways drag changed the calibration while you browsed. Modes are Compass and Free look, and only the alignment steps let a drag move the calibration map (which also fixes the start azimuth on phones without a compass).
+- **Check with another star** (under More) reports how far off the alignment was and refines it with both stars.
+- **Guidance** is a big arrow with words ("↗ Up 3.2° · Right 5.1°") and the distance; Close is amber, On target is a filled bullseye. Details, the eyepiece-view controls and the check are behind More.
+- **Match eyepiece view** draws the sky map turned and mirrored like the eyepiece; directions never change. The + is now a small marker at the exact centre.
+
 ### New screens and sky plotting (29 Sep 2026)
 
 Built from the Stitch UI brief and Phase 5 of the implementation plan.

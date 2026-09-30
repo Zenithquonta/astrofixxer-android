@@ -184,9 +184,10 @@ private fun ListBrowser(state: SkyState, catalog: Catalog?, pick: (SkyObject) ->
 @Composable
 internal fun SkyOptionsSheet(
     state: SkyState, catalog: Catalog?, onClose: () -> Unit, onLists: () -> Unit, onHelp: () -> Unit, onTutorial: () -> Unit,
+    onCheckOrientation: () -> Unit,
 ) {
     var tab by remember { mutableStateOf(0) }
-    val tabs = listOf("Sky", "Deep-sky", "Markings", "Culture", "Landscape", "Telescope", "Place & time", "More")
+    val tabs = listOf("Sky", "Deep-sky", "Markings", "Culture", "Landscape", "Telescope & orientation", "Place & time", "More")
     SheetFrame(t("Sky & viewing"), onClose) {
         ScrollableTabRow(selectedTabIndex = tab, edgePadding = 0.dp, containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 1f)) {
             tabs.forEachIndexed { i, label ->
@@ -229,7 +230,7 @@ internal fun SkyOptionsSheet(
                     item { Choice(t("Indian (Vedic)"), t("Nakshatras, rashis and Indian star names."), state.skyCulture == "indian") { state.skyCulture = "indian" } }
                 }
                 4 -> for (l in Landscape.values()) item { Choice(t(l.label), null, state.landscape == l) { state.landscape = l } }
-                5 -> item { TelescopeSettings(state) }
+                5 -> item { TelescopeSettings(state, onCheckOrientation) }
                 6 -> {
                     item { LocationEditor(state) }
                     item { CityList(state) }
@@ -243,7 +244,7 @@ internal fun SkyOptionsSheet(
 
 /** A radio-button row (sky culture, landscape). */
 @Composable
-private fun Choice(label: String, detail: String?, selected: Boolean, onSelect: () -> Unit) {
+internal fun Choice(label: String, detail: String?, selected: Boolean, onSelect: () -> Unit) {
     Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).selectable(selected, role = Role.RadioButton, onClick = onSelect),
         verticalAlignment = Alignment.CenterVertically) {
         RadioButton(selected = selected, onClick = null)
@@ -256,29 +257,11 @@ private fun Choice(label: String, detail: String?, selected: Boolean, onSelect: 
 
 /** A number field that only accepts a positive number in [range]; applies it as soon as it is valid. */
 @Composable
-private fun NumberField(label: String, value: Double, range: ClosedFloatingPointRange<Double>, modifier: Modifier, onValid: (Double) -> Unit) {
+internal fun NumberField(label: String, value: Double, range: ClosedFloatingPointRange<Double>, modifier: Modifier, onValid: (Double) -> Unit) {
     var text by remember { mutableStateOf(if (value % 1.0 == 0.0) value.toInt().toString() else value.toString()) }
     val parsed = text.toDoubleOrNull()?.takeIf { it in range }
     OutlinedTextField(text, { text = it; it.toDoubleOrNull()?.takeIf { v -> v in range }?.let(onValid) }, label = { Text(label) },
         singleLine = true, isError = parsed == null, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = modifier)
-}
-
-@Composable
-private fun TelescopeSettings(state: SkyState) {
-    val c = MaterialTheme.colorScheme
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(t("The eyepiece circle and \"On target\" use these."), color = c.onSurface, fontSize = 15.sp)
-        NumberField(t("Telescope focal length (mm)"), state.telescopeFocalMm, 100.0..10000.0, Modifier.fillMaxWidth()) { state.telescopeFocalMm = it }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            NumberField(t("Eyepiece (mm)"), state.eyepieceFocalMm, 2.0..60.0, Modifier.weight(1f)) { state.eyepieceFocalMm = it }
-            NumberField(t("Apparent field (°)"), state.eyepieceAfovDeg, 20.0..120.0, Modifier.weight(1f)) { state.eyepieceAfovDeg = it }
-        }
-        Text(t("True field: %.2f° · magnification ×%.0f").format(state.eyepieceFovDeg, state.telescopeFocalMm / state.eyepieceFocalMm),
-            color = c.primary, fontSize = 15.sp)
-        val mount = { state.equatorialMount = !state.equatorialMount }
-        Stepper(t("Mount"), t(if (state.equatorialMount) "Equatorial" else "Alt-Az"), onMinus = mount, onPlus = mount)
-        Toggle(t("Vibrate when on target"), state.haptics) { state.haptics = it }
-    }
 }
 
 /** Offline cities for choosing a location without GPS (India first, then major world cities). */
@@ -430,7 +413,8 @@ private fun TonightLines(s: TonightSummary) {
 // ---------------------------------------------------------------- Long-press quick menu
 
 @Composable
-internal fun QuickMenu(obj: SkyObject, at: Offset, onDismiss: () -> Unit, onTarget: () -> Unit, onAlign: () -> Unit, onAdd: () -> Unit, onInfo: () -> Unit) {
+/** [onAlign] is null for objects that cannot be an alignment star (deep-sky objects, the Sun and Moon, anything below the horizon). */
+internal fun QuickMenu(obj: SkyObject, at: Offset, onDismiss: () -> Unit, onTarget: () -> Unit, onAlign: (() -> Unit)?, onAdd: () -> Unit, onInfo: () -> Unit) {
     val density = LocalDensity.current
     Box(Modifier.fillMaxSize().clickable(onClick = onDismiss)) {
         val x = with(density) { (at.x.toDp() - 20.dp).coerceAtLeast(8.dp) }
@@ -440,7 +424,7 @@ internal fun QuickMenu(obj: SkyObject, at: Offset, onDismiss: () -> Unit, onTarg
             Column(Modifier.padding(8.dp)) {
                 Text(obj.name, color = MaterialTheme.colorScheme.primary, fontSize = 16.sp, fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
-                for ((label, action) in listOf("Set as target" to onTarget, "Align on this" to onAlign, "Add to list" to onAdd, "Info" to onInfo)) {
+                for ((label, action) in listOfNotNull("Set as target" to onTarget, onAlign?.let { "Align using this star" to it }, "Add to list" to onAdd, "Info" to onInfo)) {
                     Box(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { action(); onDismiss() }.padding(horizontal = 8.dp),
                         contentAlignment = Alignment.CenterStart) {
                         Text(t(label), color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp)

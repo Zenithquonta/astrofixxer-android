@@ -2,6 +2,7 @@ package org.astrofixxer.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -88,7 +90,7 @@ internal fun ObjectInfoSheet(state: SkyState, catalog: Catalog?, obj: SkyObject,
             item {
                 Text(t("In the eyepiece"), color = c.primary, fontSize = 17.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 16.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    EyepiecePreview(obj, state.eyepieceFovDeg, Modifier.size(120.dp))
+                    EyepiecePreview(obj, state.eyepieceFovDeg, state.setup.viewRotationDeg, state.setup.viewMirrored, Modifier.size(120.dp))
                     Text(t("Field %.1f° with the %.0f mm eyepiece").format(state.eyepieceFovDeg, state.eyepieceFocalMm) +
                         (obj.sizeArcmin.takeIf { it > 0 }?.let { "\n" + t("Object %.0f′ across").format(it) } ?: ""),
                         color = c.onSurface, fontSize = 14.sp, modifier = Modifier.padding(start = 12.dp))
@@ -96,7 +98,17 @@ internal fun ObjectInfoSheet(state: SkyState, catalog: Catalog?, obj: SkyObject,
             }
             item {
                 if (state.target?.name != obj.name) Button(onClick = { state.target = obj; onClose() },
-                    modifier = Modifier.padding(vertical = 16.dp).heightIn(min = 48.dp)) { Text(t("Set as target")) }
+                    modifier = Modifier.padding(top = 16.dp).heightIn(min = 48.dp)) { Text(t("Set as target")) }
+            }
+            item {
+                // Stars and planets above the horizon can be used to align the app with the telescope.
+                if (state.canAlignOn(obj)) {
+                    OutlinedButton(onClick = { state.beginCentering(obj); onClose() }, modifier = Modifier.padding(top = 8.dp).heightIn(min = 48.dp)) {
+                        Text(t("Align using this star"))
+                    }
+                    if (state.isLowForAlignment(obj)) Text(t("Low stars are harder to centre"), color = c.error, fontSize = 13.sp)
+                }
+                Box(Modifier.heightIn(min = 16.dp))
             }
         }
     }
@@ -164,9 +176,12 @@ internal fun AltitudeGraph(v: Visibility, nowMillis: Long, nightMode: Boolean, m
     }
 }
 
-/** The eyepiece's circle of sky with the object drawn to scale in it (an ellipse for extended objects, a dot otherwise). */
+/**
+ * The eyepiece's circle of sky with the object drawn to scale in it (an ellipse for extended objects, a dot otherwise), turned
+ * and mirrored like the eyepiece shows the sky, with a small tick where the zenith is (up on an upright map).
+ */
 @Composable
-private fun EyepiecePreview(obj: SkyObject, fovDeg: Double, modifier: Modifier) {
+internal fun EyepiecePreview(obj: SkyObject, fovDeg: Double, viewRotationDeg: Int, viewMirrored: Boolean, modifier: Modifier) {
     val c = MaterialTheme.colorScheme
     Canvas(modifier.semantics { contentDescription = "Eyepiece view" }) {
         val r = size.minDimension / 2
@@ -174,6 +189,9 @@ private fun EyepiecePreview(obj: SkyObject, fovDeg: Double, modifier: Modifier) 
         drawCircle(Color.Black, r, mid)
         drawCircle(c.outline, r, mid, style = Stroke(2f))
         val objR = if (obj.sizeArcmin > 0) (obj.sizeArcmin / 60 / fovDeg * r).toFloat().coerceIn(2f, r * 1.5f) else 3f
-        rotate(-30f, mid) { drawOval(c.onSurface.copy(alpha = 0.8f), mid - Offset(objR, objR * 0.6f), Size(objR * 2, objR * 1.2f)) }
+        // An ellipse tilted -30° on an upright map: mirroring flips the tilt, then the view is turned clockwise.
+        rotate((if (viewMirrored) 30f else -30f) + viewRotationDeg, mid) { drawOval(c.onSurface.copy(alpha = 0.8f), mid - Offset(objR, objR * 0.6f), Size(objR * 2, objR * 1.2f)) }
+        // Zenith mark: up on the map, turned with the view.
+        rotate(viewRotationDeg.toFloat(), mid) { drawLine(c.primary, mid + Offset(0f, -r), mid + Offset(0f, -r * 0.82f), strokeWidth = 5f) }
     }
 }

@@ -13,11 +13,13 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.astrofixxer.astro.ApparentPosition
 import org.astrofixxer.astro.Catalog
@@ -48,12 +50,22 @@ val NightPalette = Palette(
     alignStar = Color(0xFFC81414), crosshair = Color(0xFFFF2020),
 )
 
-/** Maps [east, north, up] directions to screen pixels with the web app's orthographic "camera" projection. */
-class Projector(private val cam: Array<DoubleArray>, val width: Float, val height: Float, fovDeg: Double) {
+/**
+ * Maps [east, north, up] directions to screen pixels with the web app's orthographic "camera" projection.
+ * The eyepiece view can be drawn like the eyepiece shows it: flipped left-right when [viewMirrored], then turned
+ * [viewRotationDeg] (a multiple of 90) clockwise about the centre. That changes only where things are drawn.
+ */
+class Projector(
+    private val cam: Array<DoubleArray>, val width: Float, val height: Float, fovDeg: Double,
+    private val viewRotationDeg: Int = 0, private val viewMirrored: Boolean = false,
+) {
     val fovH: Double
     val fovV: Double
     private val limX: Double
     private val limY: Double
+    private val plain = viewRotationDeg % 360 == 0 && !viewMirrored
+    private val cosR = cos(viewRotationDeg * PI / 180)
+    private val sinR = sin(viewRotationDeg * PI / 180)
 
     init {
         val ratio = width / height
@@ -65,10 +77,24 @@ class Projector(private val cam: Array<DoubleArray>, val width: Float, val heigh
     /** On-screen radius in pixels of a circle [deg] degrees across its radius, at the centre of the view. */
     fun radiusPx(deg: Double): Float = (sin(deg * PI / 180) / (2 * limX) * width).toFloat()
 
+    /** Turns a pixel offset from the centre (x right, y down) the way the eyepiece view is turned. */
+    private fun view(dx: Double, dy: Double): Offset {
+        val x = if (viewMirrored) -dx else dx
+        return if (plain) Offset((width / 2 + x).toFloat(), (height / 2 + dy).toFloat())
+        else Offset((width / 2 + x * cosR - dy * sinR).toFloat(), (height / 2 + x * sinR + dy * cosR).toFloat())
+    }
+
     fun project(ray: DoubleArray): Offset? {
         val b = Pointing.bearing(ray, cam)
         if (b[2] <= 0) return null
-        return Offset(((b[0] + limX) / (2 * limX) * width).toFloat(), ((1 - (b[1] + limY) / (2 * limY)) * height).toFloat())
+        return if (plain) Offset(((b[0] + limX) / (2 * limX) * width).toFloat(), ((1 - (b[1] + limY) / (2 * limY)) * height).toFloat())
+        else view(b[0] / limX * width / 2, -b[1] / limY * height / 2)
+    }
+
+    /** Screen direction (radians, 0 = right, clockwise) from the centre toward a target at camera bearing [b], even behind the view. */
+    fun edgeAngle(b: DoubleArray): Float {
+        val d = view(b[0], -b[1]) - Offset(width / 2, height / 2)
+        return kotlin.math.atan2(d.y, d.x)
     }
 }
 
@@ -102,14 +128,19 @@ fun SkyCanvas(
                     onLongPress = { at -> nearest(at)?.let { onLongPress(it, at) } },
                 ) { tap ->
                     val obj = nearest(tap) ?: return@detectTapGestures
-                    if (state.align == AlignState.PICK_STAR) state.alignOn(obj) else state.target = obj
+                    when (state.align) {
+                        AlignState.PICK_STAR -> state.pickStar(obj) // becomes the star to centre; nothing is calibrated yet
+                        AlignState.CENTER_STAR -> {} // the map is being lined up on the chosen star; a stray tap must not change it
+                        else -> state.target = obj
+                    }
                 }
             }
             .pointerInput(state) {
                 detectTransformGestures { _, pan, zoom, _ ->
                     if (zoom != 1f) state.fovDeg = (state.fovDeg / zoom).coerceIn(0.5, 120.0)
-                    if (state.mode == PointingMode.MANUAL && pan.x != 0f) state.dragSky(pan.x, size.width.toFloat(), size.height.toFloat())
-                    if (state.mode == PointingMode.FREE) state.panFree(pan.x, pan.y, size.width.toFloat(), size.height.toFloat())
+                    // Only while aligning does a drag move the calibration map; Free look browses; Compass ignores drags.
+                    if (state.aligning) state.dragAdjust(pan.x, pan.y, size.width.toFloat(), size.height.toFloat())
+                    else if (state.mode == PointingMode.FREE) state.panFree(pan.x, pan.y, size.width.toFloat(), size.height.toFloat())
                 }
             },
     ) {
@@ -135,7 +166,10 @@ private fun DrawScope.drawSky(
 ) {
     val pal = if (state.night) NightPalette else DayPalette
     val cam = state.camera()
-    val proj = Projector(cam, size.width, size.height, state.fovDeg)
+    val eyepieceView = state.matchEyepieceView
+    val viewRotation = if (eyepieceView) state.setup.viewRotationDeg else 0
+    val viewMirrored = eyepieceView && state.setup.viewMirrored
+    val proj = Projector(cam, size.width, size.height, state.fovDeg, viewRotation, viewMirrored)
     val labelStyle = TextStyle(color = pal.label, fontSize = 11.sp)
     val sunAlt = moving.firstOrNull { it.kind == MovingObject.Kind.SUN }
         ?.let { Math.toDegrees(kotlin.math.asin(state.ray(it.obj)[2])) } ?: -90.0
@@ -230,12 +264,39 @@ private fun DrawScope.drawSky(
         hits += p to m.obj
     }
 
-    drawLandscape(state, proj, if (state.night) Color(0xFF0D0000) else Color(0xFF07100A), pal.horizon)
+    // The ground is a filled shape whose "down" is the screen bottom, so a turned view draws it flat and turns the canvas.
+    val ground = if (state.night) Color(0xFF0D0000) else Color(0xFF07100A)
+    if (viewRotation == 0 && !viewMirrored) drawLandscape(state, proj, ground, pal.horizon)
+    else withTransform({
+        rotate(viewRotation.toFloat(), Offset(size.width / 2, size.height / 2))
+        if (viewMirrored) scale(-1f, 1f, Offset(size.width / 2, size.height / 2))
+    }) { drawLandscape(state, Projector(cam, size.width, size.height, state.fovDeg), ground, pal.horizon) }
     drawHorizon(proj, pal, text, state.showCardinals)
 
-    state.alignStar?.let { s -> if (state.align == AlignState.ALIGNED) proj.project(state.ray(s))?.let { drawCircle(pal.alignStar, 12f, it, style = Stroke(2f)) } }
-
     val mid = Offset(size.width / 2, size.height / 2)
+    // Points at an object that is off screen (beside or behind the view) with an arrow at the edge.
+    fun edgeArrow(ray: DoubleArray, color: Color) {
+        val ang = proj.edgeAngle(Pointing.bearing(ray, cam))
+        val edge = mid + Offset(cos(ang) * size.minDimension * 0.42f, sin(ang) * size.minDimension * 0.42f)
+        rotate(Math.toDegrees(ang.toDouble()).toFloat(), edge) {
+            drawLine(color, edge - Offset(26f, 0f), edge, strokeWidth = 4f)
+            drawLine(color, edge, edge + Offset(-12f, -10f), strokeWidth = 4f)
+            drawLine(color, edge, edge + Offset(-12f, 10f), strokeWidth = 4f)
+        }
+    }
+
+    state.alignStar?.let { s -> if (state.align == AlignState.ALIGNED) proj.project(state.ray(s))?.let { drawCircle(pal.alignStar, 12f, it, style = Stroke(2f)) } }
+    // The star being centred: a ring and a line to the + so it is easy to see how far the map must move.
+    state.centerStar?.let { s ->
+        val sr = state.ray(s)
+        val p = proj.project(sr)?.takeIf { it.x in 0f..size.width && it.y in 0f..size.height }
+        if (p != null) {
+            drawCircle(pal.alignStar, 16f, p, style = Stroke(3f))
+            drawLine(pal.alignStar, mid, p, strokeWidth = 2f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 8f)))
+            safeText(text, s.name, p + Offset(6f, -20f), TextStyle(color = pal.alignStar, fontSize = 14.sp))
+        } else edgeArrow(sr, pal.alignStar)
+    }
+
     state.target?.let { t ->
         val tr = state.ray(t)
         val p = proj.project(tr)?.takeIf { it.x in 0f..size.width && it.y in 0f..size.height }
@@ -243,22 +304,22 @@ private fun DrawScope.drawSky(
             drawCircle(pal.target, 16f, p, style = Stroke(2.5f))
             drawLine(pal.target, mid, p, strokeWidth = 2f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 10f)))
             safeText(text, t.name, p + Offset(6f, -20f), TextStyle(color = pal.target, fontSize = 14.sp))
-        } else {
-            // Off screen (beside or behind the view): arrow at the edge pointing toward the target.
-            val b = Pointing.bearing(tr, cam)
-            val ang = kotlin.math.atan2(-b[1], b[0]).toFloat()
-            val edge = mid + Offset(cos(ang) * size.minDimension * 0.42f, sin(ang) * size.minDimension * 0.42f)
-            rotate(Math.toDegrees(ang.toDouble()).toFloat(), edge) {
-                drawLine(pal.target, edge - Offset(26f, 0f), edge, strokeWidth = 4f)
-                drawLine(pal.target, edge, edge + Offset(-12f, -10f), strokeWidth = 4f)
-                drawLine(pal.target, edge, edge + Offset(-12f, 10f), strokeWidth = 4f)
-            }
-        }
+        } else edgeArrow(tr, pal.target)
     }
 
     drawEyepieceCircle(state, proj)
+    drawPlusMarker(mid, pal.crosshair)
+}
+
+/**
+ * The + that marks where the telescope points: four short arms with a small gap in the middle so the star under it
+ * stays visible. Always drawn at exactly the centre, and never turned with the eyepiece view.
+ */
+private fun DrawScope.drawPlusMarker(mid: Offset, color: Color) {
+    val near = 3.dp.toPx()
+    val far = 9.dp.toPx()
     for (dir in listOf(Offset(1f, 0f), Offset(-1f, 0f), Offset(0f, 1f), Offset(0f, -1f))) {
-        drawLine(pal.crosshair, mid + dir * 10f, mid + dir * 40f, strokeWidth = 2.5f)
+        drawLine(color, mid + dir * near, mid + dir * far, strokeWidth = 1.5.dp.toPx())
     }
 }
 

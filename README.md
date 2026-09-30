@@ -51,7 +51,7 @@ AstroFixxer does the hopping maths for you.
 <p align="center"><img src="docs/art/planets.gif" width="720" alt="Pixel planets: the Moon cycling through its phases, Jupiter turning with its Great Red Spot, Saturn and its rings, and Mars"></p>
 
 - 🌌 **About 100,000 objects that need no internet**: stars, galaxies, nebulae, clusters, planets, comets and asteroids, built from [Stellarium](https://stellarium.org)'s open catalogues and the HYG star database.
-- 🔭 **Push-to guidance** for manual telescopes, with one-star alignment, a Compass mode, and a Manual mode for phones without a compass.
+- 🔭 **Push-to guidance** for manual telescopes, with a first-run setup wizard, guided one-star alignment (drag the map under the +, which also serves phones without a compass), a Compass mode and a Free look mode.
 - 🗓️ **Events for the next 60 days, all worked out on the phone**: eclipses, meteor showers, conjunctions, supermoons, planet gatherings, Mercury and Venus transits, occultations of bright stars by the Moon, bright comets, visible passes of the ISS and the Tiangong space station, and ISS crossings of the Sun and Moon.
 - ⏳ **Time travel**: step the sky by hours or days, or jump straight to any event.
 - 🏞️ **A Stellarium-style sky**: twilight colours, the Milky Way, landscapes, a light-pollution slider, and Western and Indian (Vedic) constellations with artwork.
