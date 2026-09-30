@@ -42,4 +42,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cp app/build/outputs/apk/release/app-release.apk "AstroFixxer-${GITHUB_REF_NAME}.apk"
-          gh release create "$GITHUB_REF_NAME" "AstroFixxer-${GITHUB_REF_NAME}.apk" --title "AstroFixxer $GITHUB_REF_NAME" --generate-notes
+          # --latest=false: the in-app updater reads /releases/latest, which must keep pointing at the rolling "latest-build"
+          # preview, the release that carries update.json and the preview APK. A tag release holds the Play-signed release
+          # APK (another applicationId, no update.json); if it became Latest, the updater would stop finding updates.
+          gh release create "$GITHUB_REF_NAME" "AstroFixxer-${GITHUB_REF_NAME}.apk" --title "AstroFixxer $GITHUB_REF_NAME" --generate-notes --latest=false

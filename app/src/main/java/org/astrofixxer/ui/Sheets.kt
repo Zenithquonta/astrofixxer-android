@@ -184,7 +184,7 @@ private fun ListBrowser(state: SkyState, catalog: Catalog?, pick: (SkyObject) ->
 @Composable
 internal fun SkyOptionsSheet(
     state: SkyState, catalog: Catalog?, onClose: () -> Unit, onLists: () -> Unit, onHelp: () -> Unit, onTutorial: () -> Unit,
-    onCheckOrientation: () -> Unit,
+    onCheckOrientation: () -> Unit, updater: Updater? = null,
 ) {
     var tab by remember { mutableStateOf(0) }
     val tabs = listOf("Sky", "Deep-sky", "Markings", "Culture", "Landscape", "Telescope & orientation", "Place & time", "More")
@@ -236,7 +236,7 @@ internal fun SkyOptionsSheet(
                     item { CityList(state) }
                     item { DateTimeEditor(state) }
                 }
-                else -> item { MoreSettings(state, catalog, onLists, onHelp, onTutorial) }
+                else -> item { MoreSettings(state, catalog, onLists, onHelp, onTutorial, updater) }
             }
         }
     }
@@ -352,7 +352,7 @@ private fun DateTimeEditor(state: SkyState) {
 }
 
 @Composable
-private fun MoreSettings(state: SkyState, catalog: Catalog?, onLists: () -> Unit, onHelp: () -> Unit, onTutorial: () -> Unit) {
+private fun MoreSettings(state: SkyState, catalog: Catalog?, onLists: () -> Unit, onHelp: () -> Unit, onTutorial: () -> Unit, updater: Updater?) {
     val c = MaterialTheme.colorScheme
     var confirmReset by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -370,6 +370,8 @@ private fun MoreSettings(state: SkyState, catalog: Catalog?, onLists: () -> Unit
             else t("Stellarium catalogue: %,d objects, %d constellations, %d boundary edges.").format(
                 catalog.objects.size, catalog.constellations["modern"].orEmpty().size, catalog.boundaries.size),
             color = c.onSurface, fontSize = 14.sp)
+        // Only the preview and debug builds have an updater; Google Play builds never show this.
+        if (updater != null) UpdaterPanel(updater)
         if (!confirmReset) OutlinedButton(onClick = { confirmReset = true }, modifier = Modifier.padding(top = 8.dp).heightIn(min = 48.dp)) { Text(t("Reset all")) }
         else Button(onClick = { state.resetAll(catalog); confirmReset = false }, modifier = Modifier.padding(top = 8.dp).heightIn(min = 48.dp),
             colors = ButtonDefaults.buttonColors(containerColor = c.error)) { Text(t("Tap again to reset every setting and list")) }

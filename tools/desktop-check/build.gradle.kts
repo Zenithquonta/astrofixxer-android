@@ -12,6 +12,7 @@ sourceSets {
     main {
         kotlin.srcDir("$app/astro")
         kotlin.srcDir("$app/ui")
+        kotlin.srcDir("$app/update") // pure update logic the updater screen shows (the Android host in $app/host is not included)
         java.srcDir("$app/astro/vsop87")
     }
 }

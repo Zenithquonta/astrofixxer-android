@@ -31,6 +31,17 @@ If a newer build won't install over the old one, uninstall the old AstroFixxer f
 
 What changed in each update, including every bug fix, is in **[CHANGELOG.md](CHANGELOG.md)**.
 
+### Updating
+
+The GitHub download can update itself: open **Sky & viewing → More → App updates** and tap **Check for updates**. If a newer
+build is out, the app shows its version, size and what's new, then downloads it, checks the file's SHA-256 and hands it to
+Android's installer, which asks you to confirm. Allow **install unknown apps** for AstroFixxer when Android asks, then come back.
+
+- It only checks when you tap the button; nothing runs in the background and nothing about you is sent (see [PRIVACY.md](PRIVACY.md)).
+- Updates keep your lists, because each download is signed with the same key. If the app says a build "can't be installed over yours",
+  it was signed with a one-off key: uninstalling AstroFixxer first would install it but erase your saved lists.
+- The Google Play version has no updater (Play forbids it); Play updates it for you. How updates are kept safe: [SECURITY.md](SECURITY.md).
+
 <p align="center"><img src="docs/art/divider.gif" width="800" alt=""></p>
 
 ## How it works

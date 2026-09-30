@@ -93,9 +93,9 @@ object BackButton {
 
 /** SkyScreen wired like MainActivity does it. */
 @Composable
-fun AppScreen(state: SkyState, events: List<EventItem>? = Fixtures.sampleEvents) {
+fun AppScreen(state: SkyState, events: List<EventItem>? = Fixtures.sampleEvents, updater: org.astrofixxer.ui.Updater? = null) {
     SkyScreen(state, Fixtures.catalog, solarSystem(state), events, onAsk = null,
-        backHandler = { enabled, onBack -> SideEffect { BackButton.handler = if (enabled) onBack else null } })
+        backHandler = { enabled, onBack -> SideEffect { BackButton.handler = if (enabled) onBack else null } }, updater = updater)
 }
 
 @OptIn(ExperimentalTestApi::class)
