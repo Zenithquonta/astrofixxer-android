@@ -22,7 +22,7 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 
 ## TAKEOVER: read this first (updated 2026-10-01; W7 verification resumed)
 
-Work resumed on 1 October 2026 in a fresh Windows checkout. The integration checkout is `C:/Users/kush/Desktop/astrofixxer`; W7 is isolated at `C:/Users/kush/Desktop/astrofixxer-w7` on commit `ae2e203`. The implementation agent is inspecting W7; no local tests have started. Docker Desktop could not start because its inference-manager socket cannot be accessed; no container or test ran. The isolated Ubuntu WSL runtime is ready with OpenJDK 17.0.20.1, Noto Devanagari and Lohit Devanagari; `fc-match sans:lang=hi` selects Lohit. The detached launch did not start; the persistent retry failed before Gradle because the Windows checkout wrapper has CRLF line endings. Both the checkout copy and default `git archive` retained Windows CRLF behavior. Tracked wrappers are LF (`git ls-files --eol`); retry export with explicit `git -c core.autocrlf=false archive`. Focused baseline checks on unchanged integration `7c75ac6` completed: 4 tests, 1 failure for Hindi Label clipping at font scale 2.0; the three original labels passed with Lohit, so the original CI clipping is still unreproduced. The redundant full baseline diagnostic was stopped after 33 screenshots, with no complete audit result. Next reproduce with Noto preferred. Android SDK API35/build-tools35.0.0 is ready outside the repository. Genuine Noto/Lohit Devanagari remains a reproduction requirement. CI run 36780057330 at integration commit `461d0f3` is in progress: secret-scan passed; build and ui-check have not completed. The supervisor owns review, independent tests, merges and this handoff. Read the steps below; W4, docs, main merge and W8 remain gated in that order.
+Work resumed on 1 October 2026 in a fresh Windows checkout. The integration checkout is `C:/Users/kush/Desktop/astrofixxer`; W7 is isolated at `C:/Users/kush/Desktop/astrofixxer-w7` on commit `ae2e203`. The implementation agent is inspecting W7; no local tests have started. Docker Desktop could not start because its inference-manager socket cannot be accessed; no container or test ran. The isolated Ubuntu WSL runtime is ready with OpenJDK 17.0.20.1, Noto Devanagari and Lohit Devanagari; `fc-match sans:lang=hi` selects Lohit. The detached launch did not start; the persistent retry failed before Gradle because the Windows checkout wrapper has CRLF line endings. Both the checkout copy and default `git archive` retained Windows CRLF behavior. Tracked wrappers are LF (`git ls-files --eol`); retry export with explicit `git -c core.autocrlf=false archive`. Focused baseline checks on unchanged integration `7c75ac6` completed: 4 tests, 1 failure for Hindi Label clipping at font scale 2.0; the three original labels passed with Lohit, so the original CI clipping is still unreproduced. The redundant full baseline diagnostic was stopped after 33 screenshots, with no complete audit result. Focused Noto-first rerun also completed 4 tests/1 font-scale failure; original labels still pass, so original CI clipping remains unreproduced. Inspect CI font/render evidence before deciding the next reproduction adjustment. Android SDK API35/build-tools35.0.0 is ready outside the repository. Genuine Noto/Lohit Devanagari remains a reproduction requirement. CI run 36780057330 at integration commit `461d0f3` is in progress: secret-scan passed; build and ui-check have not completed. The supervisor owns review, independent tests, merges and this handoff. Read the steps below; W4, docs, main merge and W8 remain gated in that order.
 
 ### 1. Branch map (all on GitHub)
 | Branch | What it holds | State |
@@ -159,6 +159,20 @@ Real phone sensors, Camera2 capture and exposure, solving real sky photos, the D
 ---
 
 ## Entries
+
+### 2026-10-01: Noto baseline repeats font-scale failure; original labels pass
+
+**Result / review**
+- Isolated runtime now prefers genuine Noto Sans Devanagari: Lohit was reversibly moved outside fontconfig's search path; `fc-match sans:lang=hi` and `sans:charset=0938` both select `NotoSansDevanagari-Regular.ttf`. No repository source change.
+- Forced unchanged-source baseline command: `bash ./gradlew test --tests HindiLayoutTest --rerun-tasks --console=plain`. **4 tests, 1 failure**, 0 skipped/errors; BUILD FAILED in 1m 2s. Same assertion: `Label clipped after changing font scale to 2.0`. Original Reset adjustment, Align now, Refractor/settings/wizard checks still pass.
+- Log `/root/checks/w7-focused-baseline-noto.log`; current XML/screens in `/root/checks/w7-focused-baseline/tools/desktop-check/build`. Prior Lohit evidence preserved in `/root/checks/w7-focused-baseline-lohit`.
+- Original CI clipping is **not yet reproduced**, despite genuine fonts. No feature patch has been authored in this session.
+
+**Files changed / dependencies**
+- `docs/HANDOFF.md` only on integration; W7 still has the new uncommitted regression file. No repository dependencies added.
+
+**Next step**
+- Inspect original/current CI audit evidence and actual rendered font selection; preserve the reproduced font-scale defect as an independent regression. Do not report the historical CI failure resolved from these targeted checks.
 
 ### 2026-10-01: Focused baseline exposes font-scale clipping; original CI issue still open
 
