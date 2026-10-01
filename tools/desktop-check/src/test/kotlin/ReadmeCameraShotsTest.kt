@@ -42,13 +42,15 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * The README's camera plate-solve screens. NOT COMPILED YET: it needs the camera flow (PlateSolveHost, PlateSolveModel,
- * PlateSolveFixtures.kt), which is in branch feature/tsap-w4. After that branch is merged, move this file to src/test/kotlin
- * and run: ./gradlew test --offline --tests ReadmeCameraShotsTest   then   python3 tools/repo-art/readme_screens.py
+ * The README's camera plate-solve screens, rendered from the flow's real screens and the real solver into
+ * build/screens/readme-solve-*.png. Run (from tools/desktop-check):
+ *   ./gradlew test --offline --tests ReadmeShotsTest --tests ReadmeCameraShotsTest -PreadmeShots
+ *   python3 ../repo-art/readme_screens.py
+ * Without -PreadmeShots these tests are skipped, so a normal ./gradlew test (and CI) neither runs them nor writes the images.
  *
- * It uses the flow's real screens and the real solver. The phone camera is replaced by [StarFieldHost], which hands over a
- * synthetic star field made from the app's own catalogue and also draws that field in the live view, so the + is shown on
- * stars. It is a stand-in: no real camera, permission dialog or sky photo is involved.
+ * The phone camera is replaced by [StarFieldHost], which hands over a synthetic star field made from the app's own
+ * catalogue and also draws that field in the live view, so the + is shown on stars. It is a stand-in: no real camera,
+ * permission dialog or sky photo is involved.
  */
 @OptIn(ExperimentalTestApi::class)
 class ReadmeCameraShotsTest {
@@ -56,7 +58,10 @@ class ReadmeCameraShotsTest {
     private val vega get() = catalog.find("Vega")!!
     private fun button(label: String) = hasText(label) and hasClickAction()
     private fun androidx.compose.ui.test.ComposeUiTest.next() = onNode(button("Next")).tap()
-    @Before fun english() { org.astrofixxer.ui.I18n.language = "en" }
+    @Before fun english() {
+        org.junit.Assume.assumeTrue("README shots only run with -PreadmeShots", System.getProperty("readmeShots") != null)
+        org.astrofixxer.ui.I18n.language = "en"
+    }
 
     /** A phone with no camera hardware whose live view shows the picture it will hand over next. */
     class StarFieldHost : PlateSolveHost {
@@ -74,17 +79,26 @@ class ReadmeCameraShotsTest {
             override suspend fun capture(exposureSec: Double?): GrayImage = camera.removeFirst()
         }
 
-        /** The picture as a screen would show it: each 3 x 3 block keeps its brightest pixel, so point-like stars stay visible. */
+        /** The picture as a screen would show it: each 3 x 3 block keeps its brightest pixel and each star is drawn 3 pixels across, so point-like stars stay visible. */
         private fun toBitmap(g: GrayImage): ImageBitmap {
             val k = 3
             val w = g.width / k; val h = g.height / k
-            val bytes = ByteArray(w * h * 4)
+            val lit = FloatArray(w * h)
             for (y in 0 until h) for (x in 0 until w) {
                 var m = 0f
                 for (dy in 0 until k) for (dx in 0 until k) m = maxOf(m, g.pixels[(y * k + dy) * g.width + x * k + dx])
-                val v = (Math.pow(((m - 0.2f) / 0.25f).coerceIn(0f, 1f).toDouble(), 0.6) * 255).toInt().toByte()
+                lit[y * w + x] = Math.pow(((m - 0.2f) / 0.12f).coerceIn(0f, 1f).toDouble(), 0.6).toFloat()
+            }
+            val bytes = ByteArray(w * h * 4)
+            for (y in 0 until h) for (x in 0 until w) {
+                var v = lit[y * w + x]
+                for ((dx, dy) in listOf(1 to 0, -1 to 0, 0 to 1, 0 to -1)) {
+                    val xx = x + dx; val yy = y + dy
+                    if (xx in 0 until w && yy in 0 until h) v = maxOf(v, lit[yy * w + xx] * 0.55f)
+                }
                 val i = (y * w + x) * 4
-                bytes[i] = v; bytes[i + 1] = v; bytes[i + 2] = v; bytes[i + 3] = 255.toByte()
+                val b = (v * 255).toInt().toByte()
+                bytes[i] = b; bytes[i + 1] = b; bytes[i + 2] = b; bytes[i + 3] = 255.toByte()
             }
             val bmp = Bitmap()
             bmp.installPixels(ImageInfo.makeN32(w, h, ColorAlphaType.OPAQUE), bytes, w * 4)

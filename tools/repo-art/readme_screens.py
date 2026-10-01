@@ -1,16 +1,15 @@
 """
 Copies the README's app screens from the desktop test harness and shrinks them.
 
-  (cd tools/desktop-check && ./gradlew test --offline --tests ReadmeShotsTest)   # renders build/screens/readme-*.png
+  (cd tools/desktop-check && ./gradlew test --offline --tests ReadmeShotsTest --tests ReadmeCameraShotsTest -PreadmeShots)   # renders build/screens/readme-*.png
   python3 tools/repo-art/readme_screens.py                                     # writes docs/screens/new/*.png
 
 Each screen is a real Compose screen rendered on the desktop at 360 x 780 dp (see ReadmeShotsTest.kt). The script only
 resizes them to 480 px wide and stores them as palette PNGs under about 150 KB. It is deterministic.
 
-The camera plate-solve screens (docs/screens/new/camera-*.png) come from ReadmeCameraShotsTest, which waits for the
-camera flow to be merged (tools/desktop-check/pending-w4/). Until then, pass the folder where it was run:
-  python3 tools/repo-art/readme_screens.py --camera-from /path/to/build/screens
-Screens whose source is missing are skipped with a warning; files already in docs/screens/new stay as they are.
+The camera plate-solve screens (docs/screens/new/camera-*.png) come from ReadmeCameraShotsTest in the same run.
+Run both tests with -PreadmeShots, or they are skipped. Screens whose source is missing are skipped with a warning;
+files already in docs/screens/new stay as they are.
 Needs Pillow.
 """
 import argparse

@@ -22,10 +22,13 @@ import org.junit.Test
 
 /**
  * The screens the README's guide shows, rendered from the real UI and the shared fixtures into build/screens/readme-*.png.
- * Run: ./gradlew test --offline --tests ReadmeShotsTest   then   python3 tools/repo-art/readme_screens.py
+ * Run (from tools/desktop-check):
+ *   ./gradlew test --offline --tests ReadmeShotsTest --tests ReadmeCameraShotsTest -PreadmeShots
+ *   python3 ../repo-art/readme_screens.py
+ * Without -PreadmeShots these tests are skipped, so a normal ./gradlew test (and CI) neither runs them nor writes the images.
  *
  * Every shot is a real Compose screen on the desktop test harness at 360 x 780 dp. Nothing here is a phone or a telescope.
- * The camera flow's shots are in pending-w4/ReadmeCameraShotsTest.kt until that flow is merged.
+ * The camera flow's shots are in ReadmeCameraShotsTest.kt.
  */
 @OptIn(ExperimentalTestApi::class)
 class ReadmeShotsTest {
@@ -34,7 +37,10 @@ class ReadmeShotsTest {
     private val m57 get() = catalog.find("M57")!!
     private fun button(label: String) = hasText(label) and hasClickAction()
 
-    @Before fun english() { I18n.language = "en" }
+    @Before fun english() {
+        org.junit.Assume.assumeTrue("README shots only run with -PreadmeShots", System.getProperty("readmeShots") != null)
+        I18n.language = "en"
+    }
 
     private fun ComposeUiTest.next() = onNode(button("Next")).tap()
 
