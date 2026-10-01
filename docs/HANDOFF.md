@@ -22,7 +22,7 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 
 ## TAKEOVER: read this first (updated 2026-10-01; RESUMED at owner request: step 4.1, W7)
 
-**Resumed 2026-10-01 (owner: "continue what the handoff says").** **Owner decision: Hindi switched off for now and no Hindi work at all; W7 is parked; Hindi switched off and merged to integration; full suite 94 tests (92 pass, 2 Hindi ignored), audit 344 variants with no findings. Next: CI check, then step 2 (W4).** Step 4.1 (W7) is in progress on `feature/tsap-w7`; see the newest dated entry. Earlier stop note, kept for history: the owner said "enough for today". The owner subsequently authorized only this handoff cleanup; do not resume feature work until asked. There is no complete W7 candidate verification and no merge to integration or main. The next session must read this entire handoff, especially the newest entries, plan section 7b, POLICY, PRIVACY, SECURITY, CONTRIBUTING, NOTICE, README and CHANGELOG before acting.
+**Resumed 2026-10-01 (owner: "continue what the handoff says").** **Owner decision: Hindi switched off for now and no Hindi work at all; W7 is parked; Hindi switched off and merged to integration; full suite 94 tests (92 pass, 2 Hindi ignored), audit 344 variants with no findings. CI run 36 is fully green. Step 2 (W4) is in progress: merged with integration; the full audit hang on solve-live-asking is being fixed.** Step 4.1 (W7) is in progress on `feature/tsap-w7`; see the newest dated entry. Earlier stop note, kept for history: the owner said "enough for today". The owner subsequently authorized only this handoff cleanup; do not resume feature work until asked. There is no complete W7 candidate verification and no merge to integration or main. The next session must read this entire handoff, especially the newest entries, plan section 7b, POLICY, PRIVACY, SECURITY, CONTRIBUTING, NOTICE, README and CHANGELOG before acting.
 
 ### 1. Pushed branches and checkout ownership
 
@@ -124,6 +124,24 @@ Preserve GPL and all credits; no Android imports in ui/astro/update; user-visibl
 ## Entries
 
 Historical entries retain the evidence and instructions recorded at the time. Their **Next step** instructions are superseded by the current TAKEOVER above.
+
+### 2026-10-01: CI green on integration (run 36); W4 full-audit hang found
+
+**CI (integration `3b355f7`, run 36840367407): all green.**
+- `build`: tests, debug/release/preview APKs, sky-data check, update.json, APK integrity, and the check that the Play build has no self-update permission.
+- `ui-check`: 21 min.
+- `secret-scan`.
+- First fully green integration run since the W3 merge. The Hindi-clipping failure is gone because Hindi is switched off.
+
+**W4 (`feature/tsap-w4`):**
+- The supervisor merged integration into it (`28ca51d`). Seven conflicts were resolved by keeping both the camera flow and the updater. The desktop test compile and the Android compile check pass.
+- Implementation checks on `28ca51d`:
+  - JVM: 147 tests, 0 failures;
+  - focused desktop: 66 tests, 0 failures, 1 Hindi test ignored;
+  - the camera review checklist passes, with file:line evidence (permission timing, failure advice, Solved-only apply with the 0.01° check, placement rules, no drag/save/upload, Camera2 only).
+- Supervisor code check: `applyPhotoAlignment` uses the capture-time device and time, refuses gallery photos, moved phones, tube placement and an uncalibrated side camera, and calibrates with `PhotoAlignment.calibrate` (0.01°) before changing anything.
+- **Supervisor's full unfiltered suite HUNG.** AuditTest wrote 251 screens, then `waitForIdle` never returned on `solve-live-asking` (AuditTest.kt:243; permission answer pending) for 50+ min at full CPU. The run was killed. No valid full result.
+- Sent back to implementation: find what never goes idle, fix the test or the app, bound the waits so a hang fails with the screen name, then prove the unfiltered AuditTest completes.
 
 ### 2026-10-01: Hindi switched off; merged to integration
 
