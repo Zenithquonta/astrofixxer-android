@@ -22,7 +22,7 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 
 ## TAKEOVER: read this first (updated 2026-10-01; resume sequence step 3, docs pass)
 
-**Resumed 2026-10-01 (owner: "continue what the handoff says").** **Owner decision: Hindi switched off for now and no Hindi work at all; W7 is parked (step 1 is replaced by the Hindi switch-off, merged). Step 2 (W4) and step 3 (docs pass, in-app licences) are combined on `feature/tsap-candidate` (`1afc381`) after CI found a clipped label at 360 dp (fixed in `7748d42`); CI run 41 on the candidate is the gate. Next: if green, fast-forward integration to the candidate, then main (step 4). Then W8 README showcase. Owner added for W8: a camera-screen image and a pixel-art animation of the camera solve in the README.** W7 (`feature/tsap-w7`, WIP `16195d9`) stays parked and unmerged. Nothing is merged to main yet. The next session must read this entire handoff, especially the newest entries, plan section 7b, POLICY, PRIVACY, SECURITY, CONTRIBUTING, NOTICE, README and CHANGELOG before acting.
+**Resumed 2026-10-01 (owner: "continue what the handoff says").** **Owner decision: Hindi switched off for now and no Hindi work at all; W7 is parked (step 1 is replaced by the Hindi switch-off, merged). STOPPED at owner request (see newest entry for exact resume steps). Step 2 (W4) and step 3 (docs pass, in-app licences) are combined on `feature/tsap-candidate` (CI run 41 on `1afc381` is the gate; it was still running at stop). Next: if green, fast-forward integration to the candidate, then main (step 4), then W8 README with the owner's camera-screen image and pixel-art camera-solve animation.** W7 (`feature/tsap-w7`, WIP `16195d9`) stays parked and unmerged. Nothing is merged to main yet. The next session must read this entire handoff, especially the newest entries, plan section 7b, POLICY, PRIVACY, SECURITY, CONTRIBUTING, NOTICE, README and CHANGELOG before acting.
 
 ### 1. Pushed branches and checkout ownership
 
@@ -124,6 +124,26 @@ Preserve GPL and all credits; no Android imports in ui/astro/update; user-visibl
 ## Entries
 
 Historical entries retain the evidence and instructions recorded at the time. Their **Next step** instructions are superseded by the current TAKEOVER above.
+
+### 2026-10-01: Owner said stop; state saved for the next session
+
+**Stopped:** the README agent and the local CI-poll loop. No local Gradle or test process is running. GitHub CI was NOT cancelled: run 41 (`feature/tsap-candidate`, `1afc381`) and run 40 (`feature/tsap-w4`, `7748d42`) were still in progress at stop and will finish on their own.
+
+**Branches (all pushed):**
+| Branch | Head | State |
+|---|---|---|
+| `feature/telescope-setup-alignment-platesolve` (integration) | `c1644b0` | Contains W4 merge `ab0a661` with the clipping finding; not yet updated with the fix |
+| `feature/tsap-candidate` | `30df975` | Integration + W4 fix `7748d42` + docs branch; CI run 41 on `1afc381` is the gate (`30df975` is a docs-only HANDOFF commit on top) |
+| `feature/tsap-w4` | `7748d42` | Camera flow + label-wrap fix; CI run 40 |
+| `feature/tsap-docs` | `cc24fc6` | CI run 39 success; already inside the candidate |
+| `feature/tsap-w8` | `4c11c80` | README WIP: merged the candidate (`b5cbb29`), moved `ReadmeCameraShotsTest.kt` into `tools/desktop-check/src/test/kotlin/` (not yet compiled or reviewed) |
+| `feature/tsap-w7` | `16195d9` | Parked Hindi work; do not merge |
+| `main` | `45262ca` | Untouched |
+
+**Resume here, in order:**
+1. Read CI run 41 (`curl -s https://api.github.com/repos/Zenithquonta/astrofixxer-android/actions/runs?per_page=5`; job logs through the GitHub tools' `get_job_logs`, the log blob host is blocked by the proxy). If build, ui-check and secret-scan are all green: `git checkout feature/telescope-setup-alignment-platesolve && git merge --ff-only feature/tsap-candidate`, push, log. If ui-check is red, read the audit findings in the log, reproduce locally with `FONTCONFIG_FILE` set to a fontconfig file that aliases sans-serif to DejaVu Sans (the runner's font), fix on `feature/tsap-w4` or the candidate, push, re-check.
+2. Main gate: with integration green, `git checkout main && git merge --no-ff feature/telescope-setup-alignment-platesolve`, sign off, push, verify CI on main, log. No v0.2.0 tag without the owner confirming the Play signing secrets.
+3. W8 README (owner: "add an image of the camera UI and add some pixel animation for this feature"): continue on `/home/user/wt/w8` from `4c11c80`. Make `ReadmeCameraShotsTest` compile against the real camera flow and render docs/screens/new/solve-*.png; refresh the other README shots; review/improve `docs/art/solve-how.gif` (pixel art in `tools/repo-art/guide_art.py`, run with `python3 tools/repo-art/make_art.py`) so it tells phone-on-eyepiece → photo → star-pattern match on the phone → "pointing here" → apply only if the phone did not move; README sections for setup, align (centre and drag under +), next-star, camera solve, orientation, updates; bold Sun warning; tested/not-tested box linking FIELD_TEST; Hindi "coming in a later release"; fix stale claims (instant tap-align, signing key, manual versionCode, artwork licences). Supervisor looks at every image before merging. Merge W8 after main, then CI.
 
 ### 2026-10-01: Clipping fixed; candidate with W4 fix, docs pass and in-app licences pushed for CI
 
