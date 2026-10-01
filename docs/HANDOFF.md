@@ -22,7 +22,7 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 
 ## TAKEOVER: read this first (updated 2026-10-01; RESUMED at owner request: step 4.1, W7)
 
-**Resumed 2026-10-01 (owner: "continue what the handoff says").** **Owner decision: Hindi switched off for now and no Hindi work at all; W7 is parked; the removal is on `feature/hindi-off` (see the newest entry).** Step 4.1 (W7) is in progress on `feature/tsap-w7`; see the newest dated entry. Earlier stop note, kept for history: the owner said "enough for today". The owner subsequently authorized only this handoff cleanup; do not resume feature work until asked. There is no complete W7 candidate verification and no merge to integration or main. The next session must read this entire handoff, especially the newest entries, plan section 7b, POLICY, PRIVACY, SECURITY, CONTRIBUTING, NOTICE, README and CHANGELOG before acting.
+**Resumed 2026-10-01 (owner: "continue what the handoff says").** **Owner decision: Hindi switched off for now and no Hindi work at all; W7 is parked; Hindi switched off and merged to integration; full suite 94 tests (92 pass, 2 Hindi ignored), audit 344 variants with no findings. Next: CI check, then step 2 (W4).** Step 4.1 (W7) is in progress on `feature/tsap-w7`; see the newest dated entry. Earlier stop note, kept for history: the owner said "enough for today". The owner subsequently authorized only this handoff cleanup; do not resume feature work until asked. There is no complete W7 candidate verification and no merge to integration or main. The next session must read this entire handoff, especially the newest entries, plan section 7b, POLICY, PRIVACY, SECURITY, CONTRIBUTING, NOTICE, README and CHANGELOG before acting.
 
 ### 1. Pushed branches and checkout ownership
 
@@ -124,6 +124,30 @@ Preserve GPL and all credits; no Android imports in ui/astro/update; user-visibl
 ## Entries
 
 Historical entries retain the evidence and instructions recorded at the time. Their **Next step** instructions are superseded by the current TAKEOVER above.
+
+### 2026-10-01: Hindi switched off; merged to integration
+
+**What was done**
+- `feature/hindi-off` (commit `1671101`) was reviewed by the supervisor and merged to integration.
+- Code changes:
+  - `ui/I18n.kt`: `HINDI_AVAILABLE = false`, English-only `languages`, and `t()` returns English. The Hindi table is kept dormant.
+  - `ui/Sheets.kt`: the language control is shown only when more than one language is available.
+  - `ui/SkyState.kt`: an unavailable saved language loads as English.
+- Tests:
+  - AuditTest and UpdaterTest take their languages from `I18n.languages`.
+  - `I18nTest` and `JourneyTest.nightModeAndHindi` are `@Ignore`d ("Hindi interface switched off until a later release").
+  - New test: `JourneyTest.hindiSwitchedOffLoadsEnglishAndHidesTheLanguageControl`.
+- `README.md` and `CHANGELOG.md` say Hindi returns in a later release.
+- Dependencies added: none.
+
+**Verification (supervisor, cloud Linux, Devanagari fonts installed)**
+- Full unfiltered desktop suite on `feature/hindi-off`: BUILD SUCCESSFUL in 39m 22s. **94 tests: 92 passed, 2 ignored (Hindi), 0 failed.**
+- `audit.txt`: "Checked 344 screen variants. No findings." (English, day and night, 360 and 411 dp).
+- The JVM tests are unaffected (only `ui/` changed) and were not rerun.
+- CI is triggered by this push and must be checked next.
+
+**Next step**
+- Confirm CI is green (build, ui-check, secret-scan). Then step 2: merge integration into `feature/tsap-w4`, fix its audit "Next" navigation, and run the review checklist.
 
 ### 2026-10-01: Owner: no Hindi work at all for now; W7 parked
 
