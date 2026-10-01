@@ -20,9 +20,9 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 | Codebase analysis (web page) | https://claude.ai/artifact/SMf5adtidjB5CsJt5ZrxNW |
 | Bug-hunt and UI proof report | https://claude.ai/artifact/WxJfBipQQCRwaAE9qAkGYb |
 
-## TAKEOVER: read this first (updated 2026-10-01; RESUMED at owner request: step 4.1, W7)
+## TAKEOVER: read this first (updated 2026-10-01; resume sequence step 3, docs pass)
 
-**Resumed 2026-10-01 (owner: "continue what the handoff says").** **Owner decision: Hindi switched off for now and no Hindi work at all; W7 is parked; Hindi switched off and merged to integration; full suite 94 tests (92 pass, 2 Hindi ignored), audit 344 variants with no findings. CI run 36 is fully green. Step 2 (W4) is in progress: merged with integration; the full audit hang on solve-live-asking is being fixed.** Step 4.1 (W7) is in progress on `feature/tsap-w7`; see the newest dated entry. Earlier stop note, kept for history: the owner said "enough for today". The owner subsequently authorized only this handoff cleanup; do not resume feature work until asked. There is no complete W7 candidate verification and no merge to integration or main. The next session must read this entire handoff, especially the newest entries, plan section 7b, POLICY, PRIVACY, SECURITY, CONTRIBUTING, NOTICE, README and CHANGELOG before acting.
+**Resumed 2026-10-01 (owner: "continue what the handoff says").** **Owner decision: Hindi switched off for now and no Hindi work at all; W7 is parked (step 1 is replaced by the Hindi switch-off, merged). Step 2 (W4 camera flow) is DONE: merged to integration as `ab0a661` after a full supervisor run (desktop 120 tests, 0 failures, 2 Hindi skipped; audit 492 variants, no findings; JVM 147, 0 failures; Android compile clean). Step 3 (docs pass) is next: `feature/tsap-docs` (`43affc6`, pushed, reviewed) holds PRIVACY, CONTRIBUTING, POLICY and plan corrections; the in-app licences text is still to do. Owner added for W8: a camera-screen image and a pixel-art animation of the camera solve in the README.** Step 4.1 (W7) is in progress on `feature/tsap-w7`; see the newest dated entry. Earlier stop note, kept for history: the owner said "enough for today". The owner subsequently authorized only this handoff cleanup; do not resume feature work until asked. There is no complete W7 candidate verification and no merge to integration or main. The next session must read this entire handoff, especially the newest entries, plan section 7b, POLICY, PRIVACY, SECURITY, CONTRIBUTING, NOTICE, README and CHANGELOG before acting.
 
 ### 1. Pushed branches and checkout ownership
 
@@ -115,7 +115,7 @@ Preserve GPL and all credits; no Android imports in ui/astro/update; user-visibl
 | 5. Compose UI (Stellarium-style) | Done: Object Info with altitude graph, markings (grid, ecliptic, meridian, IAU boundaries), star colours, eyepiece field, telescope and place & time settings, Tonight card, Free look, sky view, atmosphere, Milky Way, landscapes, light pollution, artwork, alignment, guidance, search, events, lists, onboarding, help, night mode, Hindi. Built and UI-tested in CI |
 | 5b. Offline events | Done, including ISS/Tiangong passes and Sun/Moon transits (SGP4). The live TLE download is untested here (CelesTrak blocked) |
 | 6. AstroGuide v1 (offline voice) | Done: English and Hindi commands, speech in/out |
-| 7b. Telescope setup, alignment, plate solving | In progress on `feature/telescope-setup-alignment-platesolve`: precession fix, plate solver and setup/alignment/guidance merged. Updater merged; W7 Hindi verification, camera flow and final gates pending; stopped at owner request |
+| 7b. Telescope setup, alignment, plate solving | In progress on `feature/telescope-setup-alignment-platesolve`: precession fix, plate solver and setup/alignment/guidance merged. Updater, Hindi switch-off and camera flow merged; docs pass, final CI gate, main merge and README showcase pending |
 | 7. Release | Prepared: signing via CI secrets, signed-bundle workflow on tags, R8 in CI, launcher icon, privacy policy, store listing, field-test protocol. Needs the owner: upload key, Play account, field test and device screenshots (repository is already publicly readable) |
 
 
@@ -124,6 +124,29 @@ Preserve GPL and all credits; no Android imports in ui/astro/update; user-visibl
 ## Entries
 
 Historical entries retain the evidence and instructions recorded at the time. Their **Next step** instructions are superseded by the current TAKEOVER above.
+
+### 2026-10-01: W4 camera flow verified and merged to integration
+
+**Supervisor's full run on `feature/tsap-w4` at `791f01a`** (run alone, no other Gradle on the machine, 2 h 50 min):
+- Desktop suite (`tools/desktop-check`, `./gradlew cleanTest test --offline`): 13 classes, 120 tests, 0 failures, 0 errors, 2 skipped (`I18nTest.everyLiteralPassedToTHasAHindiEntry`, `JourneyTest.nightModeAndHindi`; Hindi is switched off). BUILD SUCCESSFUL.
+- `build/screens/audit.txt`: "Checked 492 screen variants. No findings." (English only, day and night, 360 and 411 dp.)
+- JVM (astro + update sources and `app/src/test`): 19 classes, 147 tests, 0 failures, 0 skipped.
+- Android compile check (Robolectric android-all plus stubs): clean.
+
+**The earlier "hang" was not reproduced.** The audit's camera screens are slow to render (the 411 dp pass of the solve screens took about 70 min) but finished. The previous stall was most likely two Gradle runs sharing one build directory; the earlier entry's screen name (`solve-live-asking`) was also wrong, line 243 is `solve-live-denied`. `791f01a` adds a watchdog to AuditTest: each screen variant is limited to 10 minutes, then the test names the screen, prints the stack and stops, so a real hang can no longer stall CI silently.
+
+**Merge:** `ab0a661` (`--no-ff`, signed off). Apart from `docs/HANDOFF.md`, the merged tree is identical to the tested `791f01a`. No new dependencies.
+
+**Docs pass prepared in parallel** on `feature/tsap-docs` (`3fd63cb`, `43affc6`; markdown only, pushed, not merged):
+- PRIVACY.md rewritten to follow POLICY section 6, every claim checked against code: typed location saved (`manual_lat/lon`), Ask tap-to-start, camera memory-only, update check tap-only in preview/debug builds, full stored-data list including camera offset and the temporary update download (external app folder, deleted after the verified copy), Android backup default on.
+- CONTRIBUTING.md: DCO 1.1 sign-off, inbound = outbound GPLv3, data keeps its licence, no CLA.
+- POLICY.md: web app's only outside request is the optional Wikipedia page (W button); stored list adds camera offset and update file; effective date 1 October 2026.
+- Plan: NASA eclipse table row removed (eclipses are computed on the phone), eclipse gate matches `EventsTest`, workflow line made role-neutral.
+- Conflict expected with W4's PRIVACY.md camera section; take the docs-branch text, which covers the same ground.
+
+**Still to do in step 3:** in-app licences text (`ui/SkyScreen.kt` `LICENCES`): add Gaia DR3/Hipparcos (ESA, CC BY-SA 3.0 IGO for Gaia), CelesTrak, PRIVACY/NOTICE links; only modern constellation art is Free Art License, Indian sky culture and its art are CC BY-SA 4.0. Then one full desktop suite on the integration candidate, CI green, then main.
+
+**Follow-up (not in git):** the private local paper still says the whole interface is in Hindi and quotes older test and audit counts; update it only if the owner asks.
 
 ### 2026-10-01: CI green on integration (run 36); W4 full-audit hang found
 
@@ -628,10 +651,10 @@ Branch `feature/telescope-setup-alignment-platesolve`. Implementation agents wro
 
 **What was done**
 - Added a root `README.md` here with the Android README's design: Hop's hero animation, how it works, features, the all-sky map and Meet Hop. The images are in `docs/readme/`, and a "Where things are" section covers this repository.
-- Why: the Claude GitHub app still can't reach `Zenithquonta/astrofixxer-android` (`add_repo` says "not found"), so the Android repository's README can't be pushed yet.
+- Why: the GitHub app used by the supervising session still couldn't reach `Zenithquonta/astrofixxer-android` (`add_repo` says "not found"), so the Android repository's README can't be pushed yet.
 
 **Next step**
-- Owner: give the Claude GitHub app access to `astrofixxer-android` (github.com/apps/claude/installations/select_target → Repository access). Then push `main` from `handoff/astrofixxer-android.bundle`.
+- Owner: give that GitHub app access to `astrofixxer-android` (github.com/apps/claude/installations/select_target → Repository access). Then push `main` from `handoff/astrofixxer-android.bundle`.
 
 ### 2026-09-28: Bug hunt, UI proven by tests, repo redesign (Hop the mascot)
 
