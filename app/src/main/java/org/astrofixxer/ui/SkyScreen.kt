@@ -57,8 +57,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.astrofixxer.astro.Catalog
@@ -299,27 +299,22 @@ private fun Toolbar(state: SkyState, onAsk: (() -> Unit)?, onSearch: () -> Unit,
 
 /**
  * Button label that steps its font down (15 to 11 sp) until it fits on one line. If even 11 sp is too wide (a long Hindi label
- * in a font with wide Devanagari glyphs on a narrow phone), it wraps onto a second line at 12 sp instead of being cut off; the
- * button grows to fit, because every button is given a minimum height, never a fixed one.
+ * in a font with wide Devanagari glyphs on a narrow phone, or a large system font scale), it wraps onto as many lines as it
+ * needs instead of being cut off; the button grows to fit, because every button is given a minimum height, never a fixed one.
+ * The line height is left to the font's own metrics (the inherited fixed one would clip fallback fonts with taller glyphs).
+ * The measurement is keyed on the measurer, which itself changes with density, font scale and font resolver.
  */
 @Composable
 internal fun Label(text: String, color: Color = Color.Unspecified) = BoxWithConstraints(contentAlignment = Alignment.Center) {
     val measurer = rememberTextMeasurer()
-    val base = LocalTextStyle.current
+    val base = LocalTextStyle.current.copy(lineHeight = TextUnit.Unspecified)
     val maxPx = constraints.maxWidth
-    val oneLine = remember(text, maxPx, base) {
+    val oneLine = remember(measurer, text, maxPx, base) {
         listOf(15, 14, 13, 12, 11).map { base.copy(fontSize = it.sp) }
             .firstOrNull { measurer.measure(text, it, maxLines = 1, softWrap = false).size.width <= maxPx }
     }
     if (oneLine != null) Text(text, style = oneLine, color = color, maxLines = 1, softWrap = false)
-    else {
-        val wrapped = remember(text, maxPx, base) {
-            listOf(13, 12, 11).map { base.copy(fontSize = it.sp) }.firstOrNull {
-                !measurer.measure(text, it, maxLines = 2, softWrap = true, constraints = Constraints(maxWidth = maxPx)).hasVisualOverflow
-            } ?: base.copy(fontSize = 11.sp)
-        }
-        Text(text, style = wrapped, color = color, maxLines = 2, softWrap = true, textAlign = TextAlign.Center)
-    }
+    else Text(text, style = base.copy(fontSize = 11.sp), color = color, textAlign = TextAlign.Center)
 }
 
 /** True if every one of [labels] fits on one line at [sizeSp] in a slot [slot] wide, less [sidePadding] on each side. */
@@ -328,7 +323,7 @@ internal fun labelsFit(labels: List<String>, slot: Dp, sidePadding: Dp, sizeSp: 
     val measurer = rememberTextMeasurer()
     val style = MaterialTheme.typography.labelLarge.copy(fontSize = sizeSp.sp)
     val room = with(LocalDensity.current) { (slot - sidePadding * 2).roundToPx() }
-    return remember(labels, room, style) { labels.all { measurer.measure(it, style, maxLines = 1, softWrap = false).size.width <= room } }
+    return remember(measurer, labels, room, style) { labels.all { measurer.measure(it, style, maxLines = 1, softWrap = false).size.width <= room } }
 }
 
 /** Side padding for buttons placed by [ButtonRow], small so a label gets as much of a narrow button as possible. */
