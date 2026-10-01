@@ -22,7 +22,7 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 
 ## TAKEOVER: read this first (updated 2026-10-01; RESUMED at owner request: step 4.1, W7)
 
-**Resumed 2026-10-01 (owner: "continue what the handoff says").** **Owner decision: Hindi interface switched off for now (see the newest entry); W7 is rescoped to that.** Step 4.1 (W7) is in progress on `feature/tsap-w7`; see the newest dated entry. Earlier stop note, kept for history: the owner said "enough for today". The owner subsequently authorized only this handoff cleanup; do not resume feature work until asked. There is no complete W7 candidate verification and no merge to integration or main. The next session must read this entire handoff, especially the newest entries, plan section 7b, POLICY, PRIVACY, SECURITY, CONTRIBUTING, NOTICE, README and CHANGELOG before acting.
+**Resumed 2026-10-01 (owner: "continue what the handoff says").** **Owner decision: Hindi switched off for now and no Hindi work at all; W7 is parked; the removal is on `feature/hindi-off` (see the newest entry).** Step 4.1 (W7) is in progress on `feature/tsap-w7`; see the newest dated entry. Earlier stop note, kept for history: the owner said "enough for today". The owner subsequently authorized only this handoff cleanup; do not resume feature work until asked. There is no complete W7 candidate verification and no merge to integration or main. The next session must read this entire handoff, especially the newest entries, plan section 7b, POLICY, PRIVACY, SECURITY, CONTRIBUTING, NOTICE, README and CHANGELOG before acting.
 
 ### 1. Pushed branches and checkout ownership
 
@@ -124,6 +124,16 @@ Preserve GPL and all credits; no Android imports in ui/astro/update; user-visibl
 ## Entries
 
 Historical entries retain the evidence and instructions recorded at the time. Their **Next step** instructions are superseded by the current TAKEOVER above.
+
+### 2026-10-01: Owner: no Hindi work at all for now; W7 parked
+
+- The owner clarified: no aspect of Hindi is to be worked on now. **`feature/tsap-w7` is parked, not merged.** Its last commit is `16195d9` (WIP Label/audit edits, not reviewed); keep it for the later Hindi release.
+- The only change made is the removal: new branch `feature/hindi-off` (from integration).
+  - `HINDI_AVAILABLE = false`; English only; the language control hidden; a saved Hindi setting loads as English.
+  - The Hindi strings stay dormant.
+  - AuditTest takes its languages from `I18n.languages`; Hindi-only tests are changed or `@Ignore`d.
+- Implementation is in progress. The supervisor will review it, run the full unfiltered suite, merge it to integration, and verify CI.
+- The resume sequence otherwise continues: W4 (camera flow), docs pass, CI gate and merge to main, then W8. In W8, describe Hindi as "coming in a later release".
 
 ### 2026-10-01: Owner decision: Hindi interface switched off for now
 
