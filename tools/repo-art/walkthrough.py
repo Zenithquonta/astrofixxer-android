@@ -25,7 +25,7 @@ SLIDES = [
     ("guide-1-arrow", "FOLLOW THE ARROW", ["DEGREES TO GO COUNT DOWN."], WHITE),
     ("guide-2-close", "CLOSE", ["THE ARROW TURNS AMBER."], AMBER),
     ("guide-3-on-target", "ON TARGET", ["THE BULLSEYE FILLS."], CYAN),
-    ("camera-3-result", "OR LET THE CAMERA FIND IT", ["PLATE SOLVING, OFFLINE.", "IN VERIFICATION."], AMBER),
+    ("camera-3-result", "OR LET THE CAMERA FIND IT", ["PLATE SOLVING, OFFLINE.", "NOT TRIED ON A REAL SKY YET."], AMBER),
     ("updates-available", "UPDATE FROM INSIDE THE APP", ["GITHUB DOWNLOAD ONLY."], WHITE),
 ]
 

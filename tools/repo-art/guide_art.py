@@ -47,7 +47,7 @@ _F = {
     '8': "01110 10001 10001 01110 10001 10001 01110", '9': "01110 10001 10001 01111 00001 00010 01100",
     '.': "0 0 0 0 0 0 1", ':': "0 0 1 0 1 0 0", '+': "00000 00100 00100 11111 00100 00100 00000",
     '-': "000 000 000 111 000 000 000", '°': "010 101 010 000 000 000 000", '!': "1 1 1 1 1 0 1",
-    '/': "00001 00001 00010 00100 01000 10000 10000", ' ': "00 00 00 00 00 00 00",
+    ',': "0 0 0 0 0 1 1", '?': "01110 10001 00001 00110 00100 00000 00100", '/': "00001 00001 00010 00100 01000 10000 10000", ' ': "00 00 00 00 00 00 00",
 }
 FONT = {k: v.split() for k, v in _F.items()}
 
@@ -329,71 +329,156 @@ def _triangles(stars, count):
     return out
 
 
+# The camera solve is told in five beats: (1) the phone sits on the eyepiece, (2) it takes a 1 to 4 second photo, (3) the app
+# matches the star pattern in the photo against the star list on the phone (no internet), (4) it knows where it points,
+# (5) "Apply to alignment" only works when the phone did not move. Frame numbers of each beat:
+SOLVE_SLIDE = (51, 59)      # the photo panel slides left, the star list slides in
+SOLVE_RINGS = (60, 72)
+SOLVE_TRI = (73, 93)
+SOLVE_POINT = (101, 112)
+SOLVE_WIPE = (119, 126)     # a wipe to the "Apply to alignment" screen
+SOLVE_TOTAL = 178
+
+
+def _solve_ground(d):
+    d.rectangle([0, 82, W, 86], fill=(7, 16, 10))
+    d.line([(0, 82), (W, 82)], fill=(59, 90, 58))
+
+
+def _solve_scope(d, dx=0, dy=0, deg=45, phone_in=1.0, lit=True):
+    """The telescope with the phone on the eyepiece, its camera looking in. `phone_in` 0..1 slides the phone on."""
+    pivot = (56 + dx, 54 + dy)
+    ground = 82
+    for leg in (-16, 0, 16):   # tripod
+        d.line([(pivot[0], pivot[1] + 4), (pivot[0] + leg, ground)], fill=(120, 80, 40))
+    d.ellipse([pivot[0] - 3, pivot[1] - 2, pivot[0] + 3, pivot[1] + 4], fill=(150, 100, 50))
+    pt = _tube(d, pivot, deg, length=48, width=9)
+    gap = 4 + 22 * (1 - phone_in)      # how far the phone still is from the eyepiece
+    s_cam, s_back = -19 - gap, -26 - gap
+    d.polygon([pt(s_back, -9), pt(s_cam, -9), pt(s_cam, 9), pt(s_back, 9)], fill=(18, 18, 24), outline=(110, 120, 145))
+    d.line([pt(s_back - 0.5, -8), pt(s_back - 0.5, 8)], fill=CYAN)
+    d.line([pt(s_back - 1.5, -8), pt(s_back - 1.5, 8)], fill=CYAN)           # its screen faces away from the telescope
+    cx, cy = pt(s_cam, 0)
+    d.rectangle([round(cx) - 1, round(cy) - 1, round(cx), round(cy)], fill=AMBER if lit else (120, 120, 120))  # its camera
+    return pt
+
+
 def solve_how():
-    frames, total = [], 84
+    frames, total = [], SOLVE_TOTAL
     sky = _solve_field()
     roll = math.radians(34)
-    pcx, pcy, ppx = 53, 43, 37   # photo panel centre and pixels per sky unit
-    ccx, ccy, cpx = 151, 45, 21  # catalogue panel centre (north up; the photo is the same sky, zoomed in and turned by `roll`)
+    ppx = 37
     rnd = random.Random(2)
-    box_photo = [5, 6, 101, 80]
     box_cat = [103, 6, 195, 80]
+    box_photo0 = [5, 6, 101, 80]
+    ccx, ccy, cpx = 151, 45, 21
     c_, s_ = math.cos(roll), math.sin(roll)
-
-    def to_photo(u, v):
-        return (pcx + (u * c_ - v * s_) * ppx, pcy + (u * s_ + v * c_) * ppx)
-
-    def to_cat(u, v):
-        return (ccx + u * cpx, ccy + v * cpx)
 
     def inside(p, b, m=3):
         return b[0] + m <= p[0] <= b[2] - m and b[1] + m <= p[1] <= b[3] - m
 
-    seen = sorted((st for st in sky if st[2] <= 3 and inside(to_photo(*st[:2]), box_photo, 6)), key=lambda st: st[2])
+    # The stars the solver finds, chosen against the panel in its final place (left).
+    pcx0, pcy0 = 53, 43
+
+    def to_photo0(u, v):
+        return (pcx0 + (u * c_ - v * s_) * ppx, pcy0 + (u * s_ + v * c_) * ppx)
+
+    def to_cat(u, v):
+        return (ccx + u * cpx, ccy + v * cpx)
+
+    seen = sorted((st for st in sky if st[2] <= 3 and inside(to_photo0(*st[:2]), box_photo0, 6)), key=lambda st: st[2])
     detected = []
-    for st in seen:   # brightest first, skipping stars that sit almost on top of one already taken
+    for st in seen:
         if all(math.hypot(st[0] - o[0], st[1] - o[1]) > 0.16 for o in detected):
             detected.append(st)
     detected = detected[:12]
     hot = [(rnd.randrange(8, 98), rnd.randrange(9, 78)) for _ in range(9)]
     tri = _triangles(detected, 3)
     cols = [CYAN, PINK, (255, 224, 138), GREEN]
-    # Where the photo's edges fall on the catalogue: the photo panel's corners, turned back into sky units.
     corners = []
-    for x, y in ((box_photo[0], box_photo[1]), (box_photo[2], box_photo[1]), (box_photo[2], box_photo[3]), (box_photo[0], box_photo[3])):
-        px_, py_ = (x - pcx) / ppx, (y - pcy) / ppx
+    for x, y in ((box_photo0[0], box_photo0[1]), (box_photo0[2], box_photo0[1]), (box_photo0[2], box_photo0[3]), (box_photo0[0], box_photo0[3])):
+        px_, py_ = (x - pcx0) / ppx, (y - pcy0) / ppx
         corners.append(to_cat(px_ * c_ + py_ * s_, -px_ * s_ + py_ * c_))
-    for f in range(total):
-        img = backdrop(57, f, total, n=40)
+
+    def photo_scene(f):
+        img = backdrop(57, 0, total, n=40)
         d = ImageDraw.Draw(img)
-        panel(d, box_photo)
-        panel(d, box_cat)
-        a_photo = ease(seg(f, 2, 10))
-        a_cat = ease(seg(f, 26, 34))
+        slide = ease(seg(f, *SOLVE_SLIDE))
+        shift = 95 * (1 - slide)                      # the photo panel starts on the right, beside the telescope
+        box_p = [box_photo0[0] + shift, box_photo0[1], box_photo0[2] + shift, box_photo0[3]]
+        pcx = pcx0 + shift
+
+        def to_photo(u, v):
+            return (pcx + (u * c_ - v * s_) * ppx, pcy0 + (u * s_ + v * c_) * ppx)
+
+        # The telescope scene on the left; it slides away as the panel moves over it.
+        tele_dx = -105 * slide
+        if slide < 1:
+            _solve_ground(d)
+            phone_in = 1.0
+            _solve_scope(d, dx=tele_dx, phone_in=phone_in)
+            if f >= 12 and f < SOLVE_SLIDE[0] and tele_dx == 0:
+                text(d, "PHONE", 4, 56, (200, 205, 220))
+                d.line([(16, 64), (28, 72)], fill=(200, 205, 220))
+            if 25 <= f < SOLVE_SLIDE[0]:
+                text(d, "HOLD STILL", 6, 6, AMBER)
+
+        panel(d, [round(v) for v in box_p])
+        live = ease(seg(f, 8, 14))
+        exposing = seg(f, 25, 49)
+        # What the camera shows: dim and live, then the exposure builds up (stars brighten, noise appears).
+        if f < 25:
+            a_photo = 0.25 * live
+        elif f < 50:
+            a_photo = 0.25 + 0.75 * ease(exposing)
+        else:
+            a_photo = 1.0
+        flash = 25 <= f < 27
         for u, v, m in sky:
             p = to_photo(u, v)
-            if m <= 4 and inside(p, box_photo):
+            if m <= 4 and inside(p, box_p) and not (p[1] < box_p[1] + 12 and (p[0] < box_p[0] + 38 or p[0] > box_p[2] - 24)):
                 j = (math.sin(u * 91 + v * 37) * 0.3, math.cos(u * 53 - v * 71) * 0.3)
                 star_dot(img, p[0] + j[0], p[1] + j[1], a_photo * (1.0 if m <= 2 else 0.75 if m == 3 else 0.4), m <= 2)
         for hx, hy in hot:
-            star_dot(img, hx, hy, a_photo * 0.3, False, (255, 140, 140))   # noise and hot pixels the solver must ignore
-        for u, v, m in sky:
-            p = to_cat(u, v)
-            if inside(p, box_cat):
-                star_dot(img, p[0], p[1], a_cat * (1.0 if m <= 2 else 0.75 if m == 3 else 0.5), m <= 2, (190, 220, 255))
+            if exposing > 0.3 or f >= 50:
+                star_dot(img, hx + shift, hy, a_photo * 0.3, False, (255, 140, 140))
+        if flash:
+            d2 = ImageDraw.Draw(img)
+            d2.rectangle([round(box_p[0]) + 1, box_p[1] + 1, round(box_p[2]) - 1, box_p[3] - 1], outline=WHITE)
         d = ImageDraw.Draw(img)
-        text(d, "PHOTO", box_photo[0] + 3, box_photo[1] + 3, (150, 170, 210))
-        text(d, "CATALOGUE", box_cat[0] + 3, box_cat[1] + 3, (150, 170, 210))
-        # stage 2: the detected stars get rings, one after another
-        nring = int(12 * seg(f, 12, 26) + 0.001)
+        label = "CAMERA" if f < 25 else "PHOTO"
+        text(d, label, round(box_p[0]) + 3, box_p[1] + 3, (150, 170, 210))
+        if 25 <= f < SOLVE_SLIDE[0]:   # the exposure timer
+            secs = 1 + int(exposing * 2.999)
+            text(d, f"{secs} S", round(box_p[2]) - 20, box_p[1] + 3, AMBER)
+            bw = int((box_p[2] - box_p[0] - 8) * exposing)
+            d.rectangle([round(box_p[0]) + 4, box_p[3] - 6, round(box_p[0]) + 4 + bw, box_p[3] - 4], fill=AMBER)
+            d.rectangle([round(box_p[0]) + 4, box_p[3] - 6, round(box_p[2]) - 4, box_p[3] - 4], outline=(120, 90, 40))
+
+        # The star list on the phone, sliding in from the right.
+        if slide > 0:
+            cdx = round(100 * (1 - slide))
+            bc = [box_cat[0] + cdx, box_cat[1], box_cat[2] + cdx, box_cat[3]]
+            panel(d, bc)
+            for u, v, m in sky:
+                p = to_cat(u, v)
+                if inside(p, box_cat) and not (p[1] < box_cat[1] + 12 and p[0] < box_cat[0] + 56):
+                    star_dot(img, p[0] + cdx, p[1], slide * (1.0 if m <= 2 else 0.75 if m == 3 else 0.5), m <= 2, (190, 220, 255))
+            d = ImageDraw.Draw(img)
+            text(d, "STAR LIST", bc[0] + 3, bc[1] + 3, (150, 170, 210))
+        else:
+            cdx = 100
+        if f < SOLVE_SLIDE[1]:
+            return img
+        # rings, then the triangles, then the pointing
+        nring = int(12 * seg(f, *SOLVE_RINGS) + 0.001)
         for i, (u, v, m) in enumerate(detected):
             if i < nring:
-                ring(d, [round(c) for c in to_photo(u, v)], 3, AMBER if f < 36 else (130, 105, 60))
-        # stage 3: triangles of neighbouring stars, matched to the same triangle in the catalogue, one at a time
-        shown = int(seg(f, 36, 56) * len(tri) + 0.999) if f >= 36 else 0
+                ring(d, [round(c) for c in to_photo(u, v)], 3, AMBER if f < SOLVE_TRI[0] else (130, 105, 60))
+        shown = int(seg(f, *SOLVE_TRI) * len(tri) + 0.999) if f >= SOLVE_TRI[0] else 0
         for k in range(min(shown, len(tri))):
-            now = k == shown - 1 and f < 58
-            col = cols[k] if now else lerp(cols[k], INK, 0.35 if f < 60 else 0.6)
+            now = k == shown - 1 and f < SOLVE_TRI[1] + 2
+            col = cols[k] if now else lerp(cols[k], INK, 0.35 if f < SOLVE_TRI[1] + 4 else 0.6)
             for to in (to_photo, to_cat):
                 ps = [to(*detected[i][:2]) for i in tri[k]]
                 for p, q in zip(ps, ps[1:] + ps[:1]):
@@ -401,20 +486,95 @@ def solve_how():
                 if now:
                     for p in ps:
                         d.rectangle([round(p[0]) - 1, round(p[1]) - 1, round(p[0]) + 1, round(p[1]) + 1], outline=col)
-        # stage 4: the pointing: the photo's footprint on the catalogue and a crosshair at its centre
-        s4 = ease(seg(f, 60, 70))
-        if f >= 60:
+        if f >= SOLVE_POINT[0]:
+            s4 = ease(seg(f, *SOLVE_POINT))
             for p, q in zip(corners, corners[1:] + corners[:1]):
                 d.line([(round(p[0]), round(p[1])), (round(p[0] + (q[0] - p[0]) * s4), round(p[1] + (q[1] - p[1]) * s4))], fill=CYAN)
-            plus(d, (pcx, pcy), 4 + int(6 * s4), CYAN, gap=2)
-            ring(d, (pcx, pcy), 12 - int(4 * s4), CYAN)
+            plus(d, (pcx, pcy0), 4 + int(6 * s4), CYAN, gap=2)
+            ring(d, (pcx, pcy0), 12 - int(4 * s4), CYAN)
             plus(d, (ccx, ccy), 5, CYAN, gap=2)
-        caps = [(0, "1 TAKE A PHOTO", WHITE), (11, "2 FIND THE STARS", AMBER), (27, "3 MATCH THE TRIANGLES", AMBER), (59, "4 POINTING FOUND", GREEN)]
-        cap = [c for c in caps if f >= c[0]][-1]
-        caption_bar(img, cap[1], cap[2])
+            if f >= SOLVE_POINT[1]:
+                text(d, "HERE", ccx - text_width("HERE") // 2, ccy + 10, CYAN, shadow=(0, 40, 50))
+        return img
+
+    def apply_scene(f):
+        """f counts from the first frame of this screen. 0-23 the phone moved; 24+ it stayed still."""
+        img = backdrop(57, 0, total, n=40)
+        d = ImageDraw.Draw(img)
+        _solve_ground(d)
+        moved = f < 24
+        if moved:
+            jit = [(0, 0), (2, 1), (-2, 0), (1, -2), (-1, 2), (2, -1), (-2, 1), (1, 1)][f % 8]
+            _solve_scope(d, dx=jit[0], dy=jit[1], deg=45 + (2 if f % 2 else -2))
+            for i in range(3):   # motion marks beside the phone
+                d.line([(26 - i * 3, 66 + i * 4), (26 - i * 3, 69 + i * 4)], fill=(255, 110, 110))
+            text(d, "MOVED!", 6, 6, (255, 110, 110))
+        else:
+            _solve_scope(d)
+            text(d, "STILL", 6, 6, GREEN)
+        # the result screen of the phone
+        box = [108, 6, 192, 80]
+        d.rounded_rectangle(box, radius=4, fill=INK, outline=(120, 130, 150))
+        text(d, "SOLVED", 114, 11, GREEN)
+        plus(d, (178, 14), 4, CYAN, gap=1)
+        text(d, "POINTING HERE", 114, 22, CYAN)
+        # a mini star field with the pointing
+        for k, (sx, sy) in enumerate([(120, 36), (150, 33), (170, 40), (131, 45), (160, 28), (183, 31), (141, 39)]):
+            star_dot(img, sx, sy, 0.9, k % 3 == 0, (190, 220, 255))
+        # the button
+        btn = [113, 52, 187, 75]
+        tap = 36 <= f < 40
+        if moved:
+            fill, edge, tc = (34, 38, 50), (74, 80, 100), (92, 100, 124)
+        else:
+            fill, edge, tc = ((60, 150, 80) if tap else (30, 104, 56)), GREEN, WHITE
+        d.rounded_rectangle(btn, radius=3, fill=fill, outline=edge)
+        text_centered(d, "APPLY TO", (btn[0] + btn[2]) // 2, btn[1] + 4, tc)
+        text_centered(d, "ALIGNMENT", (btn[0] + btn[2]) // 2, btn[1] + 13, tc)
+        text(d, "RETAKE" if moved else "STILL", 114, 41, (255, 110, 110) if moved else GREEN)
+        if 30 <= f < 44:   # a finger taps the button
+            tf = ease(seg(f, 30, 36))
+            finger(img, 150 + 10 * (1 - tf), 62 + 14 * (1 - tf))
+        if f >= 42:
+            check(d, 174, 45, 6 if f >= 44 else 4, GREEN)
+        return img
+
+    wipe_a, wipe_b = SOLVE_WIPE
+    apply_start = wipe_a + 2
+    for f in range(total):
+        if f < wipe_a:
+            img = photo_scene(f)
+        elif f <= wipe_b:
+            old = photo_scene(min(f, SOLVE_POINT[1] + 7))
+            new = apply_scene(0)
+            x = int(W * seg(f, wipe_a, wipe_b))
+            img = old.copy()
+            img.paste(new.crop((0, 0, x, H)), (0, 0))
+            ImageDraw.Draw(img).line([(x, 0), (x, H)], fill=AMBER)
+        else:
+            img = apply_scene(f - wipe_b - 1)
+        if f < 25:
+            cap = ("1 PHONE ON THE EYEPIECE", WHITE)
+        elif f < SOLVE_SLIDE[0]:
+            cap = ("2 TAKE A 1-4 S PHOTO", AMBER)
+        elif f < SOLVE_TRI[0]:
+            cap = ("3 MATCH THE STAR PATTERN", AMBER)
+        elif f < SOLVE_TRI[1] + 6:
+            cap = ("3 TRIANGLES VS THE STAR LIST", AMBER)
+        elif f < SOLVE_POINT[0]:
+            cap = ("OFFLINE. ON THE PHONE.", WHITE)
+        elif f < wipe_a:
+            cap = ("4 POINTING HERE", GREEN)
+        else:
+            k = f - wipe_b - 1
+            cap = ("5 MOVED? RETAKE IT", (255, 110, 110)) if k < 24 else ("5 STILL? APPLY IT", GREEN) if k < 44 else ("ALIGNED FROM A PHOTO", GREEN)
+        assert text_width(cap[0]) <= W - 8, cap
+        caption_bar(img, cap[0], cap[1])
         frames.append(scale_up(img))
     ms = [90] * total
-    ms[-1] = 1200
+    ms[SOLVE_SLIDE[0] - 1] = 250       # let the finished photo register
+    ms[SOLVE_POINT[1] + 6] = 600       # "pointing here"
+    ms[-1] = 1500
     save_gif(frames, "solve-how.gif", ms)
 
 
