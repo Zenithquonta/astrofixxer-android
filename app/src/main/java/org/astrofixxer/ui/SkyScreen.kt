@@ -54,7 +54,9 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.astrofixxer.astro.Catalog
@@ -75,7 +77,7 @@ internal val NightColors = darkColorScheme(
     outline = Color(0xFF5A0707), outlineVariant = Color(0xFF3A0505), surfaceVariant = Color.Black, onSurfaceVariant = NightRed,
 )
 
-private enum class Sheet { NONE, SEARCH, EVENTS, SKY, LISTS, HELP, INFO }
+private enum class Sheet { NONE, SEARCH, EVENTS, SKY, LISTS, HELP, INFO, CHECK }
 
 internal val TYPE_NAMES = mapOf("S" to "Star", "Ga" to "Galaxy", "Oc" to "Open cluster", "Gc" to "Globular cluster", "Ne" to "Nebula", "P" to "Solar system", "C" to "Comet", "U" to "My object", "Con" to "Constellation", "Pos" to "Position")
 
@@ -96,8 +98,17 @@ fun SkyScreen(
     backHandler: @Composable (enabled: Boolean, onBack: () -> Unit) -> Unit = { _, _ -> },
     /** Answers a typed or suggested AstroGuide question; the host adds speech. Default: answer on screen only. */
     onAskText: ((String) -> Unit)? = null,
+    /** What the camera plate-solve flow needs from the phone (camera, photo picker, permission); null hides every "Solve with camera" button. */
+    plateSolve: PlateSolveHost? = null,
+    /** The plate-solve flow's state; the host does not need to pass one (tests do, to swap the solver). */
+    solveModel: PlateSolveModel = remember { PlateSolveModel() },
+    /** The in-app updater, only in preview and debug builds; null (Google Play builds) hides the "App updates" block. */
+    updater: Updater? = null,
 ) {
     var sheet by remember { mutableStateOf(Sheet.NONE) }
+    var skyTab by remember { mutableStateOf(0) }
+    val openSolve: (() -> Unit)? = if (plateSolve == null) null else ({ sheet = Sheet.NONE; solveModel.start() })
+    var wizardStep by remember { mutableStateOf(0) }
     var showTime by remember { mutableStateOf(false) }
     var infoObject by remember { mutableStateOf<org.astrofixxer.astro.SkyObject?>(null) }
     var quick by remember { mutableStateOf<Pair<org.astrofixxer.astro.SkyObject, androidx.compose.ui.geometry.Offset>?>(null) }
@@ -109,12 +120,17 @@ fun SkyScreen(
     val colors: ColorScheme = if (state.night) NightColors else DayColors
     // Back closes the innermost thing that is open; with nothing open it leaves the app as usual.
     val guideOpen = state.guideListening || state.guideAnswer != null
-    backHandler(quick != null || state.showOnboarding || sheet != Sheet.NONE || state.align == AlignState.PICK_STAR || guideOpen || showTime) {
+    val wizardOpen = !state.setupDone
+    backHandler(state.mountingChangedNotice || (wizardOpen && wizardStep > 0) || quick != null || (state.showOnboarding && !wizardOpen) || sheet != Sheet.NONE ||
+        solveModel.open || state.aligning || guideOpen || showTime) {
         when {
+            state.mountingChangedNotice -> state.mountingChangedNotice = false
+            wizardOpen -> wizardStep--
             quick != null -> quick = null
             state.showOnboarding -> state.showOnboarding = false
             sheet != Sheet.NONE -> sheet = Sheet.NONE
-            state.align == AlignState.PICK_STAR -> state.cancelAlign()
+            solveModel.open -> solveModel.back()
+            state.aligning -> state.cancelAlign()
             guideOpen -> { state.guideAnswer = null; state.guideListening = false }
             else -> showTime = false
         }
@@ -124,39 +140,61 @@ fun SkyScreen(
             SkyCanvas(state, catalog, moving, Modifier.fillMaxSize(), art) { o, at -> quick = o to at }
             // One row so the target card and the status chips share the width and never overlap on narrow phones.
             Row(Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Box(Modifier.weight(1f)) { InfoOverlay(state, Modifier) { infoObject = state.target; sheet = Sheet.INFO } }
+                val guidanceOpen = state.guidanceExpanded && state.align == AlignState.ALIGNED && state.alignResult == null && state.target != null
+                Box(Modifier.weight(1f)) { if (!guidanceOpen) InfoOverlay(state, Modifier) { infoObject = state.target; sheet = Sheet.INFO } }
                 Column(Modifier.widthIn(max = 170.dp), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     AlignChip(state)
                     ClockChip(state) { showTime = !showTime }
                 }
             }
             Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (state.target != null && state.align == AlignState.ALIGNED) GuidancePanel(state)
-                if (state.target != null && state.align == AlignState.NOT_ALIGNED) AlignHint(state)
-                if (showTime || !state.live) TimeBar(state)
-                if (state.listIndex >= 0) WatchNavigator(state, catalog)
-                if (state.guideListening || state.guideAnswer != null) GuideBubble(state, askText)
-                if (catalog == null) Text(t("Loading sky catalogue…"), color = colors.onSurface, modifier = Modifier.padding(start = 8.dp))
-                Toolbar(state, onAsk,
-                    onSearch = { sheet = Sheet.SEARCH },
-                    onEvents = { sheet = Sheet.EVENTS },
-                    onSky = { sheet = Sheet.SKY })
+                when (state.align) {
+                    AlignState.PICK_STAR -> PickStarPanel(state, openSolve)
+                    AlignState.CENTER_STAR -> CenterStarPanel(state)
+                    AlignState.ALIGNED -> if (state.alignResult != null) AlignResultCard(state, openSolve) else if (state.target != null) GuidancePanel(state, openSolve)
+                    AlignState.NOT_ALIGNED -> if (state.target != null) AlignHint(state)
+                }
+                // While centring a star only its panel is shown, so the + and the star stay clear of everything else.
+                if (state.align != AlignState.CENTER_STAR) {
+                    if (showTime || !state.live) TimeBar(state)
+                    if (state.listIndex >= 0) WatchNavigator(state, catalog)
+                    if (state.guideListening || state.guideAnswer != null) GuideBubble(state, askText)
+                    if (catalog == null) Text(t("Loading sky catalogue…"), color = colors.onSurface, modifier = Modifier.padding(start = 8.dp))
+                    Toolbar(state, onAsk,
+                        onSearch = { sheet = Sheet.SEARCH },
+                        onEvents = { sheet = Sheet.EVENTS },
+                        onSky = { skyTab = 0; sheet = Sheet.SKY })
+                }
             }
             when (sheet) {
                 Sheet.SEARCH -> SearchSheet(state, catalog, moving, onClose = { sheet = Sheet.NONE }, onInfo = openInfo)
                 Sheet.EVENTS -> EventsSheet(state, events) { sheet = Sheet.NONE }
                 Sheet.SKY -> SkyOptionsSheet(state, catalog, onClose = { sheet = Sheet.NONE }, onLists = { sheet = Sheet.LISTS },
-                    onHelp = { sheet = Sheet.HELP }, onTutorial = { sheet = Sheet.NONE; state.showOnboarding = true })
+                    onHelp = { sheet = Sheet.HELP }, onTutorial = { sheet = Sheet.NONE; state.showOnboarding = true },
+                    onCheckOrientation = { sheet = Sheet.CHECK }, onSolveWithCamera = openSolve, updater = updater, initialTab = skyTab)
+                Sheet.CHECK -> OrientationCheckSheet(state) { sheet = Sheet.NONE }
                 Sheet.LISTS -> ListsSheet(state, catalog) { sheet = Sheet.NONE }
                 Sheet.HELP -> HelpSheet { sheet = Sheet.NONE }
                 Sheet.INFO -> infoObject?.let { ObjectInfoSheet(state, catalog, it) { sheet = Sheet.NONE } }
                 Sheet.NONE -> {}
             }
             quick?.let { (o, at) ->
-                QuickMenu(o, at, onDismiss = { quick = null }, onTarget = { state.target = o }, onAlign = { state.alignOn(o) },
+                QuickMenu(o, at, onDismiss = { quick = null }, onTarget = { state.target = o },
+                    onAlign = if (state.canAlignOn(o)) ({ state.beginCentering(o) }) else null,
                     onAdd = { state.addToWatchList(o.name, catalog) }, onInfo = { openInfo(o) })
             }
-            if (state.showOnboarding) Onboarding { state.showOnboarding = false }
+            // The camera plate-solve flow covers everything but the first-run setup.
+            if (solveModel.open && plateSolve != null && !wizardOpen) PlateSolveFlow(state, catalog, plateSolve, solveModel, onChangePlacement = {
+                solveModel.close(); skyTab = TELESCOPE_TAB; sheet = Sheet.SKY
+            })
+            // First launch: the setup wizard, then the tutorial.
+            if (wizardOpen) SetupWizard(state, wizardStep) { wizardStep = it }
+            else if (state.showOnboarding) Onboarding { state.showOnboarding = false }
+            if (state.mountingChangedNotice) ConfirmDialog(
+                t("The phone is mounted differently now, so the old alignment no longer fits. Align on a star again."),
+                confirm = t("Align now"), dismiss = t("Later"),
+                onConfirm = { state.mountingChangedNotice = false; sheet = Sheet.NONE; solveModel.close(); state.startAlign() },
+                onDismiss = { state.mountingChangedNotice = false })
         }
     }
 }
@@ -193,18 +231,12 @@ private fun InfoOverlay(state: SkyState, modifier: Modifier, onOpen: () -> Unit)
 private fun AlignChip(state: SkyState) {
     val (label, color) = when (state.align) {
         AlignState.NOT_ALIGNED -> t("Not aligned") to MaterialTheme.colorScheme.error
-        AlignState.PICK_STAR -> t("Tap the star the telescope points at") to MaterialTheme.colorScheme.primary
-        AlignState.ALIGNED -> {
-            val min = ((state.timeMillis - (state.alignedAtMillis ?: state.timeMillis)) / 60000).coerceAtLeast(0)
-            (if (min >= 10) t("Aligned %d min ago · re-align soon").format(min) else t("Aligned ✓")) to MaterialTheme.colorScheme.primary
-        }
+        AlignState.PICK_STAR -> t("Choose a star") to MaterialTheme.colorScheme.primary
+        AlignState.CENTER_STAR -> t("Aligning…") to MaterialTheme.colorScheme.primary
+        AlignState.ALIGNED -> alignAgeText(state) to MaterialTheme.colorScheme.primary
     }
     Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surface) {
-        Column(horizontalAlignment = Alignment.End) {
-            Text(label, color = color, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), fontSize = 13.sp)
-            if (state.align == AlignState.PICK_STAR) OutlinedButton(onClick = { state.cancelAlign() },
-                modifier = Modifier.padding(start = 6.dp, end = 6.dp, bottom = 6.dp).heightIn(min = 48.dp)) { Label(t("Cancel")) }
-        }
+        Text(label, color = color, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), fontSize = 13.sp)
     }
 }
 
@@ -239,68 +271,8 @@ private fun TimeBar(state: SkyState) {
 @Composable
 private fun AlignHint(state: SkyState) {
     Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surface) {
-        Text(t("To get directions to %s, point the telescope at a bright star near it, tap Align, then tap that star.").format(state.target?.name),
+        Text(t("To get directions to %s, tap Align, tap a bright star near it, then centre that star in the telescope.").format(state.target?.name),
             color = MaterialTheme.colorScheme.onSurface, fontSize = 15.sp, modifier = Modifier.padding(14.dp))
-    }
-}
-
-@Composable
-private fun GuidancePanel(state: SkyState) {
-    val (dAlt, dAz, sep) = state.guidance() ?: return
-    // On target once the target is inside the eyepiece's field.
-    val onTarget = sep < state.eyepieceFovDeg / 2
-    val c = MaterialTheme.colorScheme
-    val haptic = LocalHapticFeedback.current
-    LaunchedEffect(onTarget) { if (onTarget && state.haptics) haptic.performHapticFeedback(HapticFeedbackType.LongPress) }
-    Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), color = c.surface) {
-        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text((if (onTarget) t("On target: %s") else t("Move to %s")).format(state.target?.name),
-                    color = c.primary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    val eq = if (state.equatorialMount) state.guidanceEquatorial() else null
-                    if (eq != null) {
-                        val (dRa, dDec) = eq
-                        Readout(if (dRa >= 0) t("E") else t("W"), dRa, "RA")
-                        Readout(if (dDec >= 0) t("N") else t("S"), dDec, "Dec")
-                    } else {
-                        Readout(if (dAlt >= 0) "↑" else "↓", dAlt, "altitude")
-                        Readout(if (dAz >= 0) "→" else "←", dAz, "azimuth")
-                    }
-                }
-                Text(t("%.1f° to go · re-align if the target drifts").format(sep), color = c.onSurface, fontSize = 12.sp)
-            }
-            Bullseye(dAlt, dAz, sep, onTarget, Modifier.padding(start = 8.dp).size(64.dp))
-        }
-    }
-}
-
-/** The target's direction as a dot that closes in on the centre as the telescope approaches; filled when on target. */
-@Composable
-private fun Bullseye(dAlt: Double, dAz: Double, sep: Double, onTarget: Boolean, modifier: Modifier) {
-    val ring = MaterialTheme.colorScheme.outline
-    val accent = MaterialTheme.colorScheme.primary
-    Canvas(modifier.semantics { contentDescription = if (onTarget) "On target" else "Target direction" }) {
-        val r = size.minDimension / 2
-        val mid = Offset(size.width / 2, size.height / 2)
-        for (k in 1..3) drawCircle(ring, r * k / 3, mid, style = Stroke(1.5f))
-        if (onTarget) {
-            drawCircle(accent, r / 3, mid)
-        } else {
-            val d = kotlin.math.sqrt(dAlt * dAlt + dAz * dAz).coerceAtLeast(1e-9)
-            val reach = kotlin.math.sqrt((sep / 20).coerceIn(0.0, 1.0)).toFloat() * (r - 6f) // square root: fine steps near the target
-            drawCircle(accent, 6f, mid + Offset((dAz / d).toFloat() * reach, (-dAlt / d).toFloat() * reach))
-        }
-    }
-}
-
-@Composable
-private fun Readout(arrow: String, value: Double, label: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        // One line only: if it ever stops fitting, the UI audit reports it as clipped instead of it wrapping silently.
-        Text("$arrow ${dm(abs(value))}", color = MaterialTheme.colorScheme.onSurface, fontSize = 24.sp,
-            fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
-        Text(t(label), color = MaterialTheme.colorScheme.onSurface, fontSize = 12.sp)
     }
 }
 
@@ -325,24 +297,35 @@ private fun Toolbar(state: SkyState, onAsk: (() -> Unit)?, onSearch: () -> Unit,
             OutlinedButton(onClick = onEvents, modifier = big.weight(1f), contentPadding = pad) { Label(t("Events")) }
             OutlinedButton(onClick = onSky, modifier = big.weight(0.8f), contentPadding = pad) { Label(t("Sky")) }
             OutlinedButton(onClick = { state.night = !state.night }, modifier = big.weight(1f), contentPadding = pad) { Label(t(if (state.night) "Day" else "Night")) }
-            OutlinedButton(onClick = { state.nextMode() }, modifier = big.weight(1.1f), contentPadding = pad) {
-                Label(t(when (state.mode) { PointingMode.COMPASS -> "Compass"; PointingMode.MANUAL -> "Manual"; PointingMode.FREE -> "Free look" }))
+            OutlinedButton(onClick = { state.nextMode() }, enabled = !state.aligning, modifier = big.weight(1.1f), contentPadding = pad) {
+                Label(t(when (state.mode) { PointingMode.COMPASS -> "Compass"; PointingMode.FREE -> "Free look" }))
             }
         }
     }
 }
 
-/** One-line button label that steps its font down (15 to 11 sp) until it fits, so no label is ever cut off. */
+/**
+ * Button label that is never cut off. It takes the largest size (15 down to 11 sp) that fits on one line; when none does,
+ * the largest size that fits on two centred lines with no word broken in the middle; only when even that fails does it
+ * clip at 11 sp. Two lines need about 40 dp, so a 48 dp button grows a little when its label wraps (a 56 dp one by about a dp).
+ */
 @Composable
-internal fun Label(text: String) = BoxWithConstraints(contentAlignment = Alignment.Center) {
+internal fun Label(text: String, color: Color = Color.Unspecified) = BoxWithConstraints(contentAlignment = Alignment.Center) {
     val measurer = rememberTextMeasurer()
     val base = LocalTextStyle.current
     val maxPx = constraints.maxWidth
-    val style = remember(text, maxPx, base) {
-        listOf(15, 14, 13, 12, 11).map { base.copy(fontSize = it.sp) }
-            .firstOrNull { measurer.measure(text, it, maxLines = 1, softWrap = false).size.width <= maxPx } ?: base.copy(fontSize = 11.sp)
+    val sizes = listOf(15, 14, 13, 12, 11)
+    val fit = remember(text, maxPx, base) {
+        sizes.map { base.copy(fontSize = it.sp) }.firstOrNull { measurer.measure(text, it, maxLines = 1, softWrap = false).size.width <= maxPx }
+            ?.let { it to 1 }
+            ?: sizes.map { base.copy(fontSize = it.sp, lineHeight = (it + 3).sp) }.firstOrNull {
+                val r = measurer.measure(text, it, maxLines = 2, constraints = Constraints(maxWidth = maxPx))
+                !r.hasVisualOverflow && (0 until r.lineCount - 1).all { line -> text[r.getLineEnd(line) - 1].isWhitespace() }
+            }?.let { it to 2 }
+            ?: (base.copy(fontSize = 11.sp) to 1)
     }
-    Text(text, style = style, maxLines = 1, softWrap = false)
+    val (style, lines) = fit
+    Text(text, style = style, color = color, maxLines = lines, softWrap = lines > 1, textAlign = TextAlign.Center)
 }
 
 @Composable
@@ -461,18 +444,29 @@ private fun ListsSheet(state: SkyState, catalog: Catalog?, onClose: () -> Unit) 
 const val SOURCE_URL = "https://github.com/Zenithquonta/astrofixxer-android"
 
 private const val LICENCES = "AstroFixxer is free software under the GNU GPL v3. Source code: $SOURCE_URL. " +
-    "Based on AstroHopper by Artyom Beilis (GPLv3, source: github.com/artyom-beilis/skyhopper). Deep-sky catalogue, names, meteor showers and comet orbits from Stellarium " +
-    "(GPL-2.0-or-later). Sky cultures from Stellarium (CC BY-SA 4.0); constellation artwork under the Free Art License. " +
-    "Star positions from the HYG database (CC BY-SA). Planet theory VSOP87 and position reduction by Greg Miller (public domain)."
+    "Based on AstroHopper by Artyom Beilis (GPLv3, source: github.com/artyom-beilis/skyhopper). " +
+    "Deep-sky catalogue, names, meteor showers, and comet and asteroid orbits come from Stellarium (GPL-2.0-or-later). " +
+    "Sky cultures come from Stellarium: names and data are CC BY-SA 4.0. Modern constellation illustrations are under the Free Art License. " +
+    "Indian sky culture illustrations are CC BY-SA 4.0. " +
+    "The star list for plate solving comes from Stellarium's catalogues, built on ESA Gaia DR3 (CC BY-SA 3.0 IGO) and Hipparcos (ESA). " +
+    "This work has made use of data from the European Space Agency (ESA) mission Gaia, processed by the Gaia Data Processing and Analysis Consortium (DPAC). " +
+    "Star positions and colours come from the HYG database v3 (CC BY-SA). " +
+    "The planet series VSOP87 and the position reduction (CPReduce) are by Greg Miller (public domain). " +
+    "ISS and Tiangong orbits are downloaded from CelesTrak (celestrak.org) when you are online. " +
+    "The Kotlin, AndroidX and Jetpack Compose libraries are Apache-2.0. " +
+    "Privacy policy, full credits and licences: PRIVACY.md and NOTICE.md at $SOURCE_URL."
 
 private val HELP = listOf(
-    "Setting up" to "Attach the phone flat on the telescope tube with its top edge pointing where the telescope points. Allow location so the sky matches your place and time.",
-    "Aligning" to "Point the telescope at a bright star or planet near your target, tap Align, then tap that star on the screen. Re-align for each new target; phone sensors drift over a few minutes.",
+    "Setting up" to "Attach the phone to the telescope and tell the app how in the setup wizard (or Sky & viewing, Telescope & orientation): flat on the tube, camera facing along it, or on the eyepiece. Allow location so the sky matches your place and time.",
+    "Aligning" to "Tap Align, then tap a bright star or planet near your target. Centre that star in the eyepiece by moving the telescope, drag the map until the star is under the +, and tap Confirm alignment. The app then says how big the correction was. Re-align for each new target; phone sensors drift over a few minutes.",
     "Finding a target" to "Tap an object on the sky or use Find. Follow the arrows in the guidance panel until both numbers are close to zero.",
-    "Compass and Manual" to "Compass uses the phone's compass. If the alignment star isn't on screen, switch to Manual and drag the sky sideways until it is, then Align.",
-    "Free look" to "The third pointing mode: the sky ignores the phone's sensors and you drag it in any direction, like a planetarium. Tap the Compass / Manual / Free look button to switch.",
+    "Compass and dragging" to "Compass uses the phone's compass. If the alignment star isn't on screen, or the phone has no compass, drag the map while aligning until the star is under the +. Dragging never changes the alignment at any other time.",
+    "Free look" to "The other pointing mode: the sky ignores the phone's sensors and you drag it in any direction, like a planetarium. Tap the Compass / Free look button to switch.",
+    "Checking the alignment" to "In the guidance panel tap More, then Check with another star. Centre a second star and confirm: the app says how far off the alignment was and refines it using both stars.",
+    "Eyepiece view" to "Eyepieces can show the sky upside down, reversed or turned. In Sky & viewing, Telescope & orientation, tap Check orientation to find out which, then turn on Match eyepiece view to draw the map the same way. Directions never change.",
+    "Solve with camera" to "Put the phone on the eyepiece, or with its camera along the telescope, then tap Solve with camera (under More, in Sky & viewing, Telescope & orientation, or Align with a photo). Take a 1 to 4 second photo of the stars: the app finds where the telescope points, on the phone, and aligns to it if you ask. Photos are never saved or sent anywhere.",
     "Object info" to "Tap the target card at the top left, or long-press any object, for its names, constellation, rise and set times, a graph of its altitude tonight and how it looks in your eyepiece.",
-    "Telescope settings" to "In Sky & viewing, Telescope: enter the telescope's and eyepiece's focal lengths and the eyepiece's apparent field. The circle around the crosshair is your eyepiece's view, and On target means the target is inside it. Equatorial mounts get directions in RA and Dec.",
+    "Telescope settings" to "In Sky & viewing, Telescope & orientation: enter the telescope's and eyepiece's focal lengths and the eyepiece's apparent field. The circle around the + is your eyepiece's view, and On target means the target is inside it. Equatorial mounts get directions in RA and Dec.",
     "Zoom" to "Pinch or use + and −. Fainter stars and deep-sky objects appear as you zoom in.",
     "Events" to "Moon phases, eclipses, meteor showers, conjunctions, transits, occultations and bright comets for the next 60 days, all worked out on the phone. Tap one to show the sky at that time; Now returns to the present.",
     "Time travel" to "Tap the clock at the top right to step the sky by hours or days. While you are away from the present the clock turns pink; Now returns to the present.",
@@ -500,9 +494,9 @@ private fun HelpSheet(onClose: () -> Unit) {
 }
 
 private val ONBOARDING = listOf(
-    "Attach the phone" to "Fix the phone flat on the telescope tube, with its top edge pointing where the telescope points.",
-    "Align on a bright star" to "Point the telescope at an easy star or planet near what you want to find, for example Sirius for M41. Tap Align, then tap that star on the screen.",
-    "Can't see the star?" to "The compass may be off near the metal tube. Switch to Manual and drag the sky sideways until the star is under the crosshair, then Align.",
+    "Attach the phone" to "Fix the phone to the telescope the way you told the setup wizard. The wizard's picture shows how.",
+    "Align on a bright star" to "Pick an easy star or planet near what you want to find, for example Sirius for M41. Tap Align, tap that star, then centre it in the telescope.",
+    "Line up the map" to "The compass may be off near the metal tube. Drag the map until the star is under the +, then tap Confirm alignment. Dragging only lines up the map; it never moves the telescope.",
     "Hop to the target" to "Tap your target and follow the arrows until they reach zero. Re-align for each new target.",
 )
 

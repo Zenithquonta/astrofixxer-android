@@ -12,8 +12,14 @@ sourceSets {
     main {
         kotlin.srcDir("$app/astro")
         kotlin.srcDir("$app/ui")
+        kotlin.srcDir("$app/update") // pure update logic the updater screen shows (the Android host in $app/host is not included)
         java.srcDir("$app/astro/vsop87")
     }
+}
+// The synthetic star-field renderer of the plate-solver unit tests, so the flow tests can feed the app real-looking pictures.
+sourceSets.test {
+    kotlin.srcDir("../../app/src/test/java")
+    kotlin.exclude { !it.isDirectory && it.file.path.contains("app/src/test/java") && it.file.name != "SyntheticSky.kt" }
 }
 java { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> { kotlinOptions.jvmTarget = "17" }

@@ -8,6 +8,48 @@ Every update and fix to AstroFixxer, newest first. Dates are when the work lande
 The first Android version: a Kotlin + Jetpack Compose port of the AstroFixxer web app, which grew out of
 [AstroHopper / skyhopper](https://github.com/artyom-beilis/skyhopper) by Artyom Beilis.
 
+### Licences, privacy and contributing (1 Oct 2026)
+
+- **Help → Licences and source** now credits ESA Gaia DR3 and Hipparcos (the plate-solving star list) and CelesTrak (ISS and Tiangong orbits), says that only the modern constellation illustrations are under the Free Art License (the Indian ones are CC BY-SA 4.0), and points to `PRIVACY.md` and `NOTICE.md`.
+- `PRIVACY.md` follows `POLICY.md` point by point: a typed location is saved, Ask starts only when tapped, camera pictures stay in memory, the update check runs only on a tap in the GitHub download, and the full list of what is stored on the phone, including the camera offset and the temporary update download.
+- `POLICY.md`: the web app's only request to another site is the optional Wikipedia page; the stored-data list adds the camera offset and the update file.
+- `CONTRIBUTING.md`: sign off every commit (DCO 1.1); contributions are GPLv3, data keeps its own licence, no CLA.
+
+### Hindi interface switched off for now (1 Oct 2026)
+
+- The Hindi interface is switched off for now and returns in a later release. The app shows English only, the language choice is hidden, and a saved Hindi language loads as English. The Indian (Vedic) sky culture is not affected.
+
+### Solve with the camera (30 Sep 2026)
+
+- **Solve with camera.** A guided full-screen flow from More, Sky & viewing → Telescope & orientation, and the alignment panel ("Align with a photo"): confirm the arrangement, capture tips, a live camera view, solving, and the result. It finds where the telescope points from a photo of the stars, entirely on the phone. Photos are never saved or uploaded; the app does not use the network for this.
+- **Result.** Where the camera pointed (RA/Dec, constellation, matched stars, scale, mirrored or not), **Show on map** (moves Free look there), and **Apply to alignment**, which is enabled only when it is allowed and says exactly what it will do. A failed solve gives advice for each cause (too few stars, too bright, trailed stars, no match, no rough position for a narrow field) and changes nothing. A photo that could not be solved never changes the alignment or the map.
+- **Phone on the eyepiece:** the photo centre is the telescope. **Camera beside the tube:** pick a star, centre it in the eyepiece and take a photo to calibrate the camera-to-telescope offset once (saved; Reset offset clears it). Until then the flow says where the *camera* points and Apply is disabled with the reason. **Phone flat on the tube:** the flow explains that the camera cannot see the sky and offers to change the phone placement.
+- **Settings for the solver come from the setup:** the scale from the phone camera's field of view (reported by Camera2) divided by the eyepiece magnification (±35 %) or the camera's own field (±25 %); 65° with a wide range for gallery photos, said on screen; the search around where the sensors point (10° when aligned, 30° with a compass, else the whole sky). Narrow fields with nothing to say where to look are refused, not guessed.
+- **Camera:** Camera2 (no new libraries), manual 1, 2 and 4 s exposures at ISO about 1600 where the phone supports them, otherwise automatic. The camera permission is asked for only when the live view opens; if it is refused there is "Use a photo from the gallery" (Android's photo picker) and "Open app settings". Phones with no camera can still solve gallery photos.
+- Apply uses the phone's rotation and the time at the moment the photo was taken. It is refused when the phone moved more than 0.3° during the exposure, and for gallery photos (nothing records where the telescope was pointing).
+- **Button labels wrap instead of being cut off.** A button label that does not fit on one line at 11 sp now wraps onto two centred lines at the largest size that fits (it used to be clipped); "Change phone placement" was cut off on phones 360 dp wide when the system sans-serif font is a wide one such as DejaVu Sans.
+- Not yet tested on a device: real Camera2 capture, manual exposure, the reported field of view, real star photos and the permission dialogs. See the camera section of docs/FIELD_TEST.md.
+
+### Telescope setup, alignment and guidance (30 Sep 2026)
+
+- **First-run wizard.** Four to six short steps with pictures: telescope type, mount, where the phone is mounted (flat on the tube, camera facing along it, or on the eyepiece) and the follow-ups that placement needs. "Set up later" keeps the defaults. People who already had the app see the wizard once and keep all their other settings.
+- **Sky & viewing → Telescope & orientation** replaces the Telescope tab: the setup, a picture of the arrangement, the eyepiece, and **Check orientation** (which phone axis points along the telescope, from two alignment stars; and which way the eyepiece shows the sky, from two nudges of the telescope).
+- **Alignment fixed.** Tapping a star used to align at once, as if the telescope were already centred. Now: Align, tap the star, centre it in the eyepiece, drag the map until it is under the +, Confirm. The result card says how big the correction was, warns above 20° and has Retry. "Align using this star" in the long-press menu and Object Info starts the same flow. The calibration is saved, so the chip can say "Aligned 3 h ago".
+- **Manual mode is gone.** Its sideways drag changed the calibration while you browsed. Modes are Compass and Free look, and only the alignment steps let a drag move the calibration map (which also fixes the start azimuth on phones without a compass).
+- **Check with another star** (under More) reports how far off the alignment was and refines it with both stars.
+- **Guidance** is a big arrow with words ("↗ Up 3.2° · Right 5.1°") and the distance; Close is amber, On target is a filled bullseye. Details, the eyepiece-view controls and the check are behind More.
+- **Match eyepiece view** draws the sky map turned and mirrored like the eyepiece; directions never change. The + is now a small marker at the exact centre.
+
+### In-app updates for the GitHub download (30 Sep 2026)
+
+- **Sky & viewing → More → App updates** (the GitHub preview download only): shows the installed version and build, and **Check for updates** compares it with the newest build on GitHub. If there is one, it shows the version, the size and a link to what's new, then **Download and install**: a system download with a notification and progress, a check of the file's SHA-256, and Android's own installer, which always asks you first.
+- Nothing is checked in the background. GitHub is contacted only when you tap the button, and nothing about you is sent (see `PRIVACY.md`).
+- **Safe by construction.** Only HTTPS addresses inside this repository's own release are used, `update.json` and the APK have size limits, the APK must match the SHA-256 and size in `update.json` (a mismatch deletes it), and Android refuses an update signed with a different key (see `SECURITY.md`).
+- **Builds without the permanent signing key** are flagged in the app: they can't install over yours, so the app says so plainly and needs a second tap before downloading one.
+- Every failure has its own message: offline, timeout, GitHub's request limit (with when to try again), no release, a release without `update.json`, unreadable data, a release for another app, a full phone, a cancelled or damaged download.
+- **Google Play builds have none of this.** Play forbids apps that update themselves, so the screen and the `REQUEST_INSTALL_PACKAGES` permission exist only in the preview and debug builds (`app/src/preview` and `app/src/debug`), and CI fails if the release build asks for the permission.
+- **Release metadata.** Every published preview build has a `versionCode` that grows with the build number, and the `latest-build` release carries `update.json` next to `AstroFixxer.apk`, with the release title showing the build number. CI checks the APK's signature and that its versionCode and applicationId match `update.json`. Numbered tag releases are no longer marked Latest, so the updater keeps finding the preview build. Tag releases (the Google Play bundle) now also get a growing `versionCode` from the build number, because Play rejects a repeated one.
+
 ### New screens and sky plotting (29 Sep 2026)
 
 Built from the Stitch UI brief and Phase 5 of the implementation plan.

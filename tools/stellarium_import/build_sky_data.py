@@ -12,6 +12,9 @@ Outputs (under --out)
   android/sky_catalog.json.gz  full catalogue for the Android app
   events/meteor_showers.json   meteor shower calendar with dates for --years
   events/minor_bodies.json     comets and asteroids with orbital elements
+  android/solver_stars.bin     deep star list for the offline plate solver: Gaia-DR3-based
+                               Stellarium catalogues (stars/hip_gaia3, V <= 10.5) moved to J2000.0
+                               (--solver-stars-only builds just this file; --no-solver-stars skips it)
 """
 import argparse
 import csv
@@ -22,6 +25,7 @@ import math
 import os
 import re
 import shutil
+import struct
 import subprocess
 
 # The data uses SIMBAD-style codes (Gx, AGx, RNe, ...) as well as the ones in the file header.
@@ -181,6 +185,193 @@ def read_hyg(path):
                 by_hip[hip] = (ra, de, mag, proper)
             rows.append((hip, ra, de, mag, proper, bv))
     return by_hip, rows
+
+
+# ---------------------------------------------------------------- deep star list for the plate solver
+#
+# Stellarium's stars/hip_gaia3/stars_N_*.cat ("ZoneArray" files, src/core/modules/ZoneArray.cpp):
+#   header, little-endian, 28 bytes: u32 magic 0x835f040a (0x0a045f83 = byte-swapped file, 0x835f040b = native),
+#     u32 type (0: 48-byte Star1), u32 major, u32 minor, u32 level, i32 mag_min (milli-mag, only a hint),
+#     f32 catalogue epoch JD (must be 2457389.0 = J2016.0)
+#   u32 zone_size[20 * 4^level + 1]   (last zone is the "global" zone; sizes only, the zone geometry is not needed
+#                                      because every star carries its own absolute position)
+#   Star1 records, zone after zone (48 bytes, all little-endian):
+#     i64 gaia_id; i32 x0,x1,x2 (unit vector of the ICRS position at J2016.0, value / 2e9);
+#     i32 dx0,dx1,dx2 (proper motion as a Cartesian vector, micro-arcsec/yr); i16 b_v (milli-mag);
+#     i16 vmag (milli-mag); u16 plx (0.02 mas); u16 plx_err (0.01 mas); i16 rv (0.1 km/s); u16 spInt; u8 objtype;
+#     u8 hip[3] (bits 5.. = HIP number, bits 0-4 = component letter)
+# Position at another epoch follows Star::getEquatorialPos3D in Star.hpp (Anthony Brown's astrometry tutorial):
+#     pmr0 = rv * plx / (AU / JYEAR_SECONDS) * MAS2RAD        (radial "proper motion", rad/yr)
+#     f = 1 / sqrt(1 + 2 pmr0 dt + (|pm|^2 + pmr0^2) dt^2)
+#     u = (r (1 + pmr0 dt) + pm dt) f                          (dt in Julian years from J2016.0; -16.0 for J2000.0)
+# Only type 0 is implemented, because that is what the four files we ship (V < 10.5) use; the fainter files use
+# the 32-byte Star2 and 16-byte Star3 layouts and are refused loudly rather than half-decoded.
+
+STELLARIUM_STAR_MAGIC = 0x835F040A
+STELLARIUM_STAR_EPOCH_JD = 2457389.0
+J2000_JD = 2451545.0
+STELLARIUM_STAR_FILES = ['stars_0_0v0_21.cat', 'stars_1_0v0_16.cat', 'stars_2_0v0_17.cat', 'stars_3_0v0_10.cat']
+MAS2RAD = 4.8481368110953594e-9
+AU_KM = 149597870.691
+JYEAR_SECONDS = 31557600.0
+_STAR1 = struct.Struct('<q6ihhHHhHB3s')
+assert _STAR1.size == 48
+SOLVER_MAG_LIMIT = 10.5
+
+
+def read_stellarium_star_file(path, target_jd=J2000_JD):
+    """One hip_gaia3 catalogue -> (header dict, [(ra_deg, dec_deg, vmag, hip, gaia_id)]) with positions moved
+    from the catalogue epoch (J2016.0) to target_jd exactly as Stellarium does (proper motion, radial velocity, parallax)."""
+    with open(path, 'rb') as f:
+        data = f.read()
+    magic, typ, major, minor, level, mag_min, epoch = struct.unpack_from('<IIIIIif', data, 0)
+    if magic != STELLARIUM_STAR_MAGIC:
+        raise ValueError('%s: not a little-endian Stellarium star catalogue (magic %#x)' % (path, magic))
+    if typ != 0:
+        raise ValueError('%s: star type %d not supported (only 48-byte Star1 files)' % (path, typ))
+    if epoch != STELLARIUM_STAR_EPOCH_JD:
+        raise ValueError('%s: unexpected catalogue epoch %r' % (path, epoch))
+    zones = 20 * 4 ** level + 1
+    sizes = struct.unpack_from('<%dI' % zones, data, 28)
+    count = sum(sizes)
+    start = 28 + 4 * zones
+    if len(data) != start + 48 * count:
+        raise ValueError('%s: size %d does not match header (%d stars)' % (path, len(data), count))
+    dt = (target_jd - epoch) / 365.25
+    stars = []
+    for (gaia, x0, x1, x2, d0, d1, d2, _bv, vmag, plx, _plxerr, rv, _sp, _ot, hip3) in _STAR1.iter_unpack(data[start:]):
+        x, y, z = x0 / 2e9, x1 / 2e9, x2 / 2e9
+        p0, p1, p2 = d0 / 1000.0 * MAS2RAD, d1 / 1000.0 * MAS2RAD, d2 / 1000.0 * MAS2RAD
+        pmr0 = (rv / 10.0) * (plx * 0.02) / (AU_KM / JYEAR_SECONDS) * MAS2RAD
+        f = 1.0 / math.sqrt(1 + 2 * pmr0 * dt + (p0 * p0 + p1 * p1 + p2 * p2 + pmr0 * pmr0) * dt * dt)
+        k = 1 + pmr0 * dt
+        ux, uy, uz = (x * k + p0 * dt) * f, (y * k + p1 * dt) * f, (z * k + p2 * dt) * f
+        ra = math.degrees(math.atan2(uy, ux)) % 360.0
+        dec = math.degrees(math.atan2(uz, math.hypot(ux, uy)))
+        hip = (hip3[0] | hip3[1] << 8 | hip3[2] << 16) >> 5
+        stars.append((ra, dec, vmag / 1000.0, hip, gaia))
+    return ({'level': level, 'type': typ, 'major': major, 'minor': minor, 'zones': zones, 'count': count,
+             'mag_min': mag_min, 'epoch_jd': epoch}, stars)
+
+
+# solver_stars.bin, all little-endian ("AFSS" = AstroFixxer Solver Stars). The Kotlin reader is
+# astro/SolverStars.kt; keep the two descriptions identical.
+#   0   char[4] "AFSS"
+#   4   u16 version (1)
+#   6   u16 bands: declination bands of height 180/bands degrees, band 0 starts at Dec -90
+#   8   u32 star count N
+#   12  f32 magMin (-2.0)          magnitude byte m stands for magMin + m * magStep
+#   16  f32 magStep (0.05)
+#   20  f32 magLimit (10.5)        catalogue is complete to here (informational)
+#   24  u16 cells[bands]           RA cells in each band; cell width 360/cells degrees
+#   ..  u32 offsets[C + 1]         C = sum(cells); star index where cell c starts (cells in band-major order, RA
+#                                  ascending inside a band); offsets[C] = N
+#   ..  N records of 5 bytes, cell after cell, brightest first inside a cell:
+#         u16 x   RA:  ra  = (col  + (x + 0.5) / 65536) * 360/cells[band]
+#         u16 y   Dec: dec = -90 + (band + (y + 0.5) / 65536) * (180/bands)
+#         u8  m   V magnitude
+#   Positions are ICRS/J2000.0 at epoch 2000.0. band = min(bands - 1, floor((dec + 90) / (180/bands))),
+#   col = min(cells - 1, floor(ra / (360/cells))). With 90 bands the quantisation step is 0.11 arcsec in Dec and
+#   never more than 0.11 arcsec on the sky in RA, and 0.05 mag in V. About 5 bytes per star.
+SOLVER_MAGIC = b'AFSS'
+SOLVER_VERSION = 1
+SOLVER_BANDS = 90
+SOLVER_MAG_MIN = -2.0
+SOLVER_MAG_STEP = 0.05
+
+
+def _solver_cells(bands):
+    out = []
+    for b in range(bands):
+        centre = -90.0 + (b + 0.5) * 180.0 / bands
+        out.append(max(1, int(round(bands * 2 * math.cos(math.radians(centre))))))
+    return out
+
+
+def solver_cell(ra, dec, bands, cells):
+    """(band, column) of a position, the rule the reader uses too."""
+    band = min(bands - 1, max(0, int((dec + 90.0) / (180.0 / bands))))
+    n = cells[band]
+    return band, min(n - 1, max(0, int(ra / (360.0 / n))))
+
+
+def write_solver_stars(path, stars, mag_limit=SOLVER_MAG_LIMIT):
+    """stars: iterable of (ra_deg, dec_deg, vmag, ...) -> solver_stars.bin; returns (star count, bytes)."""
+    bands = SOLVER_BANDS
+    cells = _solver_cells(bands)
+    starts, ncell = [], 0
+    for c in cells:
+        starts.append(ncell)
+        ncell += c
+    buckets = [[] for _ in range(ncell)]
+    bh = 180.0 / bands
+    n = 0
+    for s in stars:
+        ra, dec, mag = s[0], s[1], s[2]
+        if mag > mag_limit:
+            continue
+        band, col = solver_cell(ra, dec, bands, cells)
+        w = 360.0 / cells[band]
+        x = min(65535, max(0, int((ra - col * w) / w * 65536)))
+        y = min(65535, max(0, int((dec + 90.0 - band * bh) / bh * 65536)))
+        m = min(255, max(0, int(round((mag - SOLVER_MAG_MIN) / SOLVER_MAG_STEP))))
+        buckets[starts[band] + col].append((m, x, y))
+        n += 1
+    out = bytearray(SOLVER_MAGIC)
+    out += struct.pack('<HHIfff', SOLVER_VERSION, bands, n, SOLVER_MAG_MIN, SOLVER_MAG_STEP, mag_limit)
+    out += struct.pack('<%dH' % bands, *cells)
+    offset, offsets = 0, []
+    for b in buckets:
+        offsets.append(offset)
+        offset += len(b)
+    offsets.append(offset)
+    out += struct.pack('<%dI' % len(offsets), *offsets)
+    for b in buckets:
+        for m, x, y in sorted(b):
+            out += struct.pack('<HHB', x, y, m)
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    with open(path, 'wb') as f:
+        f.write(out)
+    return n, len(out)
+
+
+def read_solver_stars(path):
+    """Reference reader of solver_stars.bin (used by the tests): -> [(ra_deg, dec_deg, mag)]."""
+    with open(path, 'rb') as f:
+        d = f.read()
+    if d[:4] != SOLVER_MAGIC:
+        raise ValueError('not a solver star file')
+    version, bands, n, mag_min, mag_step, _lim = struct.unpack_from('<HHIfff', d, 4)
+    if version != SOLVER_VERSION:
+        raise ValueError('unsupported version %d' % version)
+    cells = struct.unpack_from('<%dH' % bands, d, 24)
+    ncell = sum(cells)
+    off_at = 24 + 2 * bands
+    offsets = struct.unpack_from('<%dI' % (ncell + 1), d, off_at)
+    rec = off_at + 4 * (ncell + 1)
+    if offsets[-1] != n or len(d) != rec + 5 * n:
+        raise ValueError('corrupt solver star file')
+    out, c = [], 0
+    for band in range(bands):
+        for col in range(cells[band]):
+            for i in range(offsets[c], offsets[c + 1]):
+                x, y, m = struct.unpack_from('<HHB', d, rec + 5 * i)
+                out.append(((col + (x + 0.5) / 65536) * 360.0 / cells[band],
+                            -90.0 + (band + (y + 0.5) / 65536) * 180.0 / bands,
+                            mag_min + m * mag_step))
+            c += 1
+    return out
+
+
+def build_solver_stars(star_dir, out_path):
+    """Decode the four catalogues and write out_path. Returns (per-file counts, kept star count, bytes)."""
+    allstars, counts = [], {}
+    for name in STELLARIUM_STAR_FILES:
+        header, stars = read_stellarium_star_file(os.path.join(star_dir, name))
+        counts[name] = header['count']
+        allstars.extend(stars)
+    n, size = write_solver_stars(out_path, allstars)
+    return counts, n, size
 
 
 def read_skyculture(path):
@@ -563,18 +754,33 @@ def git_rev(path):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--stellarium', required=True)
-    ap.add_argument('--hyg', required=True)
+    ap.add_argument('--hyg', help='hygdata_v3.csv (required unless --solver-stars-only)')
     ap.add_argument('--out', default='data')
     ap.add_argument('--sky-culture', choices=['modern', 'indian'], default='modern')
     ap.add_argument('--dso-mag-limit', type=float, default=14.0)
     ap.add_argument('--star-mag-limit', type=float, default=6.0)
+    ap.add_argument('--star-catalogs', default=None,
+                    help='Stellarium hip_gaia3 star catalogue directory (default: <stellarium>/stars/hip_gaia3)')
+    ap.add_argument('--no-solver-stars', action='store_true', help='skip android/solver_stars.bin')
+    ap.add_argument('--solver-stars-only', action='store_true', help='build only android/solver_stars.bin and stop')
     ap.add_argument('--years', default=None, help='e.g. 2026-2028 (default: this year and next two)')
     ap.add_argument('--apply-to', help='astrofixxer.html to read')
     ap.add_argument('--apply-out', help='where to write the patched html (default: next to --out web js)')
     args = ap.parse_args()
+    if not args.hyg and not args.solver_stars_only:
+        ap.error('--hyg is required unless --solver-stars-only')
 
     st = args.stellarium
     rev = git_rev(st)
+    if not args.no_solver_stars:
+        star_dir = args.star_catalogs or os.path.join(st, 'stars', 'hip_gaia3')
+        solver_path = os.path.join(args.out, 'android', 'solver_stars.bin')
+        counts, n, size = build_solver_stars(star_dir, solver_path)
+        print('solver stars: %d stars (%s) -> %s, %d bytes' % (n, counts, solver_path, size))
+        if args.solver_stars_only:
+            return
+    elif args.solver_stars_only:
+        ap.error('--solver-stars-only and --no-solver-stars contradict each other')
     names = read_dso_names(os.path.join(st, 'nebulae/default/names.dat'))
     dsos = read_dso_catalog(os.path.join(st, 'nebulae/default/catalog.txt'), names)
     by_hip, star_rows = read_hyg(args.hyg)

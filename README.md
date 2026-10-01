@@ -31,6 +31,17 @@ If a newer build won't install over the old one, uninstall the old AstroFixxer f
 
 What changed in each update, including every bug fix, is in **[CHANGELOG.md](CHANGELOG.md)**.
 
+### Updating
+
+The GitHub download can update itself: open **Sky & viewing → More → App updates** and tap **Check for updates**. If a newer
+build is out, the app shows its version, size and what's new, then downloads it, checks the file's SHA-256 and hands it to
+Android's installer, which asks you to confirm. Allow **install unknown apps** for AstroFixxer when Android asks, then come back.
+
+- It only checks when you tap the button; nothing runs in the background and nothing about you is sent (see [PRIVACY.md](PRIVACY.md)).
+- Updates keep your lists, because each download is signed with the same key. If the app says a build "can't be installed over yours",
+  it was signed with a one-off key: uninstalling AstroFixxer first would install it but erase your saved lists.
+- The Google Play version has no updater (Play forbids it); Play updates it for you. How updates are kept safe: [SECURITY.md](SECURITY.md).
+
 <p align="center"><img src="docs/art/divider.gif" width="800" alt=""></p>
 
 ## How it works
@@ -51,16 +62,17 @@ AstroFixxer does the hopping maths for you.
 <p align="center"><img src="docs/art/planets.gif" width="720" alt="Pixel planets: the Moon cycling through its phases, Jupiter turning with its Great Red Spot, Saturn and its rings, and Mars"></p>
 
 - 🌌 **About 100,000 objects that need no internet**: stars, galaxies, nebulae, clusters, planets, comets and asteroids, built from [Stellarium](https://stellarium.org)'s open catalogues and the HYG star database.
-- 🔭 **Push-to guidance** for manual telescopes, with one-star alignment, a Compass mode, and a Manual mode for phones without a compass.
+- 🔭 **Push-to guidance** for manual telescopes, with a first-run setup wizard, guided one-star alignment (drag the map under the +, which also serves phones without a compass), a Compass mode and a Free look mode.
 - 🗓️ **Events for the next 60 days, all worked out on the phone**: eclipses, meteor showers, conjunctions, supermoons, planet gatherings, Mercury and Venus transits, occultations of bright stars by the Moon, bright comets, visible passes of the ISS and the Tiangong space station, and ISS crossings of the Sun and Moon.
 - ⏳ **Time travel**: step the sky by hours or days, or jump straight to any event.
 - 🏞️ **A Stellarium-style sky**: twilight colours, the Milky Way, landscapes, a light-pollution slider, and Western and Indian (Vedic) constellations with artwork.
 - 🎙️ **AstroGuide**, a voice assistant in English and Hindi: *"find Jupiter"*, *"what is M31"*, *"मंगल कहाँ है"*.
 - 🔴 **Night mode**: everything turns red, so your eyes stay dark-adapted.
+- 🇮🇳 **A Hindi interface** is coming in a later release. It is switched off for now.
 
-| Events | Time travel | Night mode | हिन्दी |
-|:---:|:---:|:---:|:---:|
-| <img src="docs/screens/events.png" width="190" alt="Events list"> | <img src="docs/screens/time-travel.png" width="190" alt="Time-travel bar"> | <img src="docs/screens/night.png" width="190" alt="Night mode"> | <img src="docs/screens/hindi.png" width="190" alt="Hindi interface"> |
+| Events | Time travel | Night mode |
+|:---:|:---:|:---:|
+| <img src="docs/screens/events.png" width="190" alt="Events list"> | <img src="docs/screens/time-travel.png" width="190" alt="Time-travel bar"> | <img src="docs/screens/night.png" width="190" alt="Night mode"> |
 
 <p align="center"><img src="docs/art/divider.gif" width="800" alt=""></p>
 
@@ -125,8 +137,8 @@ Every push runs:
 | Check | What it proves |
 |---|---|
 | `./gradlew test` (app) | Astronomy maths matches the original web app to 1e-9, SGP4 matches Vallado's published test case, and 2026's eclipses, equinoxes and sunrises land within minutes of published times. |
-| `tools/desktop-check` journeys | The real Compose screens, driven by simulated taps: tutorial, find, align, guide, cancel, Back button, time travel, events, night mode, Hindi, lists, manual location. |
-| `tools/desktop-check` audit | Every screen in English and Hindi, day and night, on 360 dp and 411 dp phones: controls at least 48 dp, no clipped or overlapping text, and colour contrast of at least 4.5:1 by day (3:1 for night mode's dim red). |
+| `tools/desktop-check` journeys | The real Compose screens, driven by simulated taps: tutorial, find, align, guide, cancel, Back button, time travel, events, night mode, lists, manual location. |
+| `tools/desktop-check` audit | Every screen in English (Hindi returns with its interface), day and night, on 360 dp and 411 dp phones: controls at least 48 dp, no clipped or overlapping text, and colour contrast of at least 4.5:1 by day (3:1 for night mode's dim red). |
 
 The screenshots in this README are produced by those tests.
 
@@ -199,3 +211,9 @@ GPLv3 (see `LICENSE`), as AstroHopper requires. Made for Smart India Hackathon 2
 - The planet series (VSOP87, via vsop87-multilang) and the position reduction (CPReduce) are by Greg Miller and are in the public domain (`app/src/main/java/org/astrofixxer/astro/vsop87/`).
 - The golden test values in `app/src/test/resources/golden.json` were generated from the web app's own code.
 - Hop and the pixel art are original, drawn in code in `tools/repo-art/`.
+
+---
+
+[LICENSE](LICENSE) · [POLICY.md](POLICY.md) · [NOTICE.md](NOTICE.md) · [PRIVACY.md](PRIVACY.md) · [SECURITY.md](SECURITY.md) · [CONTRIBUTING.md](CONTRIBUTING.md)
+
+No warranty. **Never point a telescope at the Sun without a certified solar filter; the app can be wrong.** See [POLICY.md](POLICY.md).

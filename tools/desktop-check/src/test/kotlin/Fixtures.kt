@@ -1,5 +1,6 @@
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asSkiaBitmap
@@ -20,6 +21,8 @@ import org.astrofixxer.astro.Catalog
 import org.astrofixxer.astro.Pointing
 import org.astrofixxer.astro.SkyObject
 import org.astrofixxer.ui.EventItem
+import org.astrofixxer.ui.PlateSolveHost
+import org.astrofixxer.ui.PlateSolveModel
 import org.astrofixxer.ui.SkyScreen
 import org.astrofixxer.ui.SkyState
 import org.astrofixxer.ui.solarSystem
@@ -38,12 +41,35 @@ object Fixtures {
     val start: Long = Instant.parse("2026-09-28T16:00:00Z").toEpochMilli()
     val screens = File(System.getProperty("screens", "build/screens")).apply { mkdirs() }
 
-    fun state() = SkyState(start, 28.6139, 77.2090)
+    /** A state with the first-run setup already done, so the sky screen (not the wizard) is what the test sees. */
+    fun state() = SkyState(start, 28.6139, 77.2090).apply { setupDone = true }
 
-    /** Phone orientation that puts [obj] under the crosshair (no alignment). */
+    /** Phone orientation that puts [obj] under the + (no alignment), for the default setup: top edge along the telescope. */
     fun pointAt(state: SkyState, obj: SkyObject) {
         val r = state.ray(obj)
         state.device = Pointing.rotationMatrix(-Math.toDegrees(atan2(r[0], r[1])), Math.toDegrees(asin(r[2])), 0.0)
+    }
+
+    /** A device rotation that sends the phone axis [axis] to the world direction [w], rolled by [rollDeg] about it. */
+    fun deviceFor(axis: DoubleArray, w: DoubleArray, rollDeg: Double = 0.0): DoubleArray {
+        val c = Pointing.cross(axis, w)
+        val len = kotlin.math.sqrt(Pointing.dot(c, c))
+        val minimal = if (len < 1e-12) Pointing.IDENTITY
+        else Pointing.axisAngleMatrix(doubleArrayOf(c[0] / len, c[1] / len, c[2] / len), Pointing.angleBetweenDeg(axis, w) * Math.PI / 180)
+        return Pointing.matMul(Pointing.axisAngleMatrix(w, Math.toRadians(rollDeg)), minimal)
+    }
+
+    /** Points the telescope of whatever setup [state] has at [obj] (the sensors, before any calibration). */
+    fun pointTelescopeAt(state: SkyState, obj: SkyObject, rollDeg: Double = 0.0) {
+        state.device = deviceFor(state.setup.axis().vector, state.ray(obj), rollDeg)
+    }
+
+    /** The whole alignment as a user does it (pick, centre, confirm, dismiss the result), on the state directly. */
+    fun align(state: SkyState, star: SkyObject) {
+        state.startAlign()
+        check(state.pickStar(star)) { "${star.name} was refused as an alignment star" }
+        check(state.confirmAlignment()) { "confirm failed for ${star.name}" }
+        state.dismissAlignResult()
     }
 
     val sampleEvents = listOf(
@@ -68,11 +94,14 @@ object BackButton {
     fun press(): Boolean = handler?.let { it(); true } ?: false
 }
 
-/** SkyScreen wired like MainActivity does it. */
+/** SkyScreen wired like MainActivity does it; [host] is the phone's camera side for the plate-solve flow (null: no camera button anywhere). */
 @Composable
-fun AppScreen(state: SkyState, events: List<EventItem>? = Fixtures.sampleEvents) {
+fun AppScreen(state: SkyState, events: List<EventItem>? = Fixtures.sampleEvents, host: PlateSolveHost? = null, model: PlateSolveModel? = null,
+    updater: org.astrofixxer.ui.Updater? = null) {
+    val solveModel = model ?: remember { PlateSolveModel() }
     SkyScreen(state, Fixtures.catalog, solarSystem(state), events, onAsk = null,
-        backHandler = { enabled, onBack -> SideEffect { BackButton.handler = if (enabled) onBack else null } })
+        backHandler = { enabled, onBack -> SideEffect { BackButton.handler = if (enabled) onBack else null } },
+        plateSolve = host, solveModel = solveModel, updater = updater)
 }
 
 @OptIn(ExperimentalTestApi::class)

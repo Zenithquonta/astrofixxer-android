@@ -9,6 +9,12 @@ on:
 permissions:
   contents: write # to create the GitHub Release
 
+env:
+  # Added to the run number to make the Play versionCode. Google Play rejects an upload whose versionCode it has already
+  # seen, so this must strictly increase with every tag release: only ever raise it, never lower it.
+  # Independent of android.yml: Play is org.astrofixxer, the GitHub preview is org.astrofixxer.preview.
+  VERSION_CODE_OFFSET: 1000
+
 jobs:
   bundle:
     runs-on: ubuntu-latest
@@ -25,6 +31,8 @@ jobs:
         run: |
           if [ -z "$KEYSTORE_BASE64" ]; then echo "::error::KEYSTORE_BASE64 secret is not set"; exit 1; fi
           echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+      - name: Number the build
+        run: echo "ASTROFIXXER_VERSION_CODE=$((GITHUB_RUN_NUMBER + VERSION_CODE_OFFSET))" >> "$GITHUB_ENV"
       - name: Build signed bundle
         env:
           ASTROFIXXER_KEYSTORE: ${{ runner.temp }}/upload.jks
@@ -42,4 +50,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cp app/build/outputs/apk/release/app-release.apk "AstroFixxer-${GITHUB_REF_NAME}.apk"
-          gh release create "$GITHUB_REF_NAME" "AstroFixxer-${GITHUB_REF_NAME}.apk" --title "AstroFixxer $GITHUB_REF_NAME" --generate-notes
+          # --latest=false: the in-app updater reads /releases/latest, which must keep pointing at the rolling "latest-build"
+          # preview, the release that carries update.json and the preview APK. A tag release holds the Play-signed release
+          # APK (another applicationId, no update.json); if it became Latest, the updater would stop finding updates.
+          gh release create "$GITHUB_REF_NAME" "AstroFixxer-${GITHUB_REF_NAME}.apk" --title "AstroFixxer $GITHUB_REF_NAME" --generate-notes --latest=false

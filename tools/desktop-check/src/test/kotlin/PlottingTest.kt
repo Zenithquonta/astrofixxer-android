@@ -68,7 +68,7 @@ class PlottingTest {
             target = catalog.find("M57"); fovDeg = 90.0
         }
         Fixtures.pointAt(state, catalog.find("Vega")!!)
-        state.alignOn(catalog.find("Vega")!!)
+        Fixtures.align(state, catalog.find("Vega")!!)
         assertEquals(AlignState.ALIGNED, state.align)
         setContent { AppScreen(state) }
         screenshot("plot-markings-day")
@@ -78,11 +78,11 @@ class PlottingTest {
         state.fovDeg = 3.0
         Fixtures.pointAt(state, catalog.find("M57")!!) // telescope on the target: bullseye filled, eyepiece circle visible
         screenshot("plot-eyepiece-on-target")
-        state.equatorialMount = true
+        state.setup = state.setup.copy(mount = org.astrofixxer.ui.MountType.EQUATORIAL)
         Fixtures.pointAt(state, catalog.find("Vega")!!)
         screenshot("plot-equatorial-guidance")
-        onNode(androidx.compose.ui.test.hasText("RA")).assertExists()
-        onNode(androidx.compose.ui.test.hasText("Dec")).assertExists()
+        onNode(androidx.compose.ui.test.hasText("RA: ", substring = true)).assertExists()
+        onNode(androidx.compose.ui.test.hasText("Dec: ", substring = true)).assertExists()
         assertTrue(Pointing.dot(state.camera()[2], state.ray(catalog.find("Vega")!!)) > 0.999)
     }
 }

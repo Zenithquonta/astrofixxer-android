@@ -4,24 +4,26 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
+/** The Hindi interface is switched off until a later release; set to true to bring it back. */
+const val HINDI_AVAILABLE = false
+
 /**
  * UI translations keyed by the English text, like the web app's i18n dictionaries.
  * [language] is snapshot state, so switching it recomposes the screen.
  */
 object I18n {
     var language by mutableStateOf("en")
-    val languages = listOf("en" to "English", "hi" to "हिन्दी")
+    val languages = if (HINDI_AVAILABLE) listOf("en" to "English", "hi" to "हिन्दी") else listOf("en" to "English")
 
-    fun t(en: String): String = if (language == "hi") HI[en] ?: en else en
+    fun t(en: String): String = if (HINDI_AVAILABLE && language == "hi") HI[en] ?: en else en
 
     private val HI = mapOf(
         // Toolbar and status
         "Align" to "संरेखण", "Ask" to "पूछें", "Find" to "खोजें", "Events" to "घटनाएँ", "Sky" to "आकाश",
-        "Night" to "रात", "Day" to "दिन", "Compass" to "कम्पास", "Manual" to "हाथ से", "Now" to "अभी",
-        "Not aligned" to "संरेखित नहीं", "Tap the star the telescope points at" to "जिस तारे पर टेलीस्कोप है, उसे छुएँ",
+        "Night" to "रात", "Day" to "दिन", "Compass" to "कम्पास", "Now" to "अभी",
+        "Not aligned" to "संरेखित नहीं",
         "Aligned ✓" to "संरेखित ✓", "Aligned %d min ago · re-align soon" to "%d मिनट पहले संरेखित · फिर से संरेखित करें",
         "Move to %s" to "%s की ओर घुमाएँ", "On target: %s" to "लक्ष्य पर: %s", "altitude" to "ऊँचाई", "azimuth" to "दिगंश",
-        "%.1f° to go · re-align if the target drifts" to "%.1f° बाकी · लक्ष्य खिसके तो फिर से संरेखित करें",
         "Loading sky catalogue…" to "आकाश सूची लोड हो रही है…", "Below the horizon" to "क्षितिज के नीचे",
         "up now" to "अभी ऊपर", "below horizon" to "क्षितिज के नीचे", "Listening…" to "सुन रहा है…",
         // Object types
@@ -47,30 +49,36 @@ object I18n {
         "Skip" to "छोड़ें", "Back" to "पीछे", "Next" to "आगे", "Start" to "शुरू करें", "Quick start %d/%d" to "शुरुआत %d/%d",
         // Onboarding
         "Attach the phone" to "फ़ोन लगाएँ",
-        "Fix the phone flat on the telescope tube, with its top edge pointing where the telescope points." to
-            "फ़ोन को टेलीस्कोप की नली पर सपाट लगाएँ, ताकि उसका ऊपरी किनारा उसी ओर हो जिधर टेलीस्कोप देखता है।",
+        "Fix the phone to the telescope the way you told the setup wizard. The wizard's picture shows how." to
+            "फ़ोन को टेलीस्कोप पर उसी तरह लगाएँ जैसा आपने सेटअप विज़ार्ड में बताया। विज़ार्ड की तस्वीर दिखाती है कैसे।",
         "Align on a bright star" to "चमकीले तारे पर संरेखित करें",
-        "Point the telescope at an easy star or planet near what you want to find, for example Sirius for M41. Tap Align, then tap that star on the screen." to
-            "जिसे ढूँढना है उसके पास के किसी आसान तारे या ग्रह पर टेलीस्कोप लगाएँ, जैसे M41 के लिए व्याध (Sirius)। संरेखण दबाएँ, फिर स्क्रीन पर उस तारे को छुएँ।",
-        "Can't see the star?" to "तारा नहीं दिख रहा?",
-        "The compass may be off near the metal tube. Switch to Manual and drag the sky sideways until the star is under the crosshair, then Align." to
-            "धातु की नली के पास कम्पास गलत हो सकता है। 'हाथ से' चुनें और आकाश को बगल में खींचें जब तक तारा निशाने के नीचे न आ जाए, फिर संरेखण करें।",
+        "Pick an easy star or planet near what you want to find, for example Sirius for M41. Tap Align, tap that star, then centre it in the telescope." to
+            "जिसे ढूँढना है उसके पास कोई आसान तारा या ग्रह चुनें, जैसे M41 के लिए व्याध (Sirius)। संरेखण दबाएँ, उस तारे को छुएँ, फिर उसे टेलीस्कोप में बीच में लाएँ।",
+        "Line up the map" to "नक्शा मिलाएँ",
+        "The compass may be off near the metal tube. Drag the map until the star is under the +, then tap Confirm alignment. Dragging only lines up the map; it never moves the telescope." to
+            "धातु की नली के पास कम्पास गलत हो सकता है। नक्शे को खींचें जब तक तारा + के नीचे न आ जाए, फिर संरेखण पक्का करें दबाएँ। खींचने से केवल नक्शा मिलता है; टेलीस्कोप नहीं हिलता।",
         "Hop to the target" to "लक्ष्य तक पहुँचें",
         "Tap your target and follow the arrows until they reach zero. Re-align for each new target." to
             "अपना लक्ष्य छुएँ और तीरों का पालन करें जब तक संख्याएँ शून्य न हो जाएँ। हर नए लक्ष्य के लिए फिर से संरेखण करें।",
         // Help
         "Setting up" to "तैयारी",
-        "Attach the phone flat on the telescope tube with its top edge pointing where the telescope points. Allow location so the sky matches your place and time." to
-            "फ़ोन को टेलीस्कोप की नली पर सपाट लगाएँ, ऊपरी किनारा टेलीस्कोप की दिशा में। स्थान की अनुमति दें ताकि आकाश आपके स्थान और समय से मेल खाए।",
+        "Attach the phone to the telescope and tell the app how in the setup wizard (or Sky & viewing, Telescope & orientation): flat on the tube, camera facing along it, or on the eyepiece. Allow location so the sky matches your place and time." to
+            "फ़ोन को टेलीस्कोप पर लगाएँ और सेटअप विज़ार्ड (या आकाश व दृश्य, टेलीस्कोप और दिशा) में ऐप को बताएँ कैसे: नली पर सपाट, कैमरा टेलीस्कोप की दिशा में, या आईपीस पर। स्थान की अनुमति दें ताकि आकाश आपके स्थान और समय से मेल खाए।",
         "Aligning" to "संरेखण",
-        "Point the telescope at a bright star or planet near your target, tap Align, then tap that star on the screen. Re-align for each new target; phone sensors drift over a few minutes." to
-            "लक्ष्य के पास के किसी चमकीले तारे या ग्रह पर टेलीस्कोप लगाएँ, संरेखण दबाएँ, फिर स्क्रीन पर उस तारे को छुएँ। हर नए लक्ष्य के लिए फिर से संरेखण करें; फ़ोन के सेंसर कुछ मिनटों में खिसकते हैं।",
+        "Tap Align, then tap a bright star or planet near your target. Centre that star in the eyepiece by moving the telescope, drag the map until the star is under the +, and tap Confirm alignment. The app then says how big the correction was. Re-align for each new target; phone sensors drift over a few minutes." to
+            "संरेखण दबाएँ, फिर लक्ष्य के पास कोई चमकीला तारा या ग्रह छुएँ। टेलीस्कोप घुमाकर उस तारे को आईपीस के बीच में लाएँ, नक्शे को खींचकर तारे को + के नीचे लाएँ, और संरेखण पक्का करें दबाएँ। ऐप बताएगा कि सुधार कितना बड़ा था। हर नए लक्ष्य के लिए फिर से संरेखण करें; फ़ोन के सेंसर कुछ मिनटों में खिसकते हैं।",
         "Finding a target" to "लक्ष्य ढूँढना",
         "Tap an object on the sky or use Find. Follow the arrows in the guidance panel until both numbers are close to zero." to
             "आकाश में किसी वस्तु को छुएँ या खोजें का उपयोग करें। मार्गदर्शन पैनल के तीरों का पालन करें जब तक दोनों संख्याएँ शून्य के पास न हों।",
-        "Compass and Manual" to "कम्पास और हाथ से",
-        "Compass uses the phone's compass. If the alignment star isn't on screen, switch to Manual and drag the sky sideways until it is, then Align." to
-            "कम्पास फ़ोन के कम्पास का उपयोग करता है। अगर संरेखण वाला तारा स्क्रीन पर नहीं है, तो 'हाथ से' चुनें और आकाश को खींचें जब तक वह दिखे, फिर संरेखण करें।",
+        "Compass and dragging" to "कम्पास और खींचना",
+        "Compass uses the phone's compass. If the alignment star isn't on screen, or the phone has no compass, drag the map while aligning until the star is under the +. Dragging never changes the alignment at any other time." to
+            "कम्पास फ़ोन के कम्पास का उपयोग करता है। अगर संरेखण वाला तारा स्क्रीन पर नहीं है, या फ़ोन में कम्पास नहीं है, तो संरेखण के दौरान नक्शे को खींचें जब तक तारा + के नीचे न आ जाए। बाकी समय खींचने से संरेखण कभी नहीं बदलता।",
+        "Checking the alignment" to "संरेखण की जाँच",
+        "In the guidance panel tap More, then Check with another star. Centre a second star and confirm: the app says how far off the alignment was and refines it using both stars." to
+            "मार्गदर्शन पैनल में और दबाएँ, फिर दूसरे तारे से जाँचें। दूसरे तारे को बीच में लाकर पक्का करें: ऐप बताएगा कि संरेखण कितना दूर था और दोनों तारों से उसे सुधारेगा।",
+        "Eyepiece view" to "आईपीस दृश्य",
+        "Eyepieces can show the sky upside down, reversed or turned. In Sky & viewing, Telescope & orientation, tap Check orientation to find out which, then turn on Match eyepiece view to draw the map the same way. Directions never change." to
+            "आईपीस आकाश को उलटा, दर्पण जैसा या घुमाकर दिखा सकते हैं। आकाश व दृश्य, टेलीस्कोप और दिशा में दिशा जाँचें दबाकर पता करें, फिर आईपीस जैसा दृश्य चालू करें ताकि नक्शा वैसा ही बने। दिशा-निर्देश कभी नहीं बदलते।",
         "Zoom" to "ज़ूम",
         "Pinch or use + and −. Fainter stars and deep-sky objects appear as you zoom in." to
             "दो उँगलियों से या + और − से ज़ूम करें। ज़ूम करने पर धुँधले तारे और गहन-आकाशीय पिंड दिखते हैं।",
@@ -117,8 +125,8 @@ object I18n {
         "Jupiter" to "बृहस्पति", "Saturn" to "शनि", "Uranus" to "अरुण", "Neptune" to "वरुण",
         // Alignment, time travel, search
         "Cancel" to "रद्द करें",
-        "To get directions to %s, point the telescope at a bright star near it, tap Align, then tap that star." to
-            "%s तक दिशा पाने के लिए, टेलीस्कोप को उसके पास किसी चमकीले तारे पर लगाएँ, संरेखण दबाएँ, फिर उस तारे को छुएँ।",
+        "To get directions to %s, tap Align, tap a bright star near it, then centre that star in the telescope." to
+            "%s तक दिशा पाने के लिए संरेखण दबाएँ, उसके पास कोई चमकीला तारा छुएँ, फिर उस तारे को टेलीस्कोप में बीच में लाएँ।",
         "−1 d" to "−1 दिन", "−1 h" to "−1 घंटा", "+1 h" to "+1 घंटा", "+1 d" to "+1 दिन",
         "Visible now" to "अभी दिख रहे हैं",
         "Nothing found. Try a catalogue number like M31 or NGC 7000." to "कुछ नहीं मिला। M31 या NGC 7000 जैसा सूची क्रमांक आज़माएँ।",
@@ -160,16 +168,399 @@ object I18n {
         "Sunset %s · sunrise %s" to "सूर्यास्त %s · सूर्योदय %s", "Fully dark %s–%s" to "पूरा अंधेरा %s–%s",
         "No fully dark sky tonight" to "आज रात पूरा अंधेरा नहीं होगा", "Moon %d%% lit · rises %s · sets %s" to "चंद्रमा %d%% प्रकाशित · उदय %s · अस्त %s",
         "No bright planets in the dark sky tonight" to "आज रात अंधेरे आकाश में कोई चमकीला ग्रह नहीं", "Planets: %s" to "ग्रह: %s",
-        "Align on this" to "इस पर संरेखित करें", "Add to list" to "सूची में जोड़ें",
+        "Align using this star" to "इस तारे से संरेखित करें", "Add to list" to "सूची में जोड़ें",
         "Tap a question below." to "नीचे कोई प्रश्न छुएँ।", "What's up tonight?" to "आज रात क्या दिखेगा", "Find Saturn" to "शनि दिखाओ", "Next meteor shower" to "अगली उल्का वर्षा",
         "What is M42?" to "M42 क्या है", "Next eclipse" to "अगला ग्रहण", "Free look" to "मुक्त दृश्य", "Search help" to "सहायता खोजें",
         "Object info" to "वस्तु जानकारी", "Telescope settings" to "टेलीस्कोप सेटिंग",
-        "The third pointing mode: the sky ignores the phone's sensors and you drag it in any direction, like a planetarium. Tap the Compass / Manual / Free look button to switch." to
-            "तीसरा मोड: आकाश फ़ोन के सेंसर को नहीं मानता और आप उसे किसी भी दिशा में खींच सकते हैं, तारामंडल-भवन की तरह। बदलने के लिए कम्पास / हाथ से / मुक्त दृश्य बटन दबाएँ।",
+        "The other pointing mode: the sky ignores the phone's sensors and you drag it in any direction, like a planetarium. Tap the Compass / Free look button to switch." to
+            "दूसरा मोड: आकाश फ़ोन के सेंसर को नहीं मानता और आप उसे किसी भी दिशा में खींच सकते हैं, तारामंडल-भवन की तरह। बदलने के लिए कम्पास / मुक्त दृश्य बटन दबाएँ।",
         "Tap the target card at the top left, or long-press any object, for its names, constellation, rise and set times, a graph of its altitude tonight and how it looks in your eyepiece." to
             "नाम, तारामंडल, उदय-अस्त समय, आज रात की ऊँचाई का ग्राफ़ और आईपीस में दृश्य देखने के लिए ऊपर बाईं ओर लक्ष्य कार्ड छुएँ, या किसी वस्तु को देर तक दबाएँ।",
-        "In Sky & viewing, Telescope: enter the telescope's and eyepiece's focal lengths and the eyepiece's apparent field. The circle around the crosshair is your eyepiece's view, and On target means the target is inside it. Equatorial mounts get directions in RA and Dec." to
-            "आकाश व दृश्य, टेलीस्कोप में: टेलीस्कोप और आईपीस की फ़ोकल लंबाई और आईपीस का आभासी क्षेत्र भरें। क्रॉसहेयर के चारों ओर का वृत्त आपके आईपीस का दृश्य है, और लक्ष्य पर का अर्थ है कि लक्ष्य उसके भीतर है। विषुवतीय माउंट के लिए दिशाएँ RA और Dec में मिलती हैं।",
+        "In Sky & viewing, Telescope & orientation: enter the telescope's and eyepiece's focal lengths and the eyepiece's apparent field. The circle around the + is your eyepiece's view, and On target means the target is inside it. Equatorial mounts get directions in RA and Dec." to
+            "आकाश व दृश्य, टेलीस्कोप और दिशा में: टेलीस्कोप और आईपीस की फ़ोकल लंबाई और आईपीस का आभासी क्षेत्र भरें। + के चारों ओर का वृत्त आपके आईपीस का दृश्य है, और लक्ष्य पर का अर्थ है कि लक्ष्य उसके भीतर है। विषुवतीय माउंट के लिए दिशाएँ RA और Dec में मिलती हैं।",
+        // Telescope setup, alignment flow, guidance, orientation check
+        "Choose a star" to "तारा चुनें",
+        "Aligning…" to "संरेखण हो रहा है…",
+        "Aligned %d h ago · re-align soon" to "%d घंटे पहले संरेखित · फिर से संरेखित करें",
+        "Aligned %d d ago · re-align soon" to "%d दिन पहले संरेखित · फिर से संरेखित करें",
+        "On %s · %s" to "%s पर · %s",
+        "Tap the star you will centre in the telescope" to "जिस तारे को आप टेलीस्कोप में बीच में लाएँगे, उसे छुएँ",
+        "Tap a second star, at least 10° from the first, to check the alignment" to "संरेखण जाँचने के लिए पहले से कम से कम 10° दूर दूसरा तारा छुएँ",
+        "Choose a bright star or a planet that is well above the horizon." to "क्षितिज से काफ़ी ऊपर कोई चमकीला तारा या ग्रह चुनें।",
+        "This phone has no compass. Drag the map until the sky matches what you see." to "इस फ़ोन में कम्पास नहीं है। नक्शे को तब तक खींचें जब तक आकाश आपके देखे हुए से मेल न खाए।",
+        "Centre %s in the eyepiece by moving the telescope." to "टेलीस्कोप घुमाकर %s को आईपीस के बीच में लाएँ।",
+        "Drag the map to place %s under the +" to "नक्शे को खींचकर %s को + के नीचे लाएँ",
+        "Step 1 moves the telescope. Step 2 only lines up the map on screen." to "चरण 1 में टेलीस्कोप हिलता है। चरण 2 केवल स्क्रीन पर नक्शा मिलाता है।",
+        "Confirm alignment" to "संरेखण पक्का करें",
+        "Reset adjustment" to "समायोजन रीसेट करें",
+        "Off by %.1f° at %s" to "%.1f° का अंतर (%s पर)",
+        "The alignment now uses both stars." to "संरेखण अब दोनों तारों का उपयोग करता है।",
+        "Aligned on %s. Correction %.1f°." to "%s पर संरेखित। सुधार %.1f°।",
+        "That's a large correction. Is %s really centred in the eyepiece?" to "यह बड़ा सुधार है। क्या %s सचमुच आईपीस के बीच में है?",
+        "Retry" to "फिर कोशिश करें",
+        "Done" to "हो गया",
+        "Never point a telescope at the Sun. Pick a star or a planet." to "टेलीस्कोप को कभी सूर्य की ओर न करें। कोई तारा या ग्रह चुनें।",
+        "The Moon is too big to centre precisely. Pick a star or a planet." to "चंद्रमा इतना बड़ा है कि ठीक बीच में नहीं लाया जा सकता। कोई तारा या ग्रह चुनें।",
+        "%s is not a star or planet. Pick a bright star or a planet." to "%s तारा या ग्रह नहीं है। कोई चमकीला तारा या ग्रह चुनें।",
+        "%s is below the horizon. Pick a star that is up." to "%s क्षितिज के नीचे है। ऊपर वाला कोई तारा चुनें।",
+        "%s is the star you aligned on. Pick a different one." to "%s वही तारा है जिस पर आपने संरेखित किया था। कोई दूसरा चुनें।",
+        "Low stars are harder to centre" to "नीचे के तारे को बीच में लाना कठिन होता है",
+        "%s has dropped below the horizon, so nothing was changed. Cancel and pick another star." to "%s क्षितिज के नीचे चला गया है, इसलिए कुछ नहीं बदला। रद्द करके कोई दूसरा तारा चुनें।",
+        "The alignment could not be computed. Nothing was changed. Try again." to "संरेखण की गणना नहीं हो सकी। कुछ नहीं बदला। फिर कोशिश करें।",
+        "Not refined: align on a star again first to refine with two stars." to "सुधारा नहीं गया: दो तारों से सुधार के लिए पहले किसी तारे पर फिर से संरेखित करें।",
+        "Not refined: the two stars are less than 10° apart. Use a star farther away to refine." to "सुधारा नहीं गया: दोनों तारे 10° से कम दूर हैं। सुधार के लिए ज़्यादा दूर का तारा लें।",
+        "Not refined: the two directions could not be combined." to "सुधारा नहीं गया: दोनों दिशाएँ मिलाई नहीं जा सकीं।",
+        "The phone is mounted differently now, so the old alignment no longer fits. Align on a star again." to "फ़ोन अब अलग तरह से लगा है, इसलिए पुराना संरेखण अब ठीक नहीं बैठता। किसी तारे पर फिर से संरेखित करें।",
+        "Align now" to "अभी संरेखित करें",
+        "Later" to "बाद में",
+        "Close to %s" to "%s के पास",
+        "%.1f° to go" to "%.1f° बाकी",
+        "Up %.1f°" to "ऊपर %.1f°",
+        "Down %.1f°" to "नीचे %.1f°",
+        "Left %.1f°" to "बाएँ %.1f°",
+        "Right %.1f°" to "दाएँ %.1f°",
+        "RA: east %.1f°" to "RA: पूर्व %.1f°",
+        "RA: west %.1f°" to "RA: पश्चिम %.1f°",
+        "Dec: north %.1f°" to "Dec: उत्तर %.1f°",
+        "Dec: south %.1f°" to "Dec: दक्षिण %.1f°",
+        "Less" to "कम",
+        "Check with another star" to "दूसरे तारे से जाँचें",
+        "Solve with camera" to "कैमरे से हल करें",
+        "Step %d of %d" to "चरण %d / %d",
+        "Set up later" to "बाद में सेट करें",
+        "Finish" to "पूरा करें",
+        "What kind of telescope is it?" to "यह किस प्रकार का टेलीस्कोप है?",
+        "Refractor" to "अपवर्तक (रिफ्रैक्टर)",
+        "A lens at the front; the eyepiece is at the back." to "आगे लेंस; आईपीस पीछे।",
+        "Reflector (Newtonian)" to "परावर्तक (न्यूटनियन)",
+        "Reflector" to "परावर्तक",
+        "A mirror at the back; the eyepiece is on the side near the front." to "पीछे दर्पण; आईपीस आगे के पास बगल में।",
+        "Something else" to "कुछ और",
+        "Compact (Cassegrain) or any other design." to "छोटा (कैसेग्रेन) या कोई और बनावट।",
+        "What is the mount?" to "माउंट कौन सा है?",
+        "Alt-azimuth" to "ऊँचाई-दिगंश",
+        "Moves up-down and left-right: a fork, rocker box or Dobsonian base." to "ऊपर-नीचे और दाएँ-बाएँ घूमता है: फ़ोर्क, रॉकर बॉक्स या डॉब्सोनियन आधार।",
+        "A tilted axis with a counterweight; moves in RA and Dec." to "झुकी धुरी और काउंटरवेट; RA और Dec में घूमता है।",
+        "Other" to "अन्य",
+        "A tripod, a hand-held telescope or something else." to "तिपाई, हाथ में पकड़ा टेलीस्कोप या कुछ और।",
+        "Where is your phone mounted?" to "आपका फ़ोन कहाँ लगा है?",
+        "Flat against the telescope tube" to "टेलीस्कोप की नली से सटा हुआ",
+        "The back of the phone rests on the tube." to "फ़ोन का पिछला हिस्सा नली पर टिका है।",
+        "Camera facing along the telescope" to "कैमरा टेलीस्कोप की दिशा में",
+        "The rear camera points where the telescope points." to "पिछला कैमरा उधर देखता है जिधर टेलीस्कोप।",
+        "Attached to the eyepiece" to "आईपीस पर लगा हुआ",
+        "The rear camera looks through the eyepiece." to "पिछला कैमरा आईपीस के भीतर देखता है।",
+        "Which edge of the phone points toward the front of the telescope?" to "फ़ोन का कौन सा किनारा टेलीस्कोप के आगे की ओर है?",
+        "Hold the phone upright with the screen facing you." to "फ़ोन को सीधा पकड़ें, स्क्रीन आपकी ओर।",
+        "Does the eyepiece go straight in, or at a right angle (diagonal or Newtonian)?" to "क्या आईपीस सीधा लगता है, या समकोण पर (डायगनल या न्यूटनियन)?",
+        "Straight" to "सीधा",
+        "Right angle" to "समकोण",
+        "A star diagonal, or the side eyepiece of a Newtonian." to "स्टार डायगनल, या न्यूटनियन का बगल वाला आईपीस।",
+        "Not sure" to "पक्का नहीं",
+        "You can check it later with two stars." to "आप इसे बाद में दो तारों से जाँच सकते हैं।",
+        "Do you use an image-erecting prism?" to "क्या आप छवि सीधी करने वाला प्रिज़्म इस्तेमाल करते हैं?",
+        "It turns the view the right way up. Most eyepieces on a star diagonal do not have one." to "यह दृश्य को सीधा कर देता है। स्टार डायगनल पर ज़्यादातर आईपीस में यह नहीं होता।",
+        "Yes" to "हाँ",
+        "No" to "नहीं",
+        "All set" to "सब तैयार",
+        "Check orientation any time in Settings → Telescope & orientation." to "कभी भी सेटिंग → टेलीस्कोप और दिशा में दिशा जाँचें।",
+        "Top edge" to "ऊपरी किनारा",
+        "Bottom edge" to "निचला किनारा",
+        "Left edge" to "बायाँ किनारा",
+        "Right edge" to "दायाँ किनारा",
+        "top edge" to "ऊपरी किनारा",
+        "bottom edge" to "निचला किनारा",
+        "left edge" to "बायाँ किनारा",
+        "right edge" to "दायाँ किनारा",
+        "rear camera" to "पिछला कैमरा",
+        "screen side" to "स्क्रीन की ओर",
+        "Phone: flat on the tube, %s to the front" to "फ़ोन: नली पर सपाट, %s आगे की ओर",
+        "Phone: rear camera points along the telescope" to "फ़ोन: पिछला कैमरा टेलीस्कोप की दिशा में",
+        "Phone: on a straight eyepiece, rear camera looks through it" to "फ़ोन: सीधे आईपीस पर, पिछला कैमरा उसके भीतर देखता है",
+        "Phone: on a right-angle eyepiece, %s to the front" to "फ़ोन: समकोण आईपीस पर, %s आगे की ओर",
+        "Phone: on the eyepiece (angle not sure: check it with two stars)" to "फ़ोन: आईपीस पर (कोण पक्का नहीं: दो तारों से जाँचें)",
+        "Eyepiece view: %s" to "आईपीस दृश्य: %s",
+        "(a first guess: please check)" to "(पहला अनुमान: कृपया जाँचें)",
+        "upright" to "सीधा",
+        "mirrored" to "दर्पण जैसा उलटा",
+        "rotated %d°" to "%d° घुमाया हुआ",
+        "Telescope & orientation" to "टेलीस्कोप और दिशा",
+        "Where is the phone?" to "फ़ोन कहाँ है?",
+        "Flat against the tube" to "नली से सटा",
+        "Which edge points toward the front of the telescope?" to "कौन सा किनारा टेलीस्कोप के आगे की ओर है?",
+        "Changing where the phone sits clears the alignment. The telescope type, mount and view never do." to "फ़ोन की जगह बदलने से संरेखण मिट जाता है। टेलीस्कोप का प्रकार, माउंट और दृश्य बदलने से कभी नहीं।",
+        "Eyepiece" to "आईपीस",
+        "Match eyepiece view" to "आईपीस जैसा दृश्य",
+        "Rotate view 90°" to "दृश्य 90° घुमाएँ",
+        "Mirror view" to "दृश्य उलटें",
+        "Use suggested view: %s" to "सुझाया दृश्य लें: %s",
+        "Check orientation" to "दिशा जाँचें",
+        "Checks which way the phone points along the telescope, and how the eyepiece shows the sky." to "जाँचता है कि फ़ोन टेलीस्कोप के किस ओर है और आईपीस आकाश को कैसे दिखाता है।",
+        "Two quick checks. Do them once after fitting the phone, or whenever directions seem wrong." to "दो छोटी जाँचें। फ़ोन लगाने के बाद एक बार करें, या जब दिशाएँ गलत लगें।",
+        "Check the phone position" to "फ़ोन की स्थिति जाँचें",
+        "Check the eyepiece view" to "आईपीस दृश्य जाँचें",
+        "Which way does the phone point along the telescope?" to "फ़ोन टेलीस्कोप के किस ओर इशारा करता है?",
+        "The app tells this from the stars you centre in the telescope. Use two stars at least 10° apart: align on one, then use Check with another star." to "ऐप यह उन तारों से जानता है जिन्हें आप टेलीस्कोप में बीच में लाते हैं। कम से कम 10° दूर दो तारे लें: एक पर संरेखित करें, फिर दूसरे तारे से जाँचें।",
+        "You said you are not sure how the eyepiece fits, so the phone axis is a guess." to "आपने कहा कि आईपीस कैसे लगा है यह पक्का नहीं, इसलिए फ़ोन की धुरी अनुमान है।",
+        "No stars yet. Align on a star first." to "अभी कोई तारा नहीं। पहले किसी तारे पर संरेखित करें।",
+        "Stars used: %d" to "उपयोग किए तारे: %d",
+        "You need two stars at least 10° apart for a reliable result. With one star, or two close ones, this is only a rough check." to "भरोसेमंद नतीजे के लिए कम से कम 10° दूर दो तारे चाहिए। एक तारे या पास के दो तारों से यह केवल मोटी जाँच है।",
+        "Your setting fits: the %s points along the telescope (error %.1f°)." to "आपकी सेटिंग ठीक है: %s टेलीस्कोप की दिशा में है (त्रुटि %.1f°)।",
+        "Your stars fit the %s better than the %s (error %.1f° against %.1f°)." to "आपके तारे %s पर %s से बेहतर बैठते हैं (त्रुटि %.1f° बनाम %.1f°)।",
+        "Use the %s" to "%s चुनें",
+        "Best fits: " to "सबसे अच्छे मेल: ",
+        "Which way does the eyepiece show the sky?" to "आईपीस आकाश को किस तरह दिखाता है?",
+        "Find a star in the eyepiece. In a correct, upright view, nudging the telescope up moves the star down, and nudging it right moves the star left." to "आईपीस में कोई तारा ढूँढें। सही, सीधे दृश्य में टेलीस्कोप को ऊपर हिलाने पर तारा नीचे जाता है, और दाएँ हिलाने पर तारा बाएँ जाता है।",
+        "1. Nudge the telescope up a little, toward the zenith. Which way did the star move in the eyepiece?" to "1. टेलीस्कोप को थोड़ा ऊपर, शीर्षबिंदु की ओर हिलाएँ। आईपीस में तारा किस ओर गया?",
+        "2. Now nudge the telescope to the right. Which way did the star move in the eyepiece?" to "2. अब टेलीस्कोप को दाईं ओर हिलाएँ। आईपीस में तारा किस ओर गया?",
+        "Those two answers cannot both be right: up and right must move the star along different lines. Try again." to "ये दोनों उत्तर एक साथ सही नहीं हो सकते: ऊपर और दाएँ हिलाने पर तारा अलग-अलग रेखाओं में चलना चाहिए। फिर कोशिश करें।",
+        "Your eyepiece view is: %s." to "आपका आईपीस दृश्य: %s।",
+        "Use this view" to "यह दृश्य लें",
+        "Try again" to "फिर कोशिश करें",
+        "Up" to "ऊपर",
+        "Down" to "नीचे",
+        "Left" to "बाएँ",
+        "Right" to "दाएँ",
+        // Camera plate solving
+        "%d s" to
+            "%d सेक.",
+        "%s s" to
+            "%s सेक.",
+        "%d stars matched" to
+            "%d तारे मिले",
+        "%d stars were found, but they do not match the sky at the size expected. Check the telescope and eyepiece focal lengths (Sky, Telescope & orientation), that the phone camera sees the whole eyepiece circle, and that the stars are in focus. Then try again." to
+            "%d तारे मिले, पर वे अपेक्षित आकार में आकाश से मेल नहीं खाते। टेलीस्कोप और आईपीस की फ़ोकल लंबाई (आकाश, टेलीस्कोप और दिशा) जाँचें, देखें कि फ़ोन का कैमरा पूरा आईपीस-वृत्त देख रहा है और तारे फ़ोकस में हैं। फिर कोशिश करें।",
+        "%s is at %d%% across and %d%% down the photo." to
+            "%s फ़ोटो में %d%% दाएँ और %d%% नीचे है।",
+        "%s is not on the photo, so the offset cannot be found. Check that it was centred in the eyepiece and take the photo again." to
+            "%s फ़ोटो में नहीं है, इसलिए ऑफ़सेट नहीं मिल सकता। जाँचें कि वह आईपीस के बीच में था और फ़ोटो फिर से लें।",
+        "%s is not on the photo, so the offset could not be found. Nothing was changed." to
+            "%s फ़ोटो में नहीं है, इसलिए ऑफ़सेट नहीं मिला। कुछ नहीं बदला।",
+        "%s · magnitude %.1f · %d° up" to
+            "%s · कांतिमान %.1f · %d° ऊपर",
+        "A gallery photo does not record where the telescope pointed when it was taken. Use Take photo to align." to
+            "गैलरी की फ़ोटो में दर्ज नहीं होता कि खींचते समय टेलीस्कोप कहाँ था। संरेखण के लिए फ़ोटो लें दबाएँ।",
+        "Align with a photo" to
+            "फ़ोटो से संरेखित करें",
+        "Aligned from a photo. Correction %.1f°." to
+            "फ़ोटो से संरेखित। सुधार %.1f°।",
+        "Allow the camera when Android asks. It is used only to take the picture for solving; nothing is saved or sent anywhere." to
+            "जब Android पूछे तो कैमरे की अनुमति दें। यह केवल हल करने के लिए तस्वीर लेने में काम आता है; कुछ भी सहेजा या कहीं भेजा नहीं जाता।",
+        "Another app is using the camera. Close it, then try again." to
+            "कोई दूसरा ऐप कैमरा इस्तेमाल कर रहा है। उसे बंद करें, फिर कोशिश करें।",
+        "Apply to alignment" to
+            "संरेखण में लागू करें",
+        "Ask again" to
+            "फिर से पूछें",
+        "Auto" to
+            "स्वचालित",
+        "Before you take the photo" to
+            "फ़ोटो लेने से पहले",
+        "Calibrate camera offset" to
+            "कैमरा ऑफ़सेट मापें",
+        "Calibrating the camera offset with %s" to
+            "%s से कैमरा ऑफ़सेट मापा जा रहा है",
+        "Camera" to
+            "कैमरा",
+        "Camera field of view unknown: 65° will be assumed" to
+            "कैमरे का दृश्य-क्षेत्र अज्ञात: 65° मान लिया जाएगा",
+        "Camera field of view: %.0f°" to
+            "कैमरे का दृश्य-क्षेत्र: %.0f°",
+        "Camera offset saved. Aim the telescope at the sky and take a photo to align." to
+            "कैमरा ऑफ़सेट सहेजा गया। टेलीस्कोप को आकाश की ओर करें और संरेखण के लिए फ़ोटो लें।",
+        "Camera offset: calibrated. The telescope is at %d%% across and %d%% down the photo." to
+            "कैमरा ऑफ़सेट: मापा हुआ। टेलीस्कोप फ़ोटो में %d%% दाएँ और %d%% नीचे है।",
+        "Camera offset: not calibrated" to
+            "कैमरा ऑफ़सेट: मापा नहीं गया",
+        "Camera permission" to
+            "कैमरे की अनुमति",
+        "Centre %s in the eyepiece first." to
+            "पहले %s को आईपीस के बीच में लाएँ।",
+        "Centre %s in the eyepiece, then take the photo." to
+            "%s को आईपीस के बीच में लाएँ, फिर फ़ोटो लें।",
+        "Centre the bright eyepiece circle in the camera view and focus on stars" to
+            "चमकीले आईपीस-वृत्त को कैमरा दृश्य के बीच में लाएँ और तारों पर फ़ोकस करें",
+        "Change phone placement" to
+            "फ़ोन की जगह बदलें",
+        "Change these in Sky, Telescope & orientation." to
+            "इन्हें आकाश, टेलीस्कोप और दिशा में बदलें।",
+        "Check these two numbers: they tell the app how big the star pattern should look." to
+            "इन दो संख्याओं को जाँचें: इनसे ऐप जानता है कि तारों का पैटर्न कितना बड़ा दिखना चाहिए।",
+        "Focus at infinity or on a bright star." to
+            "अनंत पर या किसी चमकीले तारे पर फ़ोकस करें।",
+        "In the constellation %s" to
+            "तारामंडल: %s",
+        "Keep the Moon and bright lights out of the view." to
+            "चंद्रमा और तेज़ रोशनी को दृश्य से बाहर रखें।",
+        "Keep the phone steady, and do not touch the telescope while the photo is taken." to
+            "फ़ोन स्थिर रखें, और फ़ोटो लेते समय टेलीस्कोप को न छुएँ।",
+        "Looking for stars in the photo and matching them to the sky. This can take up to 25 seconds. The photo stays on the phone." to
+            "फ़ोटो में तारे खोजे और आकाश से मिलाए जा रहे हैं। इसमें 25 सेकंड तक लग सकते हैं। फ़ोटो फ़ोन पर ही रहती है।",
+        "Mirrored: the photo is a mirror image of the sky." to
+            "दर्पण जैसा उलटा: फ़ोटो आकाश का प्रतिबिंब है।",
+        "Move the telescope until the star reaches the +" to
+            "टेलीस्कोप को तब तक हिलाएँ जब तक तारा + पर न आ जाए",
+        "No bright star is high enough right now. Try again later." to
+            "अभी कोई चमकीला तारा पर्याप्त ऊँचाई पर नहीं है। बाद में फिर कोशिश करें।",
+        "No camera on this phone" to
+            "इस फ़ोन में कैमरा नहीं है",
+        "Nothing was changed: the alignment and the map are as they were." to
+            "कुछ नहीं बदला: संरेखण और नक्शा पहले जैसे हैं।",
+        "Open app settings" to
+            "ऐप सेटिंग खोलें",
+        "Pick the star you will centre in the eyepiece" to
+            "वह तारा चुनें जिसे आप आईपीस के बीच में लाएँगे",
+        "Reset offset" to
+            "ऑफ़सेट रीसेट करें",
+        "Save camera offset" to
+            "कैमरा ऑफ़सेट सहेजें",
+        "Scale: %.1f″ per pixel, the photo is %.1f° wide" to
+            "पैमाना: %.1f″ प्रति पिक्सेल, फ़ोटो %.1f° चौड़ी है",
+        "Show on map" to
+            "नक्शे पर दिखाएँ",
+        "Solve again" to
+            "फिर हल करें",
+        "Solved" to
+            "हल हो गया",
+        "Solving is not possible with the phone flat on the tube" to
+            "फ़ोन नली पर सपाट हो तो हल करना संभव नहीं",
+        "Solving…" to
+            "हल हो रहा है…",
+        "Take photo" to
+            "फ़ोटो लें",
+        "Takes a photo of the stars and finds where the telescope points. The photo stays on the phone." to
+            "तारों की फ़ोटो लेकर पता लगाता है कि टेलीस्कोप कहाँ है। फ़ोटो फ़ोन पर ही रहती है।",
+        "Taking the photo… keep the phone still." to
+            "फ़ोटो ली जा रही है… फ़ोन स्थिर रखें।",
+        "Telescope %.0f mm, eyepiece %.0f mm: magnification ×%.0f" to
+            "टेलीस्कोप %.0f mm, आईपीस %.0f mm: आवर्धन ×%.0f",
+        "That picture could not be read. Try another one." to
+            "वह तस्वीर पढ़ी नहीं जा सकी। कोई दूसरी आज़माएँ।",
+        "The app does not know which way the phone points along the telescope. Say whether the eyepiece goes straight in or at a right angle first." to
+            "ऐप नहीं जानता कि फ़ोन टेलीस्कोप के किस ओर इशारा करता है। पहले बताएँ कि आईपीस सीधा लगता है या समकोण पर।",
+        "The app needs the camera to take the picture for solving. It is used for nothing else, and nothing is saved or sent anywhere. You can allow it, or use a photo from the gallery." to
+            "हल करने के लिए तस्वीर लेने को ऐप को कैमरा चाहिए। इसका कोई और उपयोग नहीं है, और कुछ भी सहेजा या कहीं भेजा नहीं जाता। आप अनुमति दे सकते हैं, या गैलरी की फ़ोटो इस्तेमाल करें।",
+        "The camera and telescope don't point exactly the same way. Calibrate the camera offset first." to
+            "कैमरा और टेलीस्कोप ठीक एक ही दिशा में नहीं देखते। पहले कैमरा ऑफ़सेट मापें।",
+        "The camera and telescope don't point exactly the same way. Until the offset is calibrated, a photo tells where the camera points, not the telescope, so it cannot align the telescope." to
+            "कैमरा और टेलीस्कोप ठीक एक ही दिशा में नहीं देखते। ऑफ़सेट मापे जाने तक फ़ोटो बताती है कि कैमरा कहाँ देख रहा है, टेलीस्कोप नहीं, इसलिए उससे टेलीस्कोप संरेखित नहीं हो सकता।",
+        "The camera failed. Try again, or use a photo from the gallery." to
+            "कैमरा विफल हुआ। फिर कोशिश करें, या गैलरी की फ़ोटो इस्तेमाल करें।",
+        "The camera is not working" to
+            "कैमरा काम नहीं कर रहा",
+        "The camera looks along the telescope, beside the tube" to
+            "कैमरा नली के बगल से टेलीस्कोप की दिशा में देखता है",
+        "The camera offset is not calibrated, so this photo will say where the camera points, not the telescope." to
+            "कैमरा ऑफ़सेट मापा नहीं गया, इसलिए यह फ़ोटो बताएगी कि कैमरा कहाँ देख रहा है, टेलीस्कोप नहीं।",
+        "The camera offset needs a photo taken with the camera here, not one from the gallery." to
+            "कैमरा ऑफ़सेट के लिए यहीं कैमरे से ली गई फ़ोटो चाहिए, गैलरी की नहीं।",
+        "The camera offset only applies when the camera faces along the telescope." to
+            "कैमरा ऑफ़सेट तभी लागू होता है जब कैमरा टेलीस्कोप की दिशा में हो।",
+        "The camera permission is blocked" to
+            "कैमरे की अनुमति बंद है",
+        "The camera permission was refused" to
+            "कैमरे की अनुमति नहीं दी गई",
+        "The camera pointed at" to
+            "कैमरा यहाँ देख रहा था",
+        "The camera was disconnected. Try again." to
+            "कैमरा कट गया। फिर कोशिश करें।",
+        "The camera's field of view was not known, so 65° was assumed. Use Take photo for a better guess." to
+            "कैमरे का दृश्य-क्षेत्र पता नहीं था, इसलिए 65° मान लिया गया। बेहतर अनुमान के लिए फ़ोटो लें इस्तेमाल करें।",
+        "The phone moved while the photo was taken, so it cannot be used. Keep it still and take another photo." to
+            "फ़ोटो लेते समय फ़ोन हिल गया, इसलिए वह काम नहीं आ सकती। फ़ोन स्थिर रखकर दूसरी फ़ोटो लें।",
+        "The phone's camera faces the tube here, so a photo cannot show where the telescope points." to
+            "यहाँ फ़ोन का कैमरा नली की ओर है, इसलिए फ़ोटो से पता नहीं चल सकता कि टेलीस्कोप कहाँ देख रहा है।",
+        "The phone's camera faces the tube, so it cannot see the sky: a photo would only show the tube." to
+            "फ़ोन का कैमरा नली की ओर है, इसलिए आकाश नहीं देख सकता: फ़ोटो में केवल नली दिखेगी।",
+        "The photo covers only about %.1f° of sky, and the app does not know roughly where the telescope points, so a search could only guess. Align on a bright star first (or use a phone with a compass), then try again." to
+            "फ़ोटो में आकाश का केवल लगभग %.1f° हिस्सा है, और ऐप को मोटा अंदाज़ा नहीं कि टेलीस्कोप कहाँ है, इसलिए खोज केवल अनुमान लगाती। पहले किसी चमकीले तारे पर संरेखित करें (या कम्पास वाला फ़ोन लें), फिर कोशिश करें।",
+        "The photo points below the horizon for your location and time, so nothing was changed. Check the location and the time." to
+            "आपके स्थान और समय के लिए फ़ोटो की दिशा क्षितिज के नीचे है, इसलिए कुछ नहीं बदला। स्थान और समय जाँचें।",
+        "The picture is too bright: the sky is washed out or the stars are overexposed. Move away from lights, keep the Moon and streetlights out of the view, wait for a darker sky, and use a shorter exposure (1 s) or Auto." to
+            "तस्वीर बहुत चमकीली है: आकाश धुला हुआ है या तारे ज़्यादा एक्सपोज़ हो गए हैं। रोशनी से दूर जाएँ, चंद्रमा और स्ट्रीट लाइट को दृश्य से बाहर रखें, अँधेरे आकाश की प्रतीक्षा करें, और कम एक्सपोज़र (1 सेक.) या स्वचालित चुनें।",
+        "The solver could not run on this picture. Nothing was changed. Try another photo." to
+            "इस तस्वीर पर हल करने वाला चल नहीं सका। कुछ नहीं बदला। कोई दूसरी फ़ोटो आज़माएँ।",
+        "The stars are streaks, not dots. The phone or telescope moved, or the exposure was too long for a telescope that does not track. Hold the phone steady, do not touch the telescope, and use a shorter exposure of 1 or 2 s." to
+            "तारे बिंदु नहीं, लकीरें हैं। फ़ोन या टेलीस्कोप हिल गया, या बिना ट्रैकिंग वाले टेलीस्कोप के लिए एक्सपोज़र बहुत लंबा था। फ़ोन स्थिर रखें, टेलीस्कोप को न छुएँ, और 1 या 2 सेक. का छोटा एक्सपोज़र लें।",
+        "The telescope is at the + spot on the photo" to
+            "टेलीस्कोप फ़ोटो में + वाली जगह पर है",
+        "The telescope is at the centre of the photo" to
+            "टेलीस्कोप फ़ोटो के बीच में है",
+        "The telescope now points where the photo says. Check with a star if you like." to
+            "टेलीस्कोप अब वहीं है जहाँ फ़ोटो बताती है। चाहें तो किसी तारे से जाँचें।",
+        "The telescope points at RA %s  Dec %s" to
+            "टेलीस्कोप यहाँ देख रहा है: RA %s  Dec %s",
+        "This phone has no camera the app can use. You can still solve a photo from the gallery." to
+            "इस फ़ोन में ऐप के काम लायक कैमरा नहीं है। फिर भी आप गैलरी की फ़ोटो हल कर सकते हैं।",
+        "This photo could not be solved" to
+            "यह फ़ोटो हल नहीं हो सकी",
+        "To solve with the camera, put the phone on the eyepiece, or fix it with its camera pointing along the telescope, and change the phone placement." to
+            "कैमरे से हल करने के लिए फ़ोन को आईपीस पर लगाएँ, या उसका कैमरा टेलीस्कोप की दिशा में लगाएँ, और फ़ोन की जगह बदलें।",
+        "Too few stars were found (%d). Try a darker, clearer part of the sky, focus on a bright star, and use a longer exposure (2 to 4 s) if the camera offers one. Cloud, haze and city lights hide the faint stars." to
+            "बहुत कम तारे मिले (%d)। आकाश का ज़्यादा अँधेरा, साफ़ हिस्सा आज़माएँ, किसी चमकीले तारे पर फ़ोकस करें, और कैमरे में हो तो लंबा एक्सपोज़र (2 से 4 सेक.) लें। बादल, धुंध और शहर की रोशनी धुंधले तारे छिपा देती हैं।",
+        "Use a 1 to 4 second exposure if the camera offers one." to
+            "कैमरे में हो तो 1 से 4 सेकंड का एक्सपोज़र लें।",
+        "Use a dark site: city lights wash out the stars." to
+            "अँधेरी जगह चुनें: शहर की रोशनी तारों को धुँधला कर देती है।",
+        "Use a photo from the gallery" to
+            "गैलरी से फ़ोटो इस्तेमाल करें",
+        "You can solve a photo without knowing, but it cannot be applied to the alignment." to
+            "बिना जाने भी फ़ोटो हल हो सकती है, पर उसे संरेखण में लागू नहीं किया जा सकता।",
+        "You centre it in the eyepiece, then take a photo. Where the star lands on the photo is where the telescope points." to
+            "आप उसे आईपीस के बीच में लाते हैं, फिर फ़ोटो लेते हैं। फ़ोटो में तारा जहाँ आता है, टेलीस्कोप वहीं देखता है।",
+        "You chose not to be asked again, so Android will not show the question any more. Allow the camera in the phone's settings for this app, or use a photo from the gallery." to
+            "आपने दोबारा न पूछने को चुना, इसलिए Android अब सवाल नहीं दिखाएगा। फ़ोन की सेटिंग में इस ऐप के लिए कैमरे की अनुमति दें, या गैलरी की फ़ोटो इस्तेमाल करें।",
+        "Put the phone on the eyepiece, or with its camera along the telescope, then tap Solve with camera (under More, in Sky & viewing, Telescope & orientation, or Align with a photo). Take a 1 to 4 second photo of the stars: the app finds where the telescope points, on the phone, and aligns to it if you ask. Photos are never saved or sent anywhere." to
+            "फ़ोन को आईपीस पर लगाएँ, या उसका कैमरा टेलीस्कोप की दिशा में रखें, फिर कैमरे से हल करें दबाएँ (अधिक में, आकाश और दृश्य → टेलीस्कोप और दिशा में, या फ़ोटो से संरेखित करें से)। तारों की 1 से 4 सेकंड की फ़ोटो लें: ऐप फ़ोन पर ही पता लगाता है कि टेलीस्कोप कहाँ है, और आप कहें तो उसी से संरेखित करता है। फ़ोटो कभी सहेजी या कहीं भेजी नहीं जाती।",
+        // App updates (preview builds)
+        "App updates" to "ऐप अपडेट", "AstroFixxer update" to "AstroFixxer अपडेट",
+        "Installed: %s (build %d)" to "स्थापित: %s (बिल्ड %d)",
+        "Checks GitHub only when you tap the button. Nothing about you is sent." to "GitHub को केवल तब जाँचा जाता है जब आप बटन दबाते हैं। आपके बारे में कुछ नहीं भेजा जाता।",
+        "Check for updates" to "अपडेट जाँचें",
+        "Check again" to "फिर जाँचें",
+        "Checking for updates…" to "अपडेट जाँचे जा रहे हैं…",
+        "You have the latest version." to "आपके पास नवीनतम संस्करण है।",
+        "Update available: %s (build %d)" to "अपडेट उपलब्ध: %s (बिल्ड %d)",
+        "A newer build of the version you have." to "आपके मौजूदा संस्करण का नया बिल्ड।",
+        "Download size: %s MB" to "डाउनलोड आकार: %s MB",
+        "What's new (CHANGELOG)" to "क्या नया है (CHANGELOG)",
+        "Download and install" to "डाउनलोड करें और इंस्टॉल करें",
+        "This build can't be installed over yours. It is signed with a temporary key, so Android will refuse it. To use it you would have to uninstall AstroFixxer first, and you would lose your saved lists." to
+            "यह बिल्ड आपके वर्तमान ऐप के ऊपर इंस्टॉल नहीं हो सकता। यह अस्थायी कुंजी से हस्ताक्षरित है, इसलिए Android इसे मना कर देगा। इसे उपयोग करने के लिए पहले AstroFixxer को अनइंस्टॉल करना होगा, और आपकी सहेजी सूचियाँ मिट जाएँगी।",
+        "Continue anyway" to "फिर भी आगे बढ़ें",
+        "Only continue if you accept losing your saved lists." to "केवल तभी आगे बढ़ें जब आप अपनी सहेजी सूचियाँ खोने को मानते हैं।",
+        "Download anyway" to "फिर भी डाउनलोड करें",
+        "Downloading… %d%%" to "डाउनलोड हो रहा है… %d%%",
+        "Downloading…" to "डाउनलोड हो रहा है…",
+        "Checking that the download is intact…" to "जाँचा जा रहा है कि डाउनलोड सही है…",
+        "The download is checked and ready. Android will ask you to confirm the install." to "डाउनलोड जाँच लिया गया है और तैयार है। Android इंस्टॉल की पुष्टि माँगेगा।",
+        "If Android says the app can't be installed, this build has a different signature: uninstall AstroFixxer first. Saved lists will be lost." to
+            "अगर Android कहे कि ऐप इंस्टॉल नहीं हो सकता, तो इस बिल्ड का हस्ताक्षर अलग है: पहले AstroFixxer अनइंस्टॉल करें। सहेजी सूचियाँ मिट जाएँगी।",
+        "Install" to "इंस्टॉल करें",
+        "Android needs your permission before AstroFixxer can install updates. Tap the button, allow it for AstroFixxer, then come back." to
+            "AstroFixxer के अपडेट इंस्टॉल करने से पहले Android को आपकी अनुमति चाहिए। बटन दबाएँ, AstroFixxer के लिए अनुमति दें, फिर वापस आएँ।",
+        "Open settings" to "सेटिंग खोलें",
+        "Can't reach GitHub. Check your internet connection and try again." to "GitHub तक नहीं पहुँच सके। इंटरनेट कनेक्शन जाँचें और फिर कोशिश करें।",
+        "GitHub took too long to answer. Try again in a moment." to "GitHub ने जवाब देने में बहुत देर की। थोड़ी देर बाद फिर कोशिश करें।",
+        "GitHub says there were too many requests. Try again in about %d min." to "GitHub के अनुसार बहुत अधिक अनुरोध हुए। लगभग %d मिनट बाद फिर कोशिश करें।",
+        "GitHub says there were too many requests. Try again later." to "GitHub के अनुसार बहुत अधिक अनुरोध हुए। बाद में फिर कोशिश करें।",
+        "No release was found on GitHub." to "GitHub पर कोई रिलीज़ नहीं मिली।",
+        "The newest release has no update information, so it can't be installed from here. Get it from the GitHub Releases page." to
+            "नवीनतम रिलीज़ में अपडेट की जानकारी नहीं है, इसलिए इसे यहाँ से इंस्टॉल नहीं किया जा सकता। इसे GitHub Releases पेज से लें।",
+        "GitHub's answer wasn't in the expected form. Try again later." to "GitHub का जवाब अपेक्षित रूप में नहीं था। बाद में फिर कोशिश करें।",
+        "The newest release is for a different app, so it was not offered." to "नवीनतम रिलीज़ किसी दूसरे ऐप की है, इसलिए इसे नहीं दिखाया गया।",
+        "The update was refused because its download address or size looked unsafe." to "अपडेट अस्वीकार कर दिया गया क्योंकि उसका डाउनलोड पता या आकार असुरक्षित लगा।",
+        "The secure connection to GitHub failed. Check your network and the date and time, then try again." to
+            "GitHub से सुरक्षित कनेक्शन विफल रहा। नेटवर्क और तारीख़-समय जाँचें, फिर कोशिश करें।",
+        "GitHub answered with error %d. Try again later." to "GitHub ने त्रुटि %d दी। बाद में फिर कोशिश करें।",
+        "The download failed (code %d). Try again." to "डाउनलोड विफल रहा (कोड %d)। फिर कोशिश करें।",
+        "The download was cancelled." to "डाउनलोड रद्द कर दिया गया।",
+        "Not enough free space. About %d MB is needed." to "पर्याप्त खाली जगह नहीं है। लगभग %d MB चाहिए।",
+        "The downloaded file is the wrong size, so it was deleted. Nothing was installed." to "डाउनलोड की फ़ाइल का आकार गलत है, इसलिए उसे मिटा दिया गया। कुछ भी इंस्टॉल नहीं हुआ।",
+        "The downloaded file doesn't match its checksum, so it was deleted. Nothing was installed." to "डाउनलोड की फ़ाइल चेकसम से मेल नहीं खाती, इसलिए उसे मिटा दिया गया। कुछ भी इंस्टॉल नहीं हुआ।",
+        "The downloaded file is gone. Download it again." to "डाउनलोड की फ़ाइल नहीं मिली। फिर से डाउनलोड करें।",
+        "This phone has no app that can install updates." to "इस फ़ोन में अपडेट इंस्टॉल करने वाला कोई ऐप नहीं है।",
+        "Something went wrong (%s)." to "कुछ गड़बड़ हो गई (%s)।",
         // Cardinal points
         "N" to "उ", "NE" to "उपू", "E" to "पू", "SE" to "दपू", "S" to "द", "SW" to "दप", "W" to "प", "NW" to "उप",
     )

@@ -20,6 +20,89 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 | Codebase analysis (web page) | https://claude.ai/artifact/SMf5adtidjB5CsJt5ZrxNW |
 | Bug-hunt and UI proof report | https://claude.ai/artifact/WxJfBipQQCRwaAE9qAkGYb |
 
+## TAKEOVER: read this first (updated 2026-10-01; resume sequence step 3, docs pass)
+
+**Resumed 2026-10-01 (owner: "continue what the handoff says").** **Owner decision: Hindi switched off for now and no Hindi work at all; W7 is parked (step 1 is replaced by the Hindi switch-off, merged). Integration CI green (run 41) and fast-forwarded to the candidate: W4 camera flow with label fix, docs pass and in-app licences are in. Next: merge integration into main and verify CI on main (step 4), then merge W8 README (pushed on `feature/tsap-w8`, reviewed) after its CI. Owner's camera-screen image and pixel-art camera-solve animation are in W8.** W7 (`feature/tsap-w7`, WIP `16195d9`) stays parked and unmerged. Nothing is merged to main yet. The next session must read this entire handoff, especially the newest entries, plan section 7b, POLICY, PRIVACY, SECURITY, CONTRIBUTING, NOTICE, README and CHANGELOG before acting.
+
+### 1. Pushed branches and checkout ownership
+
+| Branch | Current work / state |
+|---|---|
+| `feature/telescope-setup-alignment-platesolve` | Integration. This session changed only `docs/HANDOFF.md` in signed/pushed checkpoints; final checkpoint is the commit containing this TAKEOVER. Before it, HEAD was `48b9dfa47ff598c4d8d5ab47af0b8f6398516308`. Existing W1/W2/W3/W5/W6 remain merged. W7/W4/W8 are not merged. |
+| `feature/tsap-w7` | `fd409670b840d0e3e27166ef11c41a32be458cdc`, signed/pushed test-only addition of `HindiLayoutTest.kt`, on top of pre-existing WIP `ae2e203`. No new feature fix in this session. The existing WIP is still not accepted for merge. |
+| `feature/tsap-w4` | Unchanged remote WIP `9ba3ff1` plus camera implementation `b5dc645`; not reviewed or merged this session. |
+| `feature/tsap-w8` | Unchanged remote WIP `469a7c9`; paused, not reviewed or merged. |
+| `main` | Untouched. No tag created. |
+
+Integration checkout: `C:/Users/kush/Desktop/astrofixxer`. W7 separate worktree: `C:/Users/kush/Desktop/astrofixxer-w7`. Both were clean before the final handoff edit. Git identity is configured; signed commits and actual remote pushes work. Never force-push or rewrite history.
+
+The owner requires the implementation agent to author all feature code, tests and documentation; the supervisor reviews **every changed line**, independently runs tests, performs security/edge-case review, owns merges and may maintain this handoff. Keep roles generic in repository content; no AI model names/IDs or secrets.
+
+### 2. Exact W7 evidence and unfinished review
+
+- The historical CI failure is **16 Hindi clipping findings**, involving Reset adjustment (`समायोजन रीसेट करें`), Align now (`अभी संरेखित करें`) and Refractor (`अपवर्तक (रिफ्रैक्टर)`). The original failure remains **unreproduced locally** in this session; do not claim it fixed.
+- New reviewed test file: `tools/desktop-check/src/test/kotlin/HindiLayoutTest.kt`, four real-render tests for those controls/settings/wizard and font-scale recomposition. It checks text overflow/bounds and 48 dp controls, preserves screenshots before assertions and restores Hindi state.
+- **Unchanged integration source `7c75ac6` plus only that test overlay:** with genuine Lohit, **4 tests, 1 failure**, 0 skipped/errors. Failure: `Label clipped after changing font scale to 2.0`. The three original controls passed at 360/411 dp, day/night.
+- Forced repeat with genuine Noto Sans Devanagari preferred: **4 tests, 1 failure**, 0 skipped/errors, same font-scale assertion; original controls still passed. Noto run BUILD FAILED in 1m 2s. These are baseline tests, not tests of W7 candidate code.
+- Full unchanged baseline AuditTest was started, then deliberately stopped after **33 screenshots** to avoid repeating a long diagnostic when focused evidence was available. It did not complete and produced no valid full audit result. Never report 33 as passed test variants.
+- No full W7 candidate suite, JVM suite, Android build or device test ran this session.
+- Supervisor read all existing W7 diff lines and the new regression. Open findings: WIP AuditTest environment filters could permit misleading partial/empty coverage (remove or safely validate; final acceptance must be unfiltered); shared Label caches omit density/measurer changes; two-line fallback can still clip; inherited fixed line-height plus fallback-font metrics may explain original runner-only overflow. Current labels really rendered Hindi and visibly fit in inspected local Noto screenshots. On resumption, prioritize minimal fixes and review using the historical CI findings and confirmed font-scale defect. Exact local runner-font parity or local reproduction of the original clipping is not a prerequisite; investigate font differences only if needed to fix or verify the candidate. Do not claim the original clipping was reproduced or fixed without evidence.
+
+**Historical checks only — not rerun or newly accepted today:** W5 JVM **126 tests, 0 failures** and desktop **93 tests, 0 failures** were earlier font-limited local results; they do not supersede the later CI Hindi failure. W4's previous desktop run was **108 tests, 107 passed**, with AuditTest navigation failure. Importer **19 passed**; synthetic solver **29/29 solves**, **28/28 negatives refused**. Precession's earlier worst error was 28.3 arcseconds against astropy. All are inherited evidence and none proves real-device behavior.
+### 3. Reusable runtime, commands and evidence
+
+Reuse the installed WSL/JDK/fonts/SDK and saved baseline evidence below. Do not rebuild the environment or repeat unchanged baseline diagnostics without a new reason.
+
+Docker Desktop could not start (inference-manager socket access error). Do not reset the owner's Docker installation. Instead this session provisioned **isolated WSL distro `AstroFixxerCheck`**, Ubuntu 22.04, outside the repository at `C:/Users/kush/.cache/astrofixxer-check/distro`. Ubuntu Base archive matched its official SHA-256 `242cd8898b33ea806ef5f13b1076ed7c76f9f989d18384452f7166692438ff1a`.
+
+- OpenJDK **17.0.20.1**, standard desktop X/GL libraries, fontconfig, curl/unzip/git/python3 are available. Desktop wrapper is **Gradle 8.5**, Compose 1.5.12, Kotlin 1.9.22. Gradle dependencies are now cached.
+- Genuine Noto Sans/Serif Devanagari and Lohit were installed. **Current font state:** Lohit file was moved reversibly from `/usr/share/fonts/truetype/lohit-devanagari/Lohit-Devanagari.ttf` to `/opt/astrofixxer-disabled-fonts/Lohit-Devanagari.ttf`. `fc-cache -f` completed; `fc-match sans:lang=hi` and `sans:charset=0938` select `NotoSansDevanagari-Regular.ttf`. No font source file was changed. Restore exact font file and refresh cache only if needed for a comparison.
+- Android SDK ready at **`/opt/astrofixxer-android-sdk`**: API 35 revision 2, build-tools 35.0.0, platform-tools 37.0.1. aapt2 and adb version checks succeeded; no device was queried. Use `ANDROID_HOME` and `ANDROID_SDK_ROOT` with this path. Official package checksum verified; existing accepted license files reused. No real Android build yet.
+- Invoke Linux with `wsl -d AstroFixxerCheck -- bash -lc '...'`; use `LANG=C.UTF-8 LC_ALL=C.UTF-8`.
+- **Important:** Windows `core.autocrlf=true` makes checkout copies and default archives contain CRLF wrappers. Export with `git -c core.autocrlf=false archive --format=tar -o <outside-repo.tar> <exact-commit>`, then extract in Linux. Verify LF before executing. Windows worktree `.git` references are not portable to Linux; use exact source mirrors and do not edit them as source of truth.
+- The first detached launcher did not start. Persistent tool execution sessions worked; avoid status-variable interpolation across PowerShell/Bash. A focused-run wrapper once returned outer status0 despite Gradle failure; trust the preserved XML and Gradle BUILD FAILED, and fix wrapper quoting on future commands.
+
+Preserved Linux evidence (outside git):
+
+| Path | What it contains |
+|---|---|
+| `/root/checks/w7-baseline-exact` | Exact integration `7c75ac6` source; incomplete full-audit outputs, 33 screenshots under `tools/desktop-check/build/screens`. |
+| `/root/checks/w7-baseline-exact-audit.log` | Cancelled full baseline log. |
+| `/root/checks/w7-focused-baseline` | Same unchanged app source plus reviewed regression test; latest Noto XML/HTML/screens under `tools/desktop-check/build`. |
+| `/root/checks/w7-focused-baseline-noto.log` | Forced Noto baseline command/result. |
+| `/root/checks/w7-focused-baseline-lohit` | Preserved Lohit log/XML/screens from first focused run. |
+| `/root/checks/w7-focused-baseline.log` | First focused baseline log. |
+| `/root/checks/w7-baseline-audit.log`, `/root/checks/w7-baseline-lf-audit.log` | Earlier wrapper CRLF failures; zero tests executed. |
+
+Commands already used: `bash gradlew test --tests AuditTest --no-daemon` (incomplete baseline); `bash ./gradlew test --tests HindiLayoutTest --console=plain` (Lohit baseline); `bash ./gradlew test --tests HindiLayoutTest --rerun-tasks --console=plain` (Noto baseline). No AUDIT filters used. Windows screenshot copies: `C:/Users/kush/.cache/astrofixxer-check/baseline-reset-noto.png` and `baseline-refractor-noto.png`.
+
+Historical CI evidence is preserved locally: run **36772339163**, source `3178403`, job 110081585722, Ubuntu 24.04.5 image `ubuntu24/20260927.320`: **93 tests, 1 failure, 16 Hindi findings**; build and secret-scan passed. UI job took about 55 minutes. Files under `C:/Users/kush/.cache/astrofixxer-check/`: `ci-run16-ui.log` (45,723 bytes), `ci-run16-ui-screens.zip` (53,432,458 bytes). ZIP download finished before stop; an earlier attempt to read it while downloading failed with file-in-use. No CI screenshot was extracted or inspected. Focused Lohit/Noto results and screenshots were also copied to `stopped-results/` there. These are preserved evidence, not new successful verification.
+
+Local test processes are stopped (only exited/defunct daemon entries remained on final inspection). Cancellation was requested for all 17 queued/in-progress runs found on the four work branches; every request returned HTTP202 accepted. GitHub cancellation is asynchronous: the immediate list still showed 1 queued and 16 in progress. Final remote completion is not yet verified. No main/unrelated run was targeted, and this final handoff uses [skip ci].
+At stop, the baseline wrapper/daemon/test-worker PIDs 77/186/735 were already terminated; remaining isolated Kotlin/Gradle daemons 586/867 were then terminated. Implementation agent was idle and was stopped. No new test, CI poll or research should run after this stop checkpoint.
+
+### 4. Resume sequence — keep this order
+
+1. **Finish W7** on its worktree. Use the existing historical CI findings and separately confirmed font-scale defect to make minimal responsive-label fixes and focused regressions; exact local reproduction of the original clipping is not a prerequisite. Investigate font parity only if needed to fix or verify the candidate. Supervisor reviews every line; implementation runs focused candidate tests; supervisor independently runs **one full unfiltered desktop suite** on the candidate, including those tests, updater and all wizard screens. Repeat checks when code changes, failures or another unresolved verification concern justify them. Require every test pass and `build/screens/audit.txt` say **No findings**. A targeted pass is not a full audit. Inspect relevant screenshots; never weaken the audit. Merge W7 into integration only after approval, sign/push, log immediately, verify CI.
+2. **W4 camera flow**: supervisor merges integration into `feature/tsap-w4`; expect conflicts in MainActivity, SkyScreen, I18n, AuditTest, CHANGELOG and PRIVACY, keeping both features. Fix AuditTest's missing Next navigation. Run JVM tests, a real Android build/compile with the installed SDK, and full desktop suite with genuine fonts. Review checklist:
+   - CAMERA requested only when live view opens; denial offers gallery; permanent denial offers Open app settings; no camera means gallery only.
+   - Each failure (TOO_FEW_STARS, IMAGE_TOO_BRIGHT, STARS_TRAILED, NO_MATCH, missing usable hint) has distinct advice.
+   - Report solve/alignment only after `SolveResult.Solved` and calibration puts solved point on telescope axis within **0.01°**; failure/cancel changes nothing.
+   - Eyepiece applies image centre; beside-tube application disabled until offset calibrated; flat-on-tube explains impossible solve because camera faces tube.
+   - Dragging image never changes alignment. No image saved/uploaded or camera-network use. Camera2 only, no new Gradle dependency; CAMERA plus optional camera feature manifest declarations.
+   - Supervisor reviews all diffs/security/edge cases, merges to integration, signs/pushes/logs, verifies CI.
+3. **Docs pass after W4**: typed location saved; Ask tap-to-start; complete stored-data list (lists/objects/settings/setup/alignment/typed location/`tle.txt`); camera memory-only; update tap-only. CONTRIBUTING DCO sign-off, inbound=outbound GPLv3, no CLA, POLICY link. In-app LICENCES Gaia DR3/Hipparcos/ESA/CelesTrak and PRIVACY/NOTICE links; only modern constellation art uses Free Art License, Indian culture CC BY-SA4.0. Remove unused NASA eclipse tables row from plan section0. Make historical role references generic when editing plan.
+4. **Integration CI gate**: build, ui-check and secret-scan all green on the integration candidate before `git merge --no-ff` to main; sign/push and log every result/merge. No main merge today. **No v0.2.0 tag without owner confirmation of required Play signing secrets.**
+5. **W8 last**: merge main into its worktree; regenerate real desktop-render screenshots and deterministic GIFs about 1.5 MB max, alt text on every image. Guide covers setup, tap star→Align using this star→eyepiece centring→drag under+→Confirm, Reset/Retry, next-star guidance, camera plate solve, orientation, GitHub-only updates. Bold Sun warning; honest tested/not-tested box linking FIELD_TEST. Correct stale instant-tap-alignment, unconditional same-signing-key, manual versionCode and artwork-license statements. Review, test/render, merge/push.
+
+After **every test run, CI result, merge or failure**, append dated exact results/files/dependencies/review and rewrite this TAKEOVER; **commit -s and push integration immediately before the next action**. For handoff-only documentation checkpoints with no executable, build or CI configuration change, use `[skip ci]` to avoid redundant CI runs. Do not skip CI for code changes or required candidate verification; the fully green integration-candidate gate above still applies. After any future "enough for today", stop agents/tests first, preserve every branch/result, and push a detailed current handoff. Never hide incomplete or cancelled runs.
+
+### 5. Non-negotiable limits and owner actions
+
+Preserve GPL and all credits; no Android imports in ui/astro/update; user-visible strings through `t()` with Hindi; night mode red-on-black; touch targets at least 48 dp; private paper stays out of git; no new dependency without reason. Updater remains preview/debug only, HTTPS and this repository's release URLs, SHA-256 before user-confirmed installation.
+
+**Still never verified on a device/telescope:** real sensors, Camera2 capture/exposure, real sky-photo solving, alignment accuracy, DownloadManager/installer/FileProvider, and live updater API behavior. Build success cannot substitute for these. The repository was verified publicly readable this session; making it public is not pending. Owner actions remain: signing secrets, private vulnerability reporting, project-name rights, permission/redraw for `web/images/qs_*.png` credits, maintaining public source distribution, field testing.
+
 ## Current status
 
 | Phase (see plan) | Status |
@@ -32,12 +115,438 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 | 5. Compose UI (Stellarium-style) | Done: Object Info with altitude graph, markings (grid, ecliptic, meridian, IAU boundaries), star colours, eyepiece field, telescope and place & time settings, Tonight card, Free look, sky view, atmosphere, Milky Way, landscapes, light pollution, artwork, alignment, guidance, search, events, lists, onboarding, help, night mode, Hindi. Built and UI-tested in CI |
 | 5b. Offline events | Done, including ISS/Tiangong passes and Sun/Moon transits (SGP4). The live TLE download is untested here (CelesTrak blocked) |
 | 6. AstroGuide v1 (offline voice) | Done: English and Hindi commands, speech in/out |
-| 7. Release | Prepared: signing via CI secrets, signed-bundle workflow on tags, R8 in CI, launcher icon, privacy policy, store listing, field-test protocol. Needs the owner: upload key, Play account, repo made public, field test, screenshots |
+| 7b. Telescope setup, alignment, plate solving | In progress on `feature/telescope-setup-alignment-platesolve`: precession fix, plate solver and setup/alignment/guidance merged. Updater, Hindi switch-off and camera flow merged; docs pass, final CI gate, main merge and README showcase pending |
+| 7. Release | Prepared: signing via CI secrets, signed-bundle workflow on tags, R8 in CI, launcher icon, privacy policy, store listing, field-test protocol. Needs the owner: upload key, Play account, field test and device screenshots (repository is already publicly readable) |
 
 
 ---
 
 ## Entries
+
+Historical entries retain the evidence and instructions recorded at the time. Their **Next step** instructions are superseded by the current TAKEOVER above.
+
+### 2026-10-01: Candidate CI green; integration fast-forwarded; W8 README ready
+
+**CI run 41 (`36917203161`) on `feature/tsap-candidate` at `1afc381`: all green.** `build` success (tests, debug/release/preview APKs, sky-data check, update.json, APK integrity, no self-update permission in the Play build), `secret-scan` success, `ui-check` success at 22:18 UTC after about 2 h 28 min (all desktop tests and the full screen audit on the runner's fonts; the "Change phone placement" clipping is gone). Run 40 on `feature/tsap-w4` `7748d42`: build and secret-scan green, ui-check still running at this entry (it is the same code already verified by run 41).
+
+**Integration fast-forwarded** to the candidate (`--ff-only`): the CI-verified tree `1afc381` plus docs-only HANDOFF commits on top. Integration now holds W1–W6, Hindi switch-off, W4 camera flow with the label-wrap fix, the docs pass and the in-app licences.
+
+**W8 README showcase on `feature/tsap-w8` (pushed; implementation by the implementation agent, supervisor reviewed):**
+- `656483a` README screenshot tests (`ReadmeShotsTest`, `ReadmeCameraShotsTest`) run only with `-PreadmeShots` (`Assume` in `@Before`; `tools/desktop-check/build.gradle.kts` passes the property), so CI's `./gradlew test` skips them and writes no images.
+- `29a3eab` regenerated real desktop-render screenshots and 7 new camera screens (`docs/screens/new/camera-*.png`, 480×1040, 29–77 KB): arrangement, live view, solved, aligned, failed advice, beside-the-tube arrangement and live. Live-view stars in the camera shots are synthetic (drawn from the app's catalogue by a test host).
+- `9624c41` `docs/art/solve-how.gif` (800×400, 479 KB, seeded): phone on the eyepiece → 1–4 s photo → triangles vs the star list, offline → pointing here → moved? retake / still? Apply to alignment. Supervisor viewed contact sheets of the frames.
+- `6a878f9`, `2be5d0a` README: step-by-step guide (setup, align by centring and dragging under the +, next-star guidance, camera solve, orientation, updates), bold Sun warning, tested/not-yet-tested table linking FIELD_TEST, Hindi "coming in a later release", corrected signing (conditional), versionCode (run number + 1000) and artwork licences. Each claim checked against code/docs by file:line.
+- Not run on W8: AuditTest/full suite (README and test-guard changes only; CI on the push runs them).
+
+**Follow-up noted (app wording, not changed now):** in the eyepiece live view the app always shows "Move the telescope until the star reaches the +" (`ui/PlateSolveFlow.kt` ~353, shown whenever a marker position exists), even for a plain solve with no chosen star. Consider wording it only for calibration or rephrasing; needs a full CI cycle.
+
+**Next:** merge integration into main (`--no-ff`, signed), push, verify CI on main; then merge W8 after its CI is green. No v0.2.0 tag without the owner confirming the Play signing secrets.
+
+### 2026-10-01: Owner said stop; state saved for the next session
+
+**Stopped:** the README agent and the local CI-poll loop. No local Gradle or test process is running. GitHub CI was NOT cancelled: run 41 (`feature/tsap-candidate`, `1afc381`) and run 40 (`feature/tsap-w4`, `7748d42`) were still in progress at stop and will finish on their own.
+
+**Branches (all pushed):**
+| Branch | Head | State |
+|---|---|---|
+| `feature/telescope-setup-alignment-platesolve` (integration) | `c1644b0` | Contains W4 merge `ab0a661` with the clipping finding; not yet updated with the fix |
+| `feature/tsap-candidate` | `30df975` | Integration + W4 fix `7748d42` + docs branch; CI run 41 on `1afc381` is the gate (`30df975` is a docs-only HANDOFF commit on top) |
+| `feature/tsap-w4` | `7748d42` | Camera flow + label-wrap fix; CI run 40 |
+| `feature/tsap-docs` | `cc24fc6` | CI run 39 success; already inside the candidate |
+| `feature/tsap-w8` | `4c11c80` | README WIP: merged the candidate (`b5cbb29`), moved `ReadmeCameraShotsTest.kt` into `tools/desktop-check/src/test/kotlin/` (not yet compiled or reviewed) |
+| `feature/tsap-w7` | `16195d9` | Parked Hindi work; do not merge |
+| `main` | `45262ca` | Untouched |
+
+**Resume here, in order:**
+1. Read CI run 41 (`curl -s https://api.github.com/repos/Zenithquonta/astrofixxer-android/actions/runs?per_page=5`; job logs through the GitHub tools' `get_job_logs`, the log blob host is blocked by the proxy). If build, ui-check and secret-scan are all green: `git checkout feature/telescope-setup-alignment-platesolve && git merge --ff-only feature/tsap-candidate`, push, log. If ui-check is red, read the audit findings in the log, reproduce locally with `FONTCONFIG_FILE` set to a fontconfig file that aliases sans-serif to DejaVu Sans (the runner's font), fix on `feature/tsap-w4` or the candidate, push, re-check.
+2. Main gate: with integration green, `git checkout main && git merge --no-ff feature/telescope-setup-alignment-platesolve`, sign off, push, verify CI on main, log. No v0.2.0 tag without the owner confirming the Play signing secrets.
+3. W8 README (owner: "add an image of the camera UI and add some pixel animation for this feature"): continue on `/home/user/wt/w8` from `4c11c80`. Make `ReadmeCameraShotsTest` compile against the real camera flow and render docs/screens/new/solve-*.png; refresh the other README shots; review/improve `docs/art/solve-how.gif` (pixel art in `tools/repo-art/guide_art.py`, run with `python3 tools/repo-art/make_art.py`) so it tells phone-on-eyepiece → photo → star-pattern match on the phone → "pointing here" → apply only if the phone did not move; README sections for setup, align (centre and drag under +), next-star, camera solve, orientation, updates; bold Sun warning; tested/not-tested box linking FIELD_TEST; Hindi "coming in a later release"; fix stale claims (instant tap-align, signing key, manual versionCode, artwork licences). Supervisor looks at every image before merging. Merge W8 after main, then CI.
+
+### 2026-10-01: Clipping fixed; candidate with W4 fix, docs pass and in-app licences pushed for CI
+
+**W4 fix (`7748d42`, implementation; supervisor reviewed):** `Label` (`ui/SkyScreen.kt`) keeps the one-line 15→11 sp steps; when none fits it wraps to two centred lines at the largest size that fits with no word broken, and clips only as a last resort. New `LabelFitTest` (3 tests) reproduced the CI finding before the fix with DejaVu Sans (`FONTCONFIG_FILE` pointing at a fontconfig file that aliases sans-serif to DejaVu Sans; Noto, Liberation and FreeSans did not reproduce it) and checks the tube bar at 360 dp day/night, buttons at least 48 dp tall, and narrow buttons (140–200 dp) never clipped and never taller than 58 dp (a wrapped label grows a 56 dp button by about 1 dp). Implementation ran with DejaVu: LabelFitTest 3/3, PlateSolveFlowTest 26/26, GuidanceTest 7/7, SetupWizardTest 10/10, UpdaterTest 11/11, JourneyTest 12 (1 Hindi skipped). Android compile clean. Audit not weakened.
+
+**Docs branch (`feature/tsap-docs`):** `3fd63cb`, `43affc6` (markdown, see previous entry) and `cc24fc6` in-app licences: Gaia DR3 (CC BY-SA 3.0 IGO) and Hipparcos with the ESA/DPAC acknowledgement, CelesTrak, modern illustrations Free Art License and Indian CC BY-SA 4.0, PRIVACY/NOTICE pointer. Each credit checked against NOTICE.md/POLICY and code. **CI run 39 on `cc24fc6`: success** (build, ui-check, secret-scan).
+
+**Candidate `feature/tsap-candidate` = integration + W4 fix + docs:**
+- `f0da4f6` merges `7748d42`; `1afc381` merges the docs branch. PRIVACY.md conflict resolved to the docs-branch text plus "you can solve a photo from the gallery instead" from the camera branch. CHANGELOG gains "Licences, privacy and contributing (1 Oct 2026)".
+- Supervisor local checks on `1afc381`: JVM 147 tests 0 failures; Android compile clean; LabelFitTest 3/3 with DejaVu.
+- **CI run 41 on `1afc381` in progress** (run 40 on `7748d42` too). If all green, fast-forward the integration branch to the candidate (the exact CI-verified tree plus this docs-only entry), then `git merge --no-ff` integration into main.
+
+### 2026-10-01: CI found a clipped label on W4; integration merge was premature
+
+**CI on `feature/tsap-w4`** (run 38, `791f01a`; run 37 on `28ca51d` failed the same way): `build` and `secret-scan` green; `ui-check` red with 120 tests, 1 failed, 2 skipped. AuditTest checked 492 variants with 2 findings:
+- `solve-tube [360 dp, en, day]: text is cut off: "Change phone placement"`
+- the same at night.
+The runner's fonts are wider than this machine's (here `fc-match sans-serif` gives Noto Sans), so the local audit passed. Cause: `Label` (`ui/SkyScreen.kt`) shrinks one-line button text from 15 to 11 sp and then clips; the TUBE bar in `ui/PlateSolveFlow.kt` puts this label in a 1.4-weight button next to Cancel.
+
+**Supervisor error:** W4 was merged to integration (`ab0a661`) after the local suite without first checking CI on the W4 branch, and the HANDOFF commit on top used `[skip ci]`, so CI did not run on the merge. The integration branch therefore carries this finding. It is fixed forward on `feature/tsap-w4` and merged again; the next code push to integration runs CI. **Rule added: check CI on the work branch before merging it, and never push a merge with only a `[skip ci]` commit on top.**
+
+### 2026-10-01: W4 camera flow verified and merged to integration
+
+**Supervisor's full run on `feature/tsap-w4` at `791f01a`** (run alone, no other Gradle on the machine, 2 h 50 min):
+- Desktop suite (`tools/desktop-check`, `./gradlew cleanTest test --offline`): 13 classes, 120 tests, 0 failures, 0 errors, 2 skipped (`I18nTest.everyLiteralPassedToTHasAHindiEntry`, `JourneyTest.nightModeAndHindi`; Hindi is switched off). BUILD SUCCESSFUL.
+- `build/screens/audit.txt`: "Checked 492 screen variants. No findings." (English only, day and night, 360 and 411 dp.)
+- JVM (astro + update sources and `app/src/test`): 19 classes, 147 tests, 0 failures, 0 skipped.
+- Android compile check (Robolectric android-all plus stubs): clean.
+
+**The earlier "hang" was not reproduced.** The audit's camera screens are slow to render (the 411 dp pass of the solve screens took about 70 min) but finished. The previous stall was most likely two Gradle runs sharing one build directory; the earlier entry's screen name (`solve-live-asking`) was also wrong, line 243 is `solve-live-denied`. `791f01a` adds a watchdog to AuditTest: each screen variant is limited to 10 minutes, then the test names the screen, prints the stack and stops, so a real hang can no longer stall CI silently.
+
+**Merge:** `ab0a661` (`--no-ff`, signed off). Apart from `docs/HANDOFF.md`, the merged tree is identical to the tested `791f01a`. No new dependencies.
+
+**Docs pass prepared in parallel** on `feature/tsap-docs` (`3fd63cb`, `43affc6`; markdown only, pushed, not merged):
+- PRIVACY.md rewritten to follow POLICY section 6, every claim checked against code: typed location saved (`manual_lat/lon`), Ask tap-to-start, camera memory-only, update check tap-only in preview/debug builds, full stored-data list including camera offset and the temporary update download (external app folder, deleted after the verified copy), Android backup default on.
+- CONTRIBUTING.md: DCO 1.1 sign-off, inbound = outbound GPLv3, data keeps its licence, no CLA.
+- POLICY.md: web app's only outside request is the optional Wikipedia page (W button); stored list adds camera offset and update file; effective date 1 October 2026.
+- Plan: NASA eclipse table row removed (eclipses are computed on the phone), eclipse gate matches `EventsTest`, workflow line made role-neutral.
+- Conflict expected with W4's PRIVACY.md camera section; take the docs-branch text, which covers the same ground.
+
+**Still to do in step 3:** in-app licences text (`ui/SkyScreen.kt` `LICENCES`): add Gaia DR3/Hipparcos (ESA, CC BY-SA 3.0 IGO for Gaia), CelesTrak, PRIVACY/NOTICE links; only modern constellation art is Free Art License, Indian sky culture and its art are CC BY-SA 4.0. Then one full desktop suite on the integration candidate, CI green, then main.
+
+**Follow-up (not in git):** the private local paper still says the whole interface is in Hindi and quotes older test and audit counts; update it only if the owner asks.
+
+### 2026-10-01: CI green on integration (run 36); W4 full-audit hang found
+
+**CI (integration `3b355f7`, run 36840367407): all green.**
+- `build`: tests, debug/release/preview APKs, sky-data check, update.json, APK integrity, and the check that the Play build has no self-update permission.
+- `ui-check`: 21 min.
+- `secret-scan`.
+- First fully green integration run since the W3 merge. The Hindi-clipping failure is gone because Hindi is switched off.
+
+**W4 (`feature/tsap-w4`):**
+- The supervisor merged integration into it (`28ca51d`). Seven conflicts were resolved by keeping both the camera flow and the updater. The desktop test compile and the Android compile check pass.
+- Implementation checks on `28ca51d`:
+  - JVM: 147 tests, 0 failures;
+  - focused desktop: 66 tests, 0 failures, 1 Hindi test ignored;
+  - the camera review checklist passes, with file:line evidence (permission timing, failure advice, Solved-only apply with the 0.01° check, placement rules, no drag/save/upload, Camera2 only).
+- Supervisor code check: `applyPhotoAlignment` uses the capture-time device and time, refuses gallery photos, moved phones, tube placement and an uncalibrated side camera, and calibrates with `PhotoAlignment.calibrate` (0.01°) before changing anything.
+- **Supervisor's full unfiltered suite HUNG.** AuditTest wrote 251 screens, then `waitForIdle` never returned on `solve-live-asking` (AuditTest.kt:243; permission answer pending) for 50+ min at full CPU. The run was killed. No valid full result.
+- Sent back to implementation: find what never goes idle, fix the test or the app, bound the waits so a hang fails with the screen name, then prove the unfiltered AuditTest completes.
+
+### 2026-10-01: Hindi switched off; merged to integration
+
+**What was done**
+- `feature/hindi-off` (commit `1671101`) was reviewed by the supervisor and merged to integration.
+- Code changes:
+  - `ui/I18n.kt`: `HINDI_AVAILABLE = false`, English-only `languages`, and `t()` returns English. The Hindi table is kept dormant.
+  - `ui/Sheets.kt`: the language control is shown only when more than one language is available.
+  - `ui/SkyState.kt`: an unavailable saved language loads as English.
+- Tests:
+  - AuditTest and UpdaterTest take their languages from `I18n.languages`.
+  - `I18nTest` and `JourneyTest.nightModeAndHindi` are `@Ignore`d ("Hindi interface switched off until a later release").
+  - New test: `JourneyTest.hindiSwitchedOffLoadsEnglishAndHidesTheLanguageControl`.
+- `README.md` and `CHANGELOG.md` say Hindi returns in a later release.
+- Dependencies added: none.
+
+**Verification (supervisor, cloud Linux, Devanagari fonts installed)**
+- Full unfiltered desktop suite on `feature/hindi-off`: BUILD SUCCESSFUL in 39m 22s. **94 tests: 92 passed, 2 ignored (Hindi), 0 failed.**
+- `audit.txt`: "Checked 344 screen variants. No findings." (English, day and night, 360 and 411 dp).
+- The JVM tests are unaffected (only `ui/` changed) and were not rerun.
+- CI is triggered by this push and must be checked next.
+
+**Next step**
+- Confirm CI is green (build, ui-check, secret-scan). Then step 2: merge integration into `feature/tsap-w4`, fix its audit "Next" navigation, and run the review checklist.
+
+### 2026-10-01: Owner: no Hindi work at all for now; W7 parked
+
+- The owner clarified: no aspect of Hindi is to be worked on now. **`feature/tsap-w7` is parked, not merged.** Its last commit is `16195d9` (WIP Label/audit edits, not reviewed); keep it for the later Hindi release.
+- The only change made is the removal: new branch `feature/hindi-off` (from integration).
+  - `HINDI_AVAILABLE = false`; English only; the language control hidden; a saved Hindi setting loads as English.
+  - The Hindi strings stay dormant.
+  - AuditTest takes its languages from `I18n.languages`; Hindi-only tests are changed or `@Ignore`d.
+- Implementation is in progress. The supervisor will review it, run the full unfiltered suite, merge it to integration, and verify CI.
+- The resume sequence otherwise continues: W4 (camera flow), docs pass, CI gate and merge to main, then W8. In W8, describe Hindi as "coming in a later release".
+
+### 2026-10-01: Owner decision: Hindi interface switched off for now
+
+**Decision (owner):** the Hindi interface is removed from testing and from the APK for now, and will return in a later release.
+
+**Plan (W7 rescoped, branch `feature/tsap-w7`):**
+- A single switch `HINDI_AVAILABLE = false` in `ui/I18n.kt`:
+  - `t()` returns English;
+  - the language choice is hidden;
+  - a saved Hindi setting loads as English.
+- The Hindi strings stay in the code, dormant, so re-enabling is one line.
+- The Indian sky culture (nakshatras) stays: it is sky data, not the interface language.
+- Tests:
+  - AuditTest covers English only while the switch is off;
+  - the Hindi-only tests are `@Ignore`d with the reason "disabled until relaunch" (not deleted);
+  - a new test covers the switch.
+- The WIP AuditTest filters are removed.
+- Kept: the real non-Hindi fix, `Label` caches keyed on density and the text measurer (a font-scale change could reuse a stale measurement), with an English font-scale test.
+- Consequence: the 16 CI Hindi-clipping findings no longer apply while Hindi is off. They must be re-checked when Hindi returns (HindiLayoutTest is kept for that).
+
+**Next step:** the implementation agent applies this. The supervisor reviews every line, runs the full unfiltered desktop suite, merges W7, and verifies CI.
+
+### 2026-10-01: Resumed; W7 implementation restarted from the handoff
+
+**What was done**
+- The owner asked to continue from this handoff. The supervisor verified the docs-only handoff cleanup (commits `611724b`..`56dbca1`):
+  - no dated entries were lost (19 before, 31 after);
+  - the old TAKEOVER steps survive in section 4;
+  - the only prerequisite removed was "reproduce the CI clipping locally before fixing", which matches the new rule.
+- The implementation agent was briefed on W7 (`feature/tsap-w7` at `fd40967`) with the four open review findings: AuditTest filters, Label cache keys, the two-line fallback, and the fixed line height. Also briefed: the confirmed font-scale 2.0 clipping in `HindiLayoutTest`.
+- Fonts on the cloud verification machine: Lohit Devanagari and other Devanagari families are installed.
+
+**Next step**
+- Implementation finishes the W7 fixes and focused tests. The supervisor then reviews every line and runs one full unfiltered desktop suite.
+
+### 2026-10-01: Remove unnecessary resume prerequisites from the active handoff
+
+**Authorized cleanup / reasons**
+- Explained the proposed removals to the owner before editing. Feature work remains stopped; this was handoff-only maintenance.
+- Removed exact local runner-font parity and original-clipping reproduction as prerequisites to W7 fixes: existing CI proves 16 findings, and the separate font-scale baseline failure is already demonstrated. Font investigation remains available when needed; no original-reproduction or fix claim was added.
+- Removed redundant setup and unchanged-baseline repetition from the active workflow: reuse the installed runtime and saved evidence. Writer-focused candidate checks followed by one independent supervisor full suite remain required; new changes or failures can justify reruns.
+- Removed private-paper author details and old-environment `/x` cleanup from active owner actions because neither is needed for this implementation sequence. The private-paper-out-of-git restriction, historical records and signing/licensing/security/device actions remain.
+- Marked historical Next step instructions as superseded by TAKEOVER, without deleting or rewriting their evidence. Handoff-only documentation checkpoints use `[skip ci]`; code changes and required candidate CI must still run, and the fully green integration gate is unchanged.
+
+**Files / review / verification**
+- Only `docs/HANDOFF.md` changed. Entire diff reviewed; `git diff --check` passed. No dependencies added, tests run, runtime changes or CI polling. Signed documentation commit and immediate integration push preserve the checkpoint requirement.
+
+
+### 2026-10-01: Owner requested stop; work and diagnostic evidence preserved
+
+**Stop / pushed work**
+- Owner said "enough for today". Implementation was already idle and was stopped; no new implementation, test or research was authorized after that signal.
+- Integration changes this session are only handoff checkpoints. W7 signed/pushed regression commit `fd409670b840d0e3e27166ef11c41a32be458cdc` is preserved; worktree clean. Existing feature WIP is not merged. W4/W8 and main untouched; no tag.
+- Full baseline test-worker/wrapper/daemon were already terminated; remaining Kotlin 586 / Gradle 867 daemons terminated at stop. Final process inspection found no live Java/test process.
+
+**Exact result and review summary**
+- Lohit unchanged-source focused baseline: **4 tests, 1 failure**. Noto unchanged-source forced baseline: **4 tests, 1 failure**. Both fail only `Label clipped after changing font scale to 2.0`; the original three CI controls pass locally.
+- Full baseline diagnostic stopped after 33 screenshots, no full audit report or pass claim. No W7 candidate full suite, JVM or Android compile this session.
+- Historical CI run 36772339163 (`3178403`) log confirms93 tests, 1 failed, 16 Hindi findings; build/secret-scan passed. Ubuntu 24.04.5 runner. Artifact download finished; an earlier read-before-completion failed file-in-use. ZIP preserved without extraction or CI-image review.
+- Supervisor reviewed every W7 WIP diff line and added test line. Open review items remain: audit filters, measurement caches on density/font changes, capped wrapping, line-height/fallback-font metrics. Original CI clipping remains unreproduced locally and unresolved.
+
+**Files / dependencies / evidence**
+- Integration `docs/HANDOFF.md`: complete stopped TAKEOVER and detailed chronology. W7 `tools/desktop-check/src/test/kotlin/HindiLayoutTest.kt`: reviewed regression only. No repository dependency added.
+- Runtime-only WSL/JDK/fonts/AndroidSDK setup is preserved outside git. Exact paths, commands, source commits, font move and diagnostic logs are in TAKEOVER. Windows `stopped-results/` also preserves local rendered evidence.
+
+**Remaining / resume**
+- Resume only on owner request, W7→W4→docs→all-green integration/main→W8. Full unfiltered audit and independent supervisor acceptance are still required. Device/camera/telescope verification and owner signing/rights actions remain unfulfilled. Final checkpoint uses `[skip ci]` to avoid starting more CI during the requested stop.
+
+**Remote CI cancellation checkpoint**
+- All 17 cancellation requests accepted (HTTP202), no request errors. Final completion not yet verified; immediate post-request listing still showed 1 queued / 16 in progress. IDs: `36782417902`, `36782387496`, `36782292456`, `36782012412`, `36781348842`, `36781227849`, `36781153536`, `36781110388`, `36780833370`, `36780720447`, `36780612480`, `36780057330`, `36779983822`, `36779982386`, `36778761092`, `36778718204`, `36778709231`.
+- These are shutdown actions, not passing CI results. No main/unrelated run was cancelled. Final push deliberately skips CI.
+### 2026-10-01: Focused regression source preserved on W7
+
+**What changed / review**
+- Signed test-only commit `fd409670b840d0e3e27166ef11c41a32be458cdc` pushed to `feature/tsap-w7`: `tools/desktop-check/src/test/kotlin/HindiLayoutTest.kt`.
+- Supervisor reviewed every added line: real screen rendering, independent text overflow/bounds and 48 dp checks, Hindi state restored after tests, screenshots captured before assertions, font-scale recomposition exercised. No new dependency.
+- No new test run in this checkpoint; unchanged-source baseline results remain 4 tests/1 font-scale failure with each tested font configuration. No candidate success or original CI reproduction claimed.
+
+**Next step**
+- Match the runner's Latin-default plus Devanagari fallback fonts, inspect CI evidence, then address verified clipping. W7 feature code is still the pre-existing WIP.
+
+### 2026-10-01: Noto baseline repeats font-scale failure; original labels pass
+
+**Result / review**
+- Isolated runtime now prefers genuine Noto Sans Devanagari: Lohit was reversibly moved outside fontconfig's search path; `fc-match sans:lang=hi` and `sans:charset=0938` both select `NotoSansDevanagari-Regular.ttf`. No repository source change.
+- Forced unchanged-source baseline command: `bash ./gradlew test --tests HindiLayoutTest --rerun-tasks --console=plain`. **4 tests, 1 failure**, 0 skipped/errors; BUILD FAILED in 1m 2s. Same assertion: `Label clipped after changing font scale to 2.0`. Original Reset adjustment, Align now, Refractor/settings/wizard checks still pass.
+- Log `/root/checks/w7-focused-baseline-noto.log`; current XML/screens in `/root/checks/w7-focused-baseline/tools/desktop-check/build`. Prior Lohit evidence preserved in `/root/checks/w7-focused-baseline-lohit`.
+- Original CI clipping is **not yet reproduced**, despite genuine fonts. No feature patch has been authored in this session.
+
+**Files changed / dependencies**
+- `docs/HANDOFF.md` only on integration; W7 still has the new uncommitted regression file. No repository dependencies added.
+
+**Next step**
+- Inspect original/current CI audit evidence and actual rendered font selection; preserve the reproduced font-scale defect as an independent regression. Do not report the historical CI failure resolved from these targeted checks.
+
+### 2026-10-01: Focused baseline exposes font-scale clipping; original CI issue still open
+
+**Result / review**
+- Implementation authored `tools/desktop-check/src/test/kotlin/HindiLayoutTest.kt` (four actual-render regressions); supervisor reviewed every line before execution. The test was overlaid onto unchanged integration `7c75ac6` in `/root/checks/w7-focused-baseline`.
+- `bash ./gradlew test --tests HindiLayoutTest --console=plain`: **4 tests, 1 failure**, 0 skipped/errors. Failed assertion: `Label clipped after changing font scale to 2.0`. Reset adjustment, Align now, and Refractor/settings/wizard checks passed at 360/411 dp in day/night with Lohit. This does **not** reproduce the original 16 CI findings.
+- Log `/root/checks/w7-focused-baseline.log`; XML and screenshots under that mirror's `tools/desktop-check/build`. A wrapper status-variable expansion returned outer status 0 incorrectly; Gradle BUILD FAILED and JUnit XML establish the failure. Future commands must preserve literal shell variables or use the Gradle process status directly.
+- Stopped the redundant full baseline AuditTest deliberately (specific wrapper/daemon/test-worker PIDs terminated), retaining its log and **33 screenshots** in `/root/checks/w7-baseline-exact`. It did not finish; no full audit count or pass result is claimed.
+- Android SDK provisioning subsequently succeeded: `/opt/astrofixxer-android-sdk`, API 35 revision 2, build-tools 35.0.0, platform-tools 37.0.1; aapt2/adb version checks passed. No device was checked.
+
+**Files changed / dependencies**
+- Integration: `docs/HANDOFF.md`. W7 worktree: new regression test only, not yet committed; existing feature WIP unchanged. No repository dependency added.
+
+**Next step**
+- Prefer genuine Noto Devanagari in the isolated font configuration and rerun focused unchanged-source checks to reproduce original CI clipping before feature edits. Then implementation runs focused candidate checks; supervisor independently runs the full unfiltered desktop suite (including these regressions, updater and wizard) as the merge gate.
+
+### 2026-10-01: Baseline started; Android SDK argument failure
+
+**Result / review**
+- Baseline full, unfiltered AuditTest started from exact integration `7c75ac6` source exported with `core.autocrlf=false`; LF verified with `od`. Desktop wrapper bootstrapped Gradle 8.5. Command: `LANG=C.UTF-8 LC_ALL=C.UTF-8 bash gradlew test --tests AuditTest --no-daemon`, in `/root/checks/w7-baseline-exact/tools/desktop-check`. Test result pending.
+- Latest official Android command-line SDK archive matched Google's manifest checksum. SDK package setup then failed before any Android compile: delegated CLI split semicolon-containing package identifiers, reporting `Package platforms not found` and `android-35` / `35.0.0` command-not-found. No Android tests or compile ran.
+- Retrying package installation through direct CLI with safe arguments; existing accepted SDK license files are reused. SDK and provisioning files stay outside this repository.
+
+**Files changed / dependencies**
+- `docs/HANDOFF.md` only. No repository dependencies added. Runtime setup and baseline verification remain in progress.
+
+**Next step**
+- Observe baseline Hindi clipping, record the result before implementation, and finish SDK provisioning for later real Android checks.
+
+### 2026-10-01: Archive export also applied checkout line-ending conversion
+
+**Result / review**
+- The baseline retry from the default `git archive` export again exited 1 in the wrapper before Gradle: CRLF shell syntax errors, zero tests run. Log: `/root/checks/w7-baseline-lf-audit.log`.
+- `git ls-files --eol` confirms both root and desktop wrappers are LF in the index and CRLF in this checkout; `core.autocrlf=true`. The export must explicitly disable this conversion.
+
+**Files changed / dependencies**
+- `docs/HANDOFF.md` only; no feature change or repository dependency.
+
+**Next step**
+- Re-export with `git -c core.autocrlf=false archive`, inspect wrapper line endings before execution, then run the unchanged baseline audit.
+
+### 2026-10-01: Baseline wrapper rejected Windows line endings
+
+**Result / review**
+- Persistent baseline command exited 1 before Gradle started: the copied Windows `gradlew` contained CRLF, producing `command not found` and shell syntax errors. No tests executed. Log: `/root/checks/w7-baseline-audit.log` in `AstroFixxerCheck`.
+- Correction: export exact tracked commit with `git archive`, rather than copying the checkout, to preserve repository LF bytes. Do not modify application code to address this host-checkout issue.
+- Historical CI detail confirmed for already-known failed run [36772339163](https://github.com/Zenithquonta/astrofixxer-android/actions/runs/36772339163), source `3178403`: build and secret-scan passed; ui-check failed after about 55 minutes (20:23:57 to 21:19:30 UTC on 30 September). This is not a new candidate verification.
+
+**Files changed / dependencies**
+- `docs/HANDOFF.md`: failure, evidence and correction. No repository dependencies or feature files changed.
+
+**Next step**
+- Export tracked integration source and retry unchanged full AuditTest in the genuine-font Linux environment.
+
+### 2026-10-01: Genuine-font runtime ready; initial baseline launch did not start
+
+**Result / review**
+- Isolated `AstroFixxerCheck` WSL runtime provisioned successfully: OpenJDK 17.0.20.1, fontconfig, Noto Sans/Serif Devanagari and Lohit Devanagari, standard desktop X/GL libraries. `fc-cache -f` passed; `fc-match sans:lang=hi` selects Lohit Devanagari Regular.
+- Copied clean integration `7c75ac6` to `/root/checks/w7-baseline` outside the repository for efficient Linux I/O; no code edits in the mirror.
+- The detached `nohup` launch returned without producing a Gradle process or audit log. Follow-up inspection confirmed no test had started. No test counts or pass/fail assertion is available.
+
+**Files changed / dependencies**
+- `docs/HANDOFF.md`: environment and launch failure recorded. No repository dependencies added; runtime-only packages installed outside the repository.
+
+**Next step**
+- Retry baseline `bash gradlew test --tests AuditTest --no-daemon` in a persistent execution session. Keep the original full audit unchanged and use genuine Devanagari fonts.
+
+### 2026-10-01: Isolated Linux fallback archive verified
+
+**Result / review**
+- The first archive-check script stopped because the HTTP response content was a byte array rather than text. The script decoded it correctly on retry; the Ubuntu Base 22.04.5 amd64 archive matched the official manifest SHA-256 `242cd8898b33ea806ef5f13b1076ed7c76f9f989d18384452f7166692438ff1a`.
+- Import of the isolated `AstroFixxerCheck` WSL distribution is in progress outside the repository, at `C:/Users/kush/.cache/astrofixxer-check/distro`. No test suite has run.
+- A Windows Android SDK was found at `C:/Users/kush/AppData/Local/Android/Sdk`; platform 35 is absent. A real Android build may be possible after installing the required platform; no device verification is implied.
+
+**Files changed / dependencies**
+- `docs/HANDOFF.md`: runtime diagnostics and takeover state. No repository dependencies added; environment provisioning is incomplete.
+
+**Next step**
+- Verify the isolated runtime, provision JDK17 and the genuine fonts, then reproduce the unchanged integration audit before editing W7.
+
+### 2026-10-01: Linux runtime startup failed before W7 tests
+
+**Result / review**
+- Docker Desktop startup failed before a container could run. Its backend reported that the inference manager could not remove the local `Docker/run/dockerInference` socket because the file could not be accessed by the system.
+- No Gradle command or test suite ran; there are no new test counts, screenshots, or audit findings. No feature code changed.
+- This is a host runtime failure, not evidence of an application failure. Do not reset the owner's Docker data to bypass it.
+
+**Files changed / dependencies**
+- `docs/HANDOFF.md`: recorded the failure and current takeover state. No repository dependencies added.
+
+**Next step**
+- Inspect whether an isolated Linux runtime can provide JDK17 and genuine Noto/Lohit Devanagari for the baseline audit. Implementation remains paused until reproduction is possible. W4 and later work remain gated.
+
+### 2026-10-01: Resume W7 inspection; current CI observed
+
+**What was done**
+- Read this full handoff, plan section 7b, policy, privacy, security, contributing, notices, README and changelog before work.
+- Created a separate W7 worktree from the existing remote branch at `ae2e203`; implementation is inspecting the unfinished five-file change before reproducing Hindi clipping with genuine fonts.
+- Read-only push negotiation succeeded; this signed handoff push verifies actual write access.
+
+**Files changed / dependencies**
+- `docs/HANDOFF.md`: current takeover and dated status; historical implementation-role references made generic.
+- No dependencies added. No feature files changed; no test run yet.
+
+**Review and verification**
+- Current GitHub Actions observation: run [36780057330](https://github.com/Zenithquonta/astrofixxer-android/actions/runs/36780057330), source `461d0f3`: secret-scan success, build and ui-check in progress. No overall CI success claimed.
+- Initial W7 diff review identified points to inspect: audit filtering must not permit an empty or partial run to masquerade as a full audit, wrapped labels still have a two-line cap, and measurement caches must track font scaling. These are review questions pending reproduction, not verified fixes.
+
+**Next step / limitations**
+- Prepare Linux desktop runtime and genuine Noto/Lohit Devanagari, reproduce the baseline audit failure, then finish W7. Every result must be logged and pushed before the next action.
+- Nothing has been verified on a real phone or telescope. No main merge or release tag is authorized by these incomplete checks.
+
+### 2026-09-30: Phase 7b (in progress): precession fix, plate solver, telescope setup and guided alignment
+
+Branch `feature/telescope-setup-alignment-platesolve`. Implementation agents wrote the code, each in its own worktree and branch (`feature/tsap-w1` to `w5`). The supervising agent reviewed every diff, re-ran the tests and merged.
+
+**What was done**
+- Plan: Phase 7b written with a ponytail review (`docs/IMPLEMENTATION_PLAN.md` section 7b). Decision: Camera2 instead of CameraX (rung 4). Google Maven is blocked here, and Camera2 adds no dependency.
+- W1, precession:
+  - `Pointing.rayFromPos`/`rayToRaDec` now apply IAU 1976 precession and IAU 1982 GMST, each counted once. The old formula (the Earth rotation angle with J2000 coordinates) already cancelled the precession in RA.
+  - Worst error against astropy over 66 cases fell from 801″ to 28.3″.
+  - The equatorial grid uses coordinates of date (`rayFromPosOfDate`).
+- W2, plate solver:
+  - The importer decodes Stellarium's Gaia DR3/Hipparcos star files. The new asset `solver_stars.bin` holds 579,984 stars to V 10.5 (2.94 MB, 5 bytes per star, a cell index).
+  - Pure-Kotlin `StarDetector`, `PlateSolver` and `SolverStars`: triangle matching at a known scale, then a least-squares similarity fit with parity.
+  - Acceptance: at least 6 matches, stars spread over at least a quarter of the frame, scale inside the hint, and false-alarm probability × hypotheses < 1e-6.
+- W3, setup, alignment and guidance:
+  - `astro/Mounting.kt`: phone axis per placement, axis check, nudge → view orientation, TRIAD.
+  - First-run setup wizard, and the Telescope & orientation tab with a preview, an orientation check, and rotate/mirror.
+  - New alignment flow: PICK_STAR → CENTER_STAR → drag the map under the fixed + → Confirm → result card with Retry. The calibration is computed exactly from the star and verified to land within 0.01°.
+  - Drags outside alignment never change the calibration. Manual mode is removed.
+  - Checking with a second star refines the alignment (TRIAD).
+  - Next-star guidance: arrow, distance, Close/On target, and an expandable More section.
+  - `Pointing.alignMatrix` now uses atan2. The old asin was wrong for azimuth differences over 90°.
+  - Setup and calibration are saved (`setupDone`, `mountType`, `placement`, …, `alignMatrix`, `alignStar`, `alignedAt`). The old `equatorial` key is migrated.
+
+**Dependencies added**
+- None. The new asset is `app/src/main/assets/solver_stars.bin`.
+
+**How to verify (results on the merged branch, commit 5511495)**
+- JVM unit tests (`astro/`): 85 tests, 0 failures. They include PrecessionTest 7, PlateSolverTest 19, SolverStarsTest 7 and MountingTest 12.
+- Importer: 19 tests OK (`HYG_CSV=... STELLARIUM_DIR=... python3 -m unittest test_build_sky_data`).
+- Desktop UI suite (W3 branch before the merge): 82 tests, 0 failures. The audit checked 440 screen variants with no findings. The re-run on the merged branch is in progress.
+- Android compile check (W3 branch): clean.
+
+**CI status (supervisor, 30 Sep 20:30 UTC)**
+- Since the W3 merge (runs 11 to 13), the `build` job (real Android build, R8, APKs) passes and `ui-check` fails.
+- The failure is AuditTest: 16 findings, all Hindi labels cut off on the GitHub runner's Devanagari font ("समायोजन रीसेट करें", "अभी संरेखित करें", "अपवर्तक (रिफ्रैक्टर)").
+- It passes here because this machine has no real Devanagari font.
+- W7 (implementation agent) is reproducing it with the runner's fonts and fixing the layouts. `main` is not merged until ui-check is green.
+
+**W5, in-app GitHub updater (merged, commits 90bf6cf and 2072256)**
+- Pure logic in `update/`: URL policy, strict JSON parser, HTTPS GET with hand-checked redirects, the checker, SHA-256.
+- UI: `ui/Updater.kt` and `ui/UpdaterPanel.kt` (Sky & viewing → More → App updates). Android host: `host/AndroidUpdater.kt` (DownloadManager, re-hash before install, install-permission screen, `ACTION_VIEW` through a non-exported FileProvider).
+- Only in the preview (GitHub) and debug builds: `REQUEST_INSTALL_PACKAGES` and the FileProvider sit in `app/src/preview` and `app/src/debug`, and the `UPDATER_ENABLED` BuildConfig flag is false in release. Google Play forbids self-updating apps; CI fails if the release APK asks for the permission.
+- Versioning: `versionCode` comes from `ASTROFIXXER_VERSION_CODE`, set in CI to the run number plus `VERSION_CODE_OFFSET` (1000) in both `android.yml` and `release.yml`. The Play and preview sequences are independent because the applicationIds differ.
+- Release metadata: `update.json` (versionCode, versionName, applicationId, sha256, size, commit, permanentKey), generated from the built APK with aapt2.
+- CI integrity step: apksigner verify plus aapt2 checks; `tools/ci/*.sh`.
+- Race guard: an older build never replaces a newer `latest-build`.
+- Tag releases use `--latest=false`.
+- Dependencies added: none. The FileProvider comes from androidx.core, already on the classpath through activity-compose.
+- Tests (W5 branch):
+  - jvm: 126 tests, 0 failures (41 are updater tests);
+  - desktop: 93 tests, 0 failures; audit "Checked 688 screen variants. No findings.";
+  - Android compile check: clean;
+  - workflow YAML parses; CI scripts dry-run with a fake aapt2 and apksigner.
+- Security review (supervisor), no blocking findings:
+  - URL allowlist exact to this repo's release downloads;
+  - redirects re-checked per hop;
+  - size caps;
+  - SHA-256 checked twice;
+  - installer always asks the user;
+  - temporary-key builds need a second confirmation.
+  - Gap fixed: Play tag builds had a fixed versionCode 1 (commit 2072256).
+- Untested:
+  - the real DownloadManager, installer, permission screen and FileProvider on a device;
+  - the live GitHub API response;
+  - the real AGP manifest merge, R8 and aapt2/apksigner output (CI checks these on the next push).
+
+**W6, legal policy (merged)**
+- New `POLICY.md`: scope and relationship to GPLv3 (adds no restriction), no warranty, limitation of liability, eye safety, accuracy, data handling, third-party services and data licences, contributions (DCO sign-off, inbound=outbound GPLv3, no CLA), security reporting, names, governing law and contact.
+- Governing law, per the owner: Indian law for the policy only; the user's mandatory home-country rights prevail; no exclusive court; the GPL is not modified.
+- New `NOTICE.md` (attributions). `README.md` has a footer linking LICENSE, POLICY, NOTICE, PRIVACY, SECURITY and CONTRIBUTING.
+- Review: every data-flow claim was checked against `MainActivity.kt`, the manifests and the W4/W5 branches.
+- Found and queued for the docs pass after W4/W5 merge:
+  - `PRIVACY.md` is wrong on two points: a typed location is saved, and Ask is tap-to-start, not hold. Its storage list is incomplete, and camera, TTS and the update check are missing.
+  - `CONTRIBUTING.md` needs the DCO.
+  - The in-app licence text needs the Gaia/CelesTrak credits and a privacy link. Only the modern art is Free Art License; the Indian art is CC BY-SA.
+  - The plan lists NASA eclipse tables that nothing uses: eclipses are computed in `Events.kt`.
+- For a lawyer: liability limits for personal injury (eye damage); Gaia CC BY-SA 3.0 IGO next to GPLv3 (treated as separate data); ePrivacy/DPDP for on-device-only processing; the "AstroFixxer" name (upstream web app); `web/images/qs_*.png` © Maxim Tonkikh.
+
+**Known issues / not done**
+- Nothing here has run on a phone or telescope: sensors, the camera, real star photos and alignment accuracy are all untested. The solver has only seen synthetic images.
+- W4 (Camera2 plate-solve flow) is in verification. W5 (updater) and W6 (legal policy) are merged.
+
+**Next step**
+- Merge W4 and W5, run the full suites, get CI green, then merge to `main`.
 
 ### 2026-09-29: New UI and sky plotting (Stitch brief, Phase 5)
 
@@ -199,10 +708,10 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 
 **What was done**
 - Added a root `README.md` here with the Android README's design: Hop's hero animation, how it works, features, the all-sky map and Meet Hop. The images are in `docs/readme/`, and a "Where things are" section covers this repository.
-- Why: the Claude GitHub app still can't reach `Zenithquonta/astrofixxer-android` (`add_repo` says "not found"), so the Android repository's README can't be pushed yet.
+- Why: the GitHub app used by the supervising session still couldn't reach `Zenithquonta/astrofixxer-android` (`add_repo` says "not found"), so the Android repository's README can't be pushed yet.
 
 **Next step**
-- Owner: give the Claude GitHub app access to `astrofixxer-android` (github.com/apps/claude/installations/select_target → Repository access). Then push `main` from `handoff/astrofixxer-android.bundle`.
+- Owner: give that GitHub app access to `astrofixxer-android` (github.com/apps/claude/installations/select_target → Repository access). Then push `main` from `handoff/astrofixxer-android.bundle`.
 
 ### 2026-09-28: Bug hunt, UI proven by tests, repo redesign (Hop the mascot)
 
