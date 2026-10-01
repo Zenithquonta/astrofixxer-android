@@ -13,6 +13,8 @@ import org.astrofixxer.astro.Pointing
 import org.astrofixxer.astro.SkyObject
 import org.astrofixxer.astro.AlignSample
 import org.astrofixxer.astro.Mounting
+import org.astrofixxer.astro.PhotoAlignment
+import org.astrofixxer.astro.SolveResult
 import kotlin.math.PI
 import kotlin.math.acos
 import kotlin.math.asin
@@ -34,10 +36,14 @@ class AlignNote(val text: String, val arg: String? = null) {
     fun render(): String = if (arg == null) t(text) else t(text).format(arg)
 }
 
-/** What a confirmed alignment found. [check] is a "Check with another star" result; [refined] means two-star alignment was applied. */
+/**
+ * What a confirmed alignment found. [check] is a "Check with another star" result; [refined] means two-star alignment was
+ * applied. [fromPhoto] is an alignment from a solved camera photo: there is no [star] then, and [correctionDeg] is how far
+ * off the app's pointing was when the photo was taken.
+ */
 class AlignResult(
-    val star: SkyObject, val correctionDeg: Double, val large: Boolean, val check: Boolean = false, val refined: Boolean = false,
-    val note: AlignNote? = null,
+    val star: SkyObject?, val correctionDeg: Double, val large: Boolean, val check: Boolean = false, val refined: Boolean = false,
+    val note: AlignNote? = null, val fromPhoto: Boolean = false,
 )
 
 /** Everything the sky screen shows, independent of Android: time, place, phone orientation, alignment, target. */
@@ -86,6 +92,12 @@ class SkyState(nowMillis: Long, lat: Double, lon: Double) {
     var alignResult by mutableStateOf<AlignResult?>(null)
     /** Confirmed alignment stars with the sensor rotation at that moment, for the phone-axis check. Not saved between launches. */
     var alignSamples by mutableStateOf<List<AlignSample>>(emptyList())
+    /**
+     * Camera beside the tube (camera forward): where the telescope is on the camera's picture, as fractions of its width and
+     * height (y down); null until calibrated with a photo (see [calibrateCameraOffset]). It is separate from the alignment
+     * calibration and from the eyepiece view rotation and mirror, and only means something for the placement it was made for.
+     */
+    var cameraOffset by mutableStateOf<Pair<Double, Double>?>(null)
     /** The star the current calibration was made on; the other star of a two-star refinement. Lost on restart. */
     private var calibrationSample: AlignSample? = null
     var target by mutableStateOf<SkyObject?>(null)
@@ -275,10 +287,11 @@ class SkyState(nowMillis: Long, lat: Double, lon: Double) {
     /** Result card "Retry": centre the same star again. */
     fun retryAlignment() {
         val r = alignResult ?: return
+        val star = r.star ?: return // an alignment from a photo is repeated by solving another photo
         val again = r.check
         startAlign()
         checkingSecondStar = again
-        beginCentering(r.star)
+        beginCentering(star)
     }
 
     /** Result card "Done". */
@@ -361,6 +374,91 @@ class SkyState(nowMillis: Long, lat: Double, lon: Double) {
         return true
     }
 
+    // ---------------------------------------------------------------- camera plate solving
+
+    /** Where the telescope points, J2000 (ra, dec) degrees, for a phone with rotation [device] at [timeMillis]: the sensors and the calibration. */
+    fun pointingRaDec(device: DoubleArray, timeMillis: Long): Pair<Double, Double> =
+        Pointing.rayToRaDec(Pointing.cameraRays(device, alignMatrix, axis())[2], timeMillis, lat, lon)
+
+    /**
+     * Why "Apply to alignment" cannot be used for [shot] (an English template for [t]), or null when it can. A photo only
+     * aligns the telescope when it came from the live camera (a gallery picture has no record of where the telescope was
+     * pointing), the phone stayed still while it was taken, the app knows which way the phone points along the telescope,
+     * and, with the camera beside the tube, the camera offset is calibrated.
+     */
+    fun photoApplyBlocker(shot: PhotoShot): AlignNote? = when {
+        setup.placement == PhonePlacement.TUBE -> AlignNote("The phone's camera faces the tube here, so a photo cannot show where the telescope points.")
+        !shot.fromCamera -> AlignNote("A gallery photo does not record where the telescope pointed when it was taken. Use Take photo to align.")
+        shot.movedDeg > MAX_PHOTO_MOVE_DEG -> AlignNote("The phone moved while the photo was taken, so it cannot be used. Keep it still and take another photo.")
+        setup.placement == PhonePlacement.EYEPIECE && setup.axis().needsCheck ->
+            AlignNote("The app does not know which way the phone points along the telescope. Say whether the eyepiece goes straight in or at a right angle first.")
+        setup.placement == PhonePlacement.CAMERA_FORWARD && cameraOffset == null ->
+            AlignNote("The camera and telescope don't point exactly the same way. Calibrate the camera offset first.")
+        else -> null
+    }
+
+    /**
+     * Where the telescope pointed when [shot] was taken, as solved: the picture centre at the eyepiece, or the calibrated
+     * pixel with the camera beside the tube. Null when it cannot be told (on the tube, or before the offset is known).
+     */
+    fun telescopeOnPhoto(solved: SolveResult.Solved): Pair<Double, Double>? = PhotoAlignment.telescopeRaDec(solved, setup.placement, cameraOffset)
+
+    /**
+     * Aligns the telescope from a solved photo: the calibration is worked out exactly as for a star that is centred, but for
+     * the solved position, with the phone rotation and time stored in [shot] at the moment it was taken (never the current
+     * ones), and it must put the telescope axis within 0.01° of that position. Returns null when it was applied, otherwise
+     * why not (see [photoApplyBlocker], and a position below the horizon); nothing is changed then. A result card
+     * "Aligned from a photo" follows, and the map goes back to following the phone.
+     */
+    fun applyPhotoAlignment(solved: SolveResult.Solved, shot: PhotoShot): AlignNote? {
+        photoApplyBlocker(shot)?.let { return it }
+        val at = telescopeOnPhoto(solved) ?: return AlignNote("The alignment could not be computed. Nothing was changed. Try again.")
+        val ray = Pointing.rayFromPos(at.first, at.second, shot.timeMillis, lat, lon)
+        if (ray[2] <= 0.0) return AlignNote("The photo points below the horizon for your location and time, so nothing was changed. Check the location and the time.")
+        val cal = PhotoAlignment.calibrate(shot.device, axis(), at.first, at.second, shot.timeMillis, lat, lon)
+            ?: return AlignNote("The alignment could not be computed. Nothing was changed. Try again.")
+        val offBy = Pointing.angleBetweenDeg(Pointing.cameraRays(shot.device, alignMatrix, axis())[2], ray) // the app's pointing before, at that moment
+        alignMatrix = cal.matrix
+        calibrationSample = cal.sample
+        alignStar = null; alignStarName = null
+        alignedAtMillis = shot.timeMillis
+        alignSamples = (alignSamples.filter { Pointing.angleBetweenDeg(it.starRay, cal.ray) > 1.0 } + cal.sample).takeLast(MAX_SAMPLES)
+        alignResult = AlignResult(null, offBy, large = false, fromPhoto = true)
+        resetAdjustment()
+        centerStar = null
+        alignNote = null
+        checkingSecondStar = false
+        mode = PointingMode.COMPASS
+        align = AlignState.ALIGNED
+        return null
+    }
+
+    /**
+     * Learns the camera offset (camera beside the tube): [star] was centred in the eyepiece while [shot] was taken with the
+     * live camera, and [solved] says where it is on the picture. Returns null when saved, otherwise why not; nothing is
+     * changed then. Only for the camera-forward placement, and only from the live camera (a gallery picture has another frame).
+     */
+    fun calibrateCameraOffset(solved: SolveResult.Solved, shot: PhotoShot, star: SkyObject): AlignNote? {
+        if (setup.placement != PhonePlacement.CAMERA_FORWARD) return AlignNote("The camera offset only applies when the camera faces along the telescope.")
+        if (!shot.fromCamera) return AlignNote("The camera offset needs a photo taken with the camera here, not one from the gallery.")
+        val offset = PhotoAlignment.offsetOf(solved, star.ra, star.dec)
+            ?: return AlignNote("%s is not on the photo, so the offset could not be found. Nothing was changed.", star.name)
+        cameraOffset = offset
+        return null
+    }
+
+    /** Forgets the camera offset. The alignment is not touched. */
+    fun resetCameraOffset() { cameraOffset = null }
+
+    /** Free look pointing at J2000 ([raDeg], [decDeg]) as the sky is now, so the map shows it. Leaves an alignment in progress first. */
+    fun showOnMap(raDeg: Double, decDeg: Double) {
+        if (aligning) cancelAlign()
+        val r = Pointing.rayFromPos(raDeg, decDeg, timeMillis, lat, lon)
+        freeAltDeg = Math.toDegrees(asin(r[2].coerceIn(-1.0, 1.0))).coerceIn(-89.0, 89.0)
+        freeAzDeg = (Math.toDegrees(atan2(r[0], r[1])) + 360) % 360
+        mode = PointingMode.FREE
+    }
+
     /**
      * Changes the setup. If the phone's placement, edge or eyepiece angle changed while aligned, the old alignment no
      * longer fits: it is cleared and [mountingChangedNotice] is raised. Anything else (type, mount, view) keeps it silently.
@@ -369,6 +467,7 @@ class SkyState(nowMillis: Long, lat: Double, lon: Double) {
         val old = setup
         setup = new
         if (!new.mountingDiffers(old)) return
+        cameraOffset = null // the camera-to-telescope offset belongs to the old arrangement
         val had = alignMatrix != null
         if (had || aligning) {
             clearAlignment()
@@ -419,7 +518,7 @@ class SkyState(nowMillis: Long, lat: Double, lon: Double) {
         showEquatorialGrid = false; showMeridian = false; showEcliptic = false; showBoundaries = false; showStarColours = true
         showCardinals = true; hiddenDsoTypes = emptySet(); landscape = Landscape.HILLS; bortle = 4; skyCulture = "modern"; night = false
         telescopeFocalMm = 1200.0; eyepieceFocalMm = 25.0; eyepieceAfovDeg = 52.0; haptics = true
-        setup = TelescopeSetup(); matchEyepieceView = false; clearAlignment()
+        setup = TelescopeSetup(); matchEyepieceView = false; clearAlignment(); cameraOffset = null
         mode = PointingMode.COMPASS; manualLocation = false; live = true
         userObjectsText = ""; watchListText = ""; applyUserText(catalog); listIndex = -1
     }
@@ -437,6 +536,7 @@ class SkyState(nowMillis: Long, lat: Double, lon: Double) {
         "viewRotation" to "${setup.viewRotationDeg}", "viewMirrored" to "${setup.viewMirrored}", "matchEyepiece" to "$matchEyepieceView",
         "alignMatrix" to (alignMatrix?.joinToString(",") ?: ""), "alignStar" to (alignStar?.name ?: alignStarName ?: ""),
         "alignedAt" to (alignedAtMillis?.toString() ?: ""),
+        "cameraOffset" to (cameraOffset?.let { "%.5f,%.5f".format(java.util.Locale.ROOT, it.first, it.second) } ?: ""),
     )
 
     /** Restores [settings] output; unknown or malformed values keep their defaults. */
@@ -453,6 +553,8 @@ class SkyState(nowMillis: Long, lat: Double, lon: Double) {
         s["culture"]?.takeIf { it == "modern" || it == "indian" }?.let { skyCulture = it }
         d("telescopeMm") { telescopeFocalMm = it }; d("eyepieceMm") { eyepieceFocalMm = it }; d("eyepieceAfov") { eyepieceAfovDeg = it }
         b("haptics") { haptics = it }
+        // A saved language that isn't available (Hindi while it is switched off) loads as English.
+        s["language"]?.let { v -> I18n.language = if (I18n.languages.any { it.first == v }) v else "en" }
         b("setupDone") { setupDone = it }; b("matchEyepiece") { matchEyepieceView = it }
         var t = setup
         // The old "equatorial" key (before mount types existed) only counts when no mount type was saved.
@@ -465,6 +567,9 @@ class SkyState(nowMillis: Long, lat: Double, lon: Double) {
         s["viewMirrored"]?.toBooleanStrictOrNull()?.let { t = t.copy(viewMirrored = it) }
         setup = t
         restoreAlignment(s["alignMatrix"], s["alignStar"], s["alignedAt"])
+        // Two fractions of the picture, both inside it; anything else is ignored.
+        s["cameraOffset"]?.split(',')?.mapNotNull { it.toDoubleOrNull() }?.takeIf { it.size == 2 && it.all { v -> v in 0.0..1.0 } }
+            ?.let { cameraOffset = it[0] to it[1] }
     }
 
     /** Brings back a saved calibration so the chip can say how old it is; a missing or damaged one is ignored. */
@@ -548,6 +653,8 @@ class SkyState(nowMillis: Long, lat: Double, lon: Double) {
         /** A correction bigger than this makes the result card ask whether the star really was centred. */
         const val LARGE_CORRECTION_DEG = 20.0
         private const val MAX_SAMPLES = 4
+        /** A photo is not used for alignment if the telescope axis turned more than this while it was taken. */
+        const val MAX_PHOTO_MOVE_DEG = 0.3
         val FOV_STEPS = listOf(1.0, 3.0, 7.0, 15.0, 30.0, 60.0, 90.0, 120.0)
     }
 }

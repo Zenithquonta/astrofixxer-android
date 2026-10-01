@@ -27,6 +27,16 @@ Both run in CI on every push and pull request. If you change a screen, look at t
   `ponytail:` comment.
 - Match the surrounding code's style and comment density.
 
+## Contributions and licensing
+
+This follows section 8 of `POLICY.md`.
+
+- **Sign off every commit** with `git commit -s`. This adds a `Signed-off-by: Your Name <you@example.com>` line. It means you agree to the [Developer Certificate of Origin 1.1](https://developercertificate.org): you wrote the change, or you have the right to submit it under the project's licence. The line puts your name and email in the public git history, and that history cannot be rewritten later without breaking everyone's copy. If you forgot, `git commit --amend -s` fixes the last commit.
+- **Inbound equals outbound.** Code you contribute is licensed under the GPLv3, the same licence as the project.
+- **Data keeps its own licence.** If you add data (a catalogue, a picture, a list), say where it comes from and what licence it has, in the pull request and in `NOTICE.md`. It must be a licence the GPL can be combined with.
+- **You keep your copyright.** There is no contributor licence agreement and no copyright assignment. The maintainer gets no right to relicense your work under other terms.
+- **Do not send code or data you may not license this way**, or anything that comes with terms the GPL does not allow.
+
 ## Your own version
 
 You can publish your own fork. The GPL asks that it stays GPLv3, that you offer its source, and that you keep the credits

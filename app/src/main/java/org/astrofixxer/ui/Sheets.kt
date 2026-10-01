@@ -181,12 +181,15 @@ private fun ListBrowser(state: SkyState, catalog: Catalog?, pick: (SkyObject) ->
 
 // ---------------------------------------------------------------- Sky & Viewing (tabbed, like Stellarium's window)
 
+/** Index of "Telescope & orientation" among the tabs of Sky & viewing. */
+internal const val TELESCOPE_TAB = 5
+
 @Composable
 internal fun SkyOptionsSheet(
     state: SkyState, catalog: Catalog?, onClose: () -> Unit, onLists: () -> Unit, onHelp: () -> Unit, onTutorial: () -> Unit,
-    onCheckOrientation: () -> Unit, updater: Updater? = null,
+    onCheckOrientation: () -> Unit, onSolveWithCamera: (() -> Unit)? = null, updater: Updater? = null, initialTab: Int = 0,
 ) {
-    var tab by remember { mutableStateOf(0) }
+    var tab by remember { mutableStateOf(initialTab) }
     val tabs = listOf("Sky", "Deep-sky", "Markings", "Culture", "Landscape", "Telescope & orientation", "Place & time", "More")
     SheetFrame(t("Sky & viewing"), onClose) {
         ScrollableTabRow(selectedTabIndex = tab, edgePadding = 0.dp, containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 1f)) {
@@ -230,7 +233,7 @@ internal fun SkyOptionsSheet(
                     item { Choice(t("Indian (Vedic)"), t("Nakshatras, rashis and Indian star names."), state.skyCulture == "indian") { state.skyCulture = "indian" } }
                 }
                 4 -> for (l in Landscape.values()) item { Choice(t(l.label), null, state.landscape == l) { state.landscape = l } }
-                5 -> item { TelescopeSettings(state, onCheckOrientation) }
+                TELESCOPE_TAB -> item { TelescopeSettings(state, onCheckOrientation, onSolveWithCamera) }
                 6 -> {
                     item { LocationEditor(state) }
                     item { CityList(state) }
@@ -363,8 +366,10 @@ private fun MoreSettings(state: SkyState, catalog: Catalog?, onLists: () -> Unit
             OutlinedButton(onClick = onTutorial, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) { Label(t("Tutorial")) }
         }
         val langs = I18n.languages
-        val next = { langs[(langs.indexOfFirst { it.first == I18n.language } + 1) % langs.size].first.also { I18n.language = it } }
-        Stepper(t("Language"), langs.first { it.first == I18n.language }.second, onMinus = { next() }, onPlus = { next() })
+        if (langs.size > 1) { // hidden while only English is available
+            val next = { langs[(langs.indexOfFirst { it.first == I18n.language } + 1) % langs.size].first.also { I18n.language = it } }
+            Stepper(t("Language"), langs.first { it.first == I18n.language }.second, onMinus = { next() }, onPlus = { next() })
+        }
         Text(t("Data"), color = c.primary, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
         Text(if (catalog == null) t("Loading sky catalogue…")
             else t("Stellarium catalogue: %,d objects, %d constellations, %d boundary edges.").format(

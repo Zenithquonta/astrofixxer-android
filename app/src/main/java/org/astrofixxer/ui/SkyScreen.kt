@@ -54,7 +54,9 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.astrofixxer.astro.Catalog
@@ -96,12 +98,16 @@ fun SkyScreen(
     backHandler: @Composable (enabled: Boolean, onBack: () -> Unit) -> Unit = { _, _ -> },
     /** Answers a typed or suggested AstroGuide question; the host adds speech. Default: answer on screen only. */
     onAskText: ((String) -> Unit)? = null,
-    /** Solves where the telescope points from a camera picture, wired by the host; null hides the button. */
-    onSolveWithCamera: (() -> Unit)? = null,
+    /** What the camera plate-solve flow needs from the phone (camera, photo picker, permission); null hides every "Solve with camera" button. */
+    plateSolve: PlateSolveHost? = null,
+    /** The plate-solve flow's state; the host does not need to pass one (tests do, to swap the solver). */
+    solveModel: PlateSolveModel = remember { PlateSolveModel() },
     /** The in-app updater, only in preview and debug builds; null (Google Play builds) hides the "App updates" block. */
     updater: Updater? = null,
 ) {
     var sheet by remember { mutableStateOf(Sheet.NONE) }
+    var skyTab by remember { mutableStateOf(0) }
+    val openSolve: (() -> Unit)? = if (plateSolve == null) null else ({ sheet = Sheet.NONE; solveModel.start() })
     var wizardStep by remember { mutableStateOf(0) }
     var showTime by remember { mutableStateOf(false) }
     var infoObject by remember { mutableStateOf<org.astrofixxer.astro.SkyObject?>(null) }
@@ -116,13 +122,14 @@ fun SkyScreen(
     val guideOpen = state.guideListening || state.guideAnswer != null
     val wizardOpen = !state.setupDone
     backHandler(state.mountingChangedNotice || (wizardOpen && wizardStep > 0) || quick != null || (state.showOnboarding && !wizardOpen) || sheet != Sheet.NONE ||
-        state.aligning || guideOpen || showTime) {
+        solveModel.open || state.aligning || guideOpen || showTime) {
         when {
             state.mountingChangedNotice -> state.mountingChangedNotice = false
             wizardOpen -> wizardStep--
             quick != null -> quick = null
             state.showOnboarding -> state.showOnboarding = false
             sheet != Sheet.NONE -> sheet = Sheet.NONE
+            solveModel.open -> solveModel.back()
             state.aligning -> state.cancelAlign()
             guideOpen -> { state.guideAnswer = null; state.guideListening = false }
             else -> showTime = false
@@ -142,9 +149,9 @@ fun SkyScreen(
             }
             Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 when (state.align) {
-                    AlignState.PICK_STAR -> PickStarPanel(state)
+                    AlignState.PICK_STAR -> PickStarPanel(state, openSolve)
                     AlignState.CENTER_STAR -> CenterStarPanel(state)
-                    AlignState.ALIGNED -> if (state.alignResult != null) AlignResultCard(state) else if (state.target != null) GuidancePanel(state, onSolveWithCamera)
+                    AlignState.ALIGNED -> if (state.alignResult != null) AlignResultCard(state, openSolve) else if (state.target != null) GuidancePanel(state, openSolve)
                     AlignState.NOT_ALIGNED -> if (state.target != null) AlignHint(state)
                 }
                 // While centring a star only its panel is shown, so the + and the star stay clear of everything else.
@@ -156,7 +163,7 @@ fun SkyScreen(
                     Toolbar(state, onAsk,
                         onSearch = { sheet = Sheet.SEARCH },
                         onEvents = { sheet = Sheet.EVENTS },
-                        onSky = { sheet = Sheet.SKY })
+                        onSky = { skyTab = 0; sheet = Sheet.SKY })
                 }
             }
             when (sheet) {
@@ -164,7 +171,7 @@ fun SkyScreen(
                 Sheet.EVENTS -> EventsSheet(state, events) { sheet = Sheet.NONE }
                 Sheet.SKY -> SkyOptionsSheet(state, catalog, onClose = { sheet = Sheet.NONE }, onLists = { sheet = Sheet.LISTS },
                     onHelp = { sheet = Sheet.HELP }, onTutorial = { sheet = Sheet.NONE; state.showOnboarding = true },
-                    onCheckOrientation = { sheet = Sheet.CHECK }, updater = updater)
+                    onCheckOrientation = { sheet = Sheet.CHECK }, onSolveWithCamera = openSolve, updater = updater, initialTab = skyTab)
                 Sheet.CHECK -> OrientationCheckSheet(state) { sheet = Sheet.NONE }
                 Sheet.LISTS -> ListsSheet(state, catalog) { sheet = Sheet.NONE }
                 Sheet.HELP -> HelpSheet { sheet = Sheet.NONE }
@@ -176,13 +183,17 @@ fun SkyScreen(
                     onAlign = if (state.canAlignOn(o)) ({ state.beginCentering(o) }) else null,
                     onAdd = { state.addToWatchList(o.name, catalog) }, onInfo = { openInfo(o) })
             }
+            // The camera plate-solve flow covers everything but the first-run setup.
+            if (solveModel.open && plateSolve != null && !wizardOpen) PlateSolveFlow(state, catalog, plateSolve, solveModel, onChangePlacement = {
+                solveModel.close(); skyTab = TELESCOPE_TAB; sheet = Sheet.SKY
+            })
             // First launch: the setup wizard, then the tutorial.
             if (wizardOpen) SetupWizard(state, wizardStep) { wizardStep = it }
             else if (state.showOnboarding) Onboarding { state.showOnboarding = false }
             if (state.mountingChangedNotice) ConfirmDialog(
                 t("The phone is mounted differently now, so the old alignment no longer fits. Align on a star again."),
                 confirm = t("Align now"), dismiss = t("Later"),
-                onConfirm = { state.mountingChangedNotice = false; sheet = Sheet.NONE; state.startAlign() },
+                onConfirm = { state.mountingChangedNotice = false; sheet = Sheet.NONE; solveModel.close(); state.startAlign() },
                 onDismiss = { state.mountingChangedNotice = false })
         }
     }
@@ -293,17 +304,28 @@ private fun Toolbar(state: SkyState, onAsk: (() -> Unit)?, onSearch: () -> Unit,
     }
 }
 
-/** One-line button label that steps its font down (15 to 11 sp) until it fits, so no label is ever cut off. */
+/**
+ * Button label that is never cut off. It takes the largest size (15 down to 11 sp) that fits on one line; when none does,
+ * the largest size that fits on two centred lines with no word broken in the middle; only when even that fails does it
+ * clip at 11 sp. Two lines need about 40 dp, so a 48 dp button grows a little when its label wraps (a 56 dp one by about a dp).
+ */
 @Composable
 internal fun Label(text: String, color: Color = Color.Unspecified) = BoxWithConstraints(contentAlignment = Alignment.Center) {
     val measurer = rememberTextMeasurer()
     val base = LocalTextStyle.current
     val maxPx = constraints.maxWidth
-    val style = remember(text, maxPx, base) {
-        listOf(15, 14, 13, 12, 11).map { base.copy(fontSize = it.sp) }
-            .firstOrNull { measurer.measure(text, it, maxLines = 1, softWrap = false).size.width <= maxPx } ?: base.copy(fontSize = 11.sp)
+    val sizes = listOf(15, 14, 13, 12, 11)
+    val fit = remember(text, maxPx, base) {
+        sizes.map { base.copy(fontSize = it.sp) }.firstOrNull { measurer.measure(text, it, maxLines = 1, softWrap = false).size.width <= maxPx }
+            ?.let { it to 1 }
+            ?: sizes.map { base.copy(fontSize = it.sp, lineHeight = (it + 3).sp) }.firstOrNull {
+                val r = measurer.measure(text, it, maxLines = 2, constraints = Constraints(maxWidth = maxPx))
+                !r.hasVisualOverflow && (0 until r.lineCount - 1).all { line -> text[r.getLineEnd(line) - 1].isWhitespace() }
+            }?.let { it to 2 }
+            ?: (base.copy(fontSize = 11.sp) to 1)
     }
-    Text(text, style = style, color = color, maxLines = 1, softWrap = false)
+    val (style, lines) = fit
+    Text(text, style = style, color = color, maxLines = lines, softWrap = lines > 1, textAlign = TextAlign.Center)
 }
 
 @Composable
@@ -422,9 +444,17 @@ private fun ListsSheet(state: SkyState, catalog: Catalog?, onClose: () -> Unit) 
 const val SOURCE_URL = "https://github.com/Zenithquonta/astrofixxer-android"
 
 private const val LICENCES = "AstroFixxer is free software under the GNU GPL v3. Source code: $SOURCE_URL. " +
-    "Based on AstroHopper by Artyom Beilis (GPLv3, source: github.com/artyom-beilis/skyhopper). Deep-sky catalogue, names, meteor showers and comet orbits from Stellarium " +
-    "(GPL-2.0-or-later). Sky cultures from Stellarium (CC BY-SA 4.0); constellation artwork under the Free Art License. " +
-    "Star positions from the HYG database (CC BY-SA). Planet theory VSOP87 and position reduction by Greg Miller (public domain)."
+    "Based on AstroHopper by Artyom Beilis (GPLv3, source: github.com/artyom-beilis/skyhopper). " +
+    "Deep-sky catalogue, names, meteor showers, and comet and asteroid orbits come from Stellarium (GPL-2.0-or-later). " +
+    "Sky cultures come from Stellarium: names and data are CC BY-SA 4.0. Modern constellation illustrations are under the Free Art License. " +
+    "Indian sky culture illustrations are CC BY-SA 4.0. " +
+    "The star list for plate solving comes from Stellarium's catalogues, built on ESA Gaia DR3 (CC BY-SA 3.0 IGO) and Hipparcos (ESA). " +
+    "This work has made use of data from the European Space Agency (ESA) mission Gaia, processed by the Gaia Data Processing and Analysis Consortium (DPAC). " +
+    "Star positions and colours come from the HYG database v3 (CC BY-SA). " +
+    "The planet series VSOP87 and the position reduction (CPReduce) are by Greg Miller (public domain). " +
+    "ISS and Tiangong orbits are downloaded from CelesTrak (celestrak.org) when you are online. " +
+    "The Kotlin, AndroidX and Jetpack Compose libraries are Apache-2.0. " +
+    "Privacy policy, full credits and licences: PRIVACY.md and NOTICE.md at $SOURCE_URL."
 
 private val HELP = listOf(
     "Setting up" to "Attach the phone to the telescope and tell the app how in the setup wizard (or Sky & viewing, Telescope & orientation): flat on the tube, camera facing along it, or on the eyepiece. Allow location so the sky matches your place and time.",
@@ -434,6 +464,7 @@ private val HELP = listOf(
     "Free look" to "The other pointing mode: the sky ignores the phone's sensors and you drag it in any direction, like a planetarium. Tap the Compass / Free look button to switch.",
     "Checking the alignment" to "In the guidance panel tap More, then Check with another star. Centre a second star and confirm: the app says how far off the alignment was and refines it using both stars.",
     "Eyepiece view" to "Eyepieces can show the sky upside down, reversed or turned. In Sky & viewing, Telescope & orientation, tap Check orientation to find out which, then turn on Match eyepiece view to draw the map the same way. Directions never change.",
+    "Solve with camera" to "Put the phone on the eyepiece, or with its camera along the telescope, then tap Solve with camera (under More, in Sky & viewing, Telescope & orientation, or Align with a photo). Take a 1 to 4 second photo of the stars: the app finds where the telescope points, on the phone, and aligns to it if you ask. Photos are never saved or sent anywhere.",
     "Object info" to "Tap the target card at the top left, or long-press any object, for its names, constellation, rise and set times, a graph of its altitude tonight and how it looks in your eyepiece.",
     "Telescope settings" to "In Sky & viewing, Telescope & orientation: enter the telescope's and eyepiece's focal lengths and the eyepiece's apparent field. The circle around the + is your eyepiece's view, and On target means the target is inside it. Equatorial mounts get directions in RA and Dec.",
     "Zoom" to "Pinch or use + and −. Fainter stars and deep-sky objects appear as you zoom in.",

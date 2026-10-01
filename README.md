@@ -68,10 +68,11 @@ AstroFixxer does the hopping maths for you.
 - 🏞️ **A Stellarium-style sky**: twilight colours, the Milky Way, landscapes, a light-pollution slider, and Western and Indian (Vedic) constellations with artwork.
 - 🎙️ **AstroGuide**, a voice assistant in English and Hindi: *"find Jupiter"*, *"what is M31"*, *"मंगल कहाँ है"*.
 - 🔴 **Night mode**: everything turns red, so your eyes stay dark-adapted.
+- 🇮🇳 **A Hindi interface** is coming in a later release. It is switched off for now.
 
-| Events | Time travel | Night mode | हिन्दी |
-|:---:|:---:|:---:|:---:|
-| <img src="docs/screens/events.png" width="190" alt="Events list"> | <img src="docs/screens/time-travel.png" width="190" alt="Time-travel bar"> | <img src="docs/screens/night.png" width="190" alt="Night mode"> | <img src="docs/screens/hindi.png" width="190" alt="Hindi interface"> |
+| Events | Time travel | Night mode |
+|:---:|:---:|:---:|
+| <img src="docs/screens/events.png" width="190" alt="Events list"> | <img src="docs/screens/time-travel.png" width="190" alt="Time-travel bar"> | <img src="docs/screens/night.png" width="190" alt="Night mode"> |
 
 <p align="center"><img src="docs/art/divider.gif" width="800" alt=""></p>
 
@@ -136,8 +137,8 @@ Every push runs:
 | Check | What it proves |
 |---|---|
 | `./gradlew test` (app) | Astronomy maths matches the original web app to 1e-9, SGP4 matches Vallado's published test case, and 2026's eclipses, equinoxes and sunrises land within minutes of published times. |
-| `tools/desktop-check` journeys | The real Compose screens, driven by simulated taps: tutorial, find, align, guide, cancel, Back button, time travel, events, night mode, Hindi, lists, manual location. |
-| `tools/desktop-check` audit | Every screen in English and Hindi, day and night, on 360 dp and 411 dp phones: controls at least 48 dp, no clipped or overlapping text, and colour contrast of at least 4.5:1 by day (3:1 for night mode's dim red). |
+| `tools/desktop-check` journeys | The real Compose screens, driven by simulated taps: tutorial, find, align, guide, cancel, Back button, time travel, events, night mode, lists, manual location. |
+| `tools/desktop-check` audit | Every screen in English (Hindi returns with its interface), day and night, on 360 dp and 411 dp phones: controls at least 48 dp, no clipped or overlapping text, and colour contrast of at least 4.5:1 by day (3:1 for night mode's dim red). |
 
 The screenshots in this README are produced by those tests.
 

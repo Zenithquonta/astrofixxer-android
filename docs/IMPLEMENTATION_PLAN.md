@@ -35,7 +35,6 @@ The app is a fork of **AstroHopper by Artyom Beilis, GPLv3**. The Android port i
 | Stellarium modern constellation illustrations | Free Art License | Attribute |
 | HYG v3 star database | CC BY-SA | Attribute |
 | VSOP87 Java series + CPReduce (Greg Miller) | Public domain | No restriction |
-| NASA eclipse tables (Espenak) | Public domain | Credit NASA GSFC |
 | `images/qs_*.png` | © Maxim Tonkikh | Ask permission or redraw for Android onboarding |
 
 ---
@@ -202,14 +201,14 @@ Every event is computed or bundled on the phone.
 | **Transit tracker** (new, owner request) | **Planet transits of the Sun** (Mercury, Venus): inferior conjunction with separation < Sun radius, from VSOP87. The next is Mercury on 2032-11-13, so it's usually a countdown. **ISS transits of the Sun/Moon**: SGP4 ground track vs the Sun/Moon disc for the observer; needs orbit data under ~2 days old. When the data is older, show "Refresh orbit data when online to predict transits". |
 | **Occultations** (new, owner request) | **Moon occulting bright stars (mag ≤ 6 from the bundled catalogue) and planets**: topocentric Moon position, separation < Moon's apparent radius, with disappearance/reappearance times. Needs ~1′ Moon accuracy (see Phase 3). Asteroid occultations: `ponytail:` skipped; they need precise external predictions. |
 | **Comets** (new, owner request) | Bundled elements from Stellarium `ssystem_minor.ini`. Two-body Kepler orbit + the existing Earth position gives RA/Dec. Brightness from the comet magnitude model (H, G/k). Show on the sky and in a "Comets visible tonight" list with an "elements from <date>" note. New comets appear often, so refresh elements from the MPC when online, with the bundled data as the offline fallback. |
-| **Rare celestial events** (new, owner request) | **Solar and lunar eclipses**: bundled NASA eclipse table (2026–2040, public domain) plus local visibility and times computed on the phone. **Also:** supermoons (full moon within ~360,000 km), planet gatherings (≥ 4 planets within a 30° span), great conjunctions, planet transits (above), and **meteor outbursts** (Stellarium's year-specific ZHR entries). Rare events get a highlighted card and optional reminders (`AlarmManager` local notification; no server). |
+| **Rare celestial events** (new, owner request) | **Solar and lunar eclipses**: computed on the phone from the Sun and Moon positions at each new and full moon, with no bundled eclipse table. `ponytail:` this is a global check (is there an eclipse somewhere, and of what type). Local visibility and contact times are not computed yet. **Also:** supermoons (full moon within ~360,000 km), planet gatherings (≥ 4 planets within a 30° span), great conjunctions, planet transits (above), and **meteor outbursts** (Stellarium's year-specific ZHR entries). Rare events get a highlighted card and optional reminders (`AlarmManager` local notification; no server). |
 | ISS and bright satellite passes | Bundled TLE snapshot + SGP4 on the phone. Refreshed when the app opens and is online (`ponytail:` no background WorkManager job). Shows the data age and hides passes when TLEs are more than 30 days old. The CelesTrak download must be tested outside this sandbox. |
 | "Tonight" summary | Darkest window, planets up, moon, next meteor peak, next ISS pass, and any rare event this week. |
 
 **Gate:** check against published values:
 - Perseid/Geminid peaks: ±1 day
 - a 2026 conjunction: ±1 h
-- the 2026-08-12 total solar eclipse and 2026-03-03 total lunar eclipse from the NASA tables: contact times ±2 min
+- the 2026-08-12 total solar eclipse and 2026-03-03 total lunar eclipse: eclipse type, and for the lunar eclipse the moment of greatest eclipse within ±30 min (contact times are not computed)
 - one listed lunar occultation: ±2 min
 - one comet position vs JPL Horizons: ±5′ near its element epoch
 
@@ -234,7 +233,7 @@ Every event is computed or bundled on the phone.
 
 ## 7b. Phase 7b: Telescope setup, alignment and plate solving (owner request, 30 Sep 2026)
 
-Branch: `feature/telescope-setup-alignment-platesolve`. Sonnet agents write the code; each workstream is reviewed, re-tested and merged by the supervising agent.
+Branch: `feature/telescope-setup-alignment-platesolve`. Each workstream is written on its own branch, then reviewed, re-tested and merged into the integration branch.
 
 ### Ponytail review
 

@@ -130,7 +130,7 @@ class UpdaterTest {
             "error-unexpected" to listOf("Something went wrong (IllegalStateException)"),
         )
         assertEquals("every state has expectations", updaterStates.map { it.first }.toSet(), expected.keys)
-        for ((name, status) in updaterStates) for (lang in listOf("en", "hi")) {
+        for ((name, status) in updaterStates) for (lang in I18n.languages.map { it.first }) { // English only while Hindi is switched off
             I18n.language = lang
             try {
                 val t = FakeUpdater(status)
