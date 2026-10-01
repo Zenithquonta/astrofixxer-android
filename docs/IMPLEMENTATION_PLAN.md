@@ -208,7 +208,7 @@ Every event is computed or bundled on the phone.
 **Gate:** check against published values:
 - Perseid/Geminid peaks: ±1 day
 - a 2026 conjunction: ±1 h
-- the 2026-08-12 total solar eclipse and 2026-03-03 total lunar eclipse: type and moment of greatest eclipse against published values (the unit tests allow ±30 min; contact times are not computed)
+- the 2026-08-12 total solar eclipse and 2026-03-03 total lunar eclipse: eclipse type, and for the lunar eclipse the moment of greatest eclipse within ±30 min (contact times are not computed)
 - one listed lunar occultation: ±2 min
 - one comet position vs JPL Horizons: ±5′ near its element epoch
 

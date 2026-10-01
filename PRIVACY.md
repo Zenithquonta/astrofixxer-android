@@ -32,7 +32,7 @@ This applies to versions that have camera plate solving.
 
 ## What is stored on the phone
 
-These are kept in the app's private storage on the phone:
+These are kept on the phone, in the app's private storage except where noted:
 
 - your observing lists and your own objects;
 - your settings (what the sky shows, sky culture, eyepiece and telescope numbers) and your telescope setup;
@@ -41,7 +41,7 @@ These are kept in the app's private storage on the phone:
 - a location you typed in, if any;
 - whether you have seen the introduction;
 - the last orbit file downloaded from CelesTrak;
-- in the GitHub download only, an update file while an update is being downloaded and installed. The app deletes old update files the next time it starts.
+- in the GitHub download only, an update file while an update is being downloaded and installed. Android's download manager first saves it in the app's own folder on shared storage (Downloads inside the app's external files folder). The app then checks it and copies it to private storage, and deletes the download once it is copied. On older Android versions, other apps with storage permission could read that folder while the file is there. It is the public release file from GitHub and holds nothing personal. The app also deletes any old update files the next time it starts.
 
 Nothing else is stored. In particular the app stores no camera pictures, no audio and no location taken from the phone.
 
