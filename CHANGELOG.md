@@ -8,6 +8,10 @@ Every update and fix to AstroFixxer, newest first. Dates are when the work lande
 The first Android version: a Kotlin + Jetpack Compose port of the AstroFixxer web app, which grew out of
 [AstroHopper / skyhopper](https://github.com/artyom-beilis/skyhopper) by Artyom Beilis.
 
+### Hindi interface switched off for now (1 Oct 2026)
+
+- The Hindi interface is switched off for now and returns in a later release. The app shows English only, the language choice is hidden, and a saved Hindi language loads as English. The Indian (Vedic) sky culture is not affected.
+
 ### Telescope setup, alignment and guidance (30 Sep 2026)
 
 - **First-run wizard.** Four to six short steps with pictures: telescope type, mount, where the phone is mounted (flat on the tube, camera facing along it, or on the eyepiece) and the follow-ups that placement needs. "Set up later" keeps the defaults. People who already had the app see the wizard once and keep all their other settings.

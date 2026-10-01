@@ -4,15 +4,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
+/** The Hindi interface is switched off until a later release; set to true to bring it back. */
+const val HINDI_AVAILABLE = false
+
 /**
  * UI translations keyed by the English text, like the web app's i18n dictionaries.
  * [language] is snapshot state, so switching it recomposes the screen.
  */
 object I18n {
     var language by mutableStateOf("en")
-    val languages = listOf("en" to "English", "hi" to "हिन्दी")
+    val languages = if (HINDI_AVAILABLE) listOf("en" to "English", "hi" to "हिन्दी") else listOf("en" to "English")
 
-    fun t(en: String): String = if (language == "hi") HI[en] ?: en else en
+    fun t(en: String): String = if (HINDI_AVAILABLE && language == "hi") HI[en] ?: en else en
 
     private val HI = mapOf(
         // Toolbar and status

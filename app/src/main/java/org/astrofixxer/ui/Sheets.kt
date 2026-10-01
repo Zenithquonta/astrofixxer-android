@@ -363,8 +363,10 @@ private fun MoreSettings(state: SkyState, catalog: Catalog?, onLists: () -> Unit
             OutlinedButton(onClick = onTutorial, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) { Label(t("Tutorial")) }
         }
         val langs = I18n.languages
-        val next = { langs[(langs.indexOfFirst { it.first == I18n.language } + 1) % langs.size].first.also { I18n.language = it } }
-        Stepper(t("Language"), langs.first { it.first == I18n.language }.second, onMinus = { next() }, onPlus = { next() })
+        if (langs.size > 1) { // hidden while only English is available
+            val next = { langs[(langs.indexOfFirst { it.first == I18n.language } + 1) % langs.size].first.also { I18n.language = it } }
+            Stepper(t("Language"), langs.first { it.first == I18n.language }.second, onMinus = { next() }, onPlus = { next() })
+        }
         Text(t("Data"), color = c.primary, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
         Text(if (catalog == null) t("Loading sky catalogue…")
             else t("Stellarium catalogue: %,d objects, %d constellations, %d boundary edges.").format(

@@ -23,6 +23,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
+import org.junit.Ignore
 import org.junit.Test
 
 /**
@@ -161,6 +162,7 @@ class JourneyTest {
         screenshot("journey-11-event-sky")
     }
 
+    @Ignore("Hindi interface switched off until a later release")
     @Test fun nightModeAndHindi() = phoneTest {
         val state = Fixtures.state().apply { target = catalog.find("M57") }
         Fixtures.pointAt(state, catalog.find("Vega")!!)
@@ -183,6 +185,19 @@ class JourneyTest {
         } finally {
             I18n.language = "en"
         }
+    }
+
+    @Test fun hindiSwitchedOffLoadsEnglishAndHidesTheLanguageControl() = phoneTest {
+        val state = Fixtures.state()
+        state.applySettings(mapOf("language" to "hi", "bortle" to "7"))
+        assertEquals("en", I18n.language)
+        assertEquals(7, state.bortle) // other saved settings still load
+        setContent { AppScreen(state) }
+        onNode(button("Find")).assertExists() // the toolbar is English
+        onNode(button("Sky")).tap()
+        tab("More")
+        onNode(hasText("Help")).assertExists()
+        assertTrue(onAllNodes(hasText("Language")).fetchSemanticsNodes().isEmpty())
     }
 
     @Test fun draggingTheSkyOutsideAlignmentNeverChangesTheCalibration() = phoneTest {
