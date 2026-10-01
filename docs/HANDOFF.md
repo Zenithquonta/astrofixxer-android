@@ -22,7 +22,7 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 
 ## TAKEOVER: read this first (updated 2026-10-01; resume sequence step 3, docs pass)
 
-**Resumed 2026-10-01 (owner: "continue what the handoff says").** **Owner decision: Hindi switched off for now and no Hindi work at all; W7 is parked (step 1 is replaced by the Hindi switch-off, merged). STOPPED at owner request (see newest entry for exact resume steps). Step 2 (W4) and step 3 (docs pass, in-app licences) are combined on `feature/tsap-candidate` (CI run 41 on `1afc381` is the gate; it was still running at stop). Next: if green, fast-forward integration to the candidate, then main (step 4), then W8 README with the owner's camera-screen image and pixel-art camera-solve animation.** W7 (`feature/tsap-w7`, WIP `16195d9`) stays parked and unmerged. Nothing is merged to main yet. The next session must read this entire handoff, especially the newest entries, plan section 7b, POLICY, PRIVACY, SECURITY, CONTRIBUTING, NOTICE, README and CHANGELOG before acting.
+**Resumed 2026-10-01 (owner: "continue what the handoff says").** **Owner decision: Hindi switched off for now and no Hindi work at all; W7 is parked (step 1 is replaced by the Hindi switch-off, merged). Integration CI green (run 41) and fast-forwarded to the candidate: W4 camera flow with label fix, docs pass and in-app licences are in. Next: merge integration into main and verify CI on main (step 4), then merge W8 README (pushed on `feature/tsap-w8`, reviewed) after its CI. Owner's camera-screen image and pixel-art camera-solve animation are in W8.** W7 (`feature/tsap-w7`, WIP `16195d9`) stays parked and unmerged. Nothing is merged to main yet. The next session must read this entire handoff, especially the newest entries, plan section 7b, POLICY, PRIVACY, SECURITY, CONTRIBUTING, NOTICE, README and CHANGELOG before acting.
 
 ### 1. Pushed branches and checkout ownership
 
@@ -124,6 +124,23 @@ Preserve GPL and all credits; no Android imports in ui/astro/update; user-visibl
 ## Entries
 
 Historical entries retain the evidence and instructions recorded at the time. Their **Next step** instructions are superseded by the current TAKEOVER above.
+
+### 2026-10-01: Candidate CI green; integration fast-forwarded; W8 README ready
+
+**CI run 41 (`36917203161`) on `feature/tsap-candidate` at `1afc381`: all green.** `build` success (tests, debug/release/preview APKs, sky-data check, update.json, APK integrity, no self-update permission in the Play build), `secret-scan` success, `ui-check` success at 22:18 UTC after about 2 h 28 min (all desktop tests and the full screen audit on the runner's fonts; the "Change phone placement" clipping is gone). Run 40 on `feature/tsap-w4` `7748d42`: build and secret-scan green, ui-check still running at this entry (it is the same code already verified by run 41).
+
+**Integration fast-forwarded** to the candidate (`--ff-only`): the CI-verified tree `1afc381` plus docs-only HANDOFF commits on top. Integration now holds W1–W6, Hindi switch-off, W4 camera flow with the label-wrap fix, the docs pass and the in-app licences.
+
+**W8 README showcase on `feature/tsap-w8` (pushed; implementation by the implementation agent, supervisor reviewed):**
+- `656483a` README screenshot tests (`ReadmeShotsTest`, `ReadmeCameraShotsTest`) run only with `-PreadmeShots` (`Assume` in `@Before`; `tools/desktop-check/build.gradle.kts` passes the property), so CI's `./gradlew test` skips them and writes no images.
+- `29a3eab` regenerated real desktop-render screenshots and 7 new camera screens (`docs/screens/new/camera-*.png`, 480×1040, 29–77 KB): arrangement, live view, solved, aligned, failed advice, beside-the-tube arrangement and live. Live-view stars in the camera shots are synthetic (drawn from the app's catalogue by a test host).
+- `9624c41` `docs/art/solve-how.gif` (800×400, 479 KB, seeded): phone on the eyepiece → 1–4 s photo → triangles vs the star list, offline → pointing here → moved? retake / still? Apply to alignment. Supervisor viewed contact sheets of the frames.
+- `6a878f9`, `2be5d0a` README: step-by-step guide (setup, align by centring and dragging under the +, next-star guidance, camera solve, orientation, updates), bold Sun warning, tested/not-yet-tested table linking FIELD_TEST, Hindi "coming in a later release", corrected signing (conditional), versionCode (run number + 1000) and artwork licences. Each claim checked against code/docs by file:line.
+- Not run on W8: AuditTest/full suite (README and test-guard changes only; CI on the push runs them).
+
+**Follow-up noted (app wording, not changed now):** in the eyepiece live view the app always shows "Move the telescope until the star reaches the +" (`ui/PlateSolveFlow.kt` ~353, shown whenever a marker position exists), even for a plain solve with no chosen star. Consider wording it only for calibration or rephrasing; needs a full CI cycle.
+
+**Next:** merge integration into main (`--no-ff`, signed), push, verify CI on main; then merge W8 after its CI is green. No v0.2.0 tag without the owner confirming the Play signing secrets.
 
 ### 2026-10-01: Owner said stop; state saved for the next session
 
