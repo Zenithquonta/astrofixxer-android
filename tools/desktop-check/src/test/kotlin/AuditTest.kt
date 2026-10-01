@@ -29,7 +29,7 @@ import org.junit.Test
 import java.io.File
 
 /**
- * Checks every screen, in English and Hindi, day and night, on 360 dp and 411 dp phones:
+ * Checks every screen, in every available language (English only while Hindi is switched off), day and night, on 360 dp and 411 dp phones:
  * - every tappable control is at least 48 × 48 dp (Android accessibility guideline),
  * - no text is clipped or runs off the screen,
  * - no two pieces of text overlap on the sky screen,
@@ -172,7 +172,7 @@ class AuditTest {
     @Test fun everyScreenPassesTheAudit() {
         val findings = mutableListOf<String>()
         var checked = 0
-        for (width in listOf(360, 411)) for (lang in listOf("en", "hi")) for (night in listOf(false, true)) for (screen in screens) {
+        for (width in listOf(360, 411)) for (lang in I18n.languages.map { it.first }) for (night in listOf(false, true)) for (screen in screens) {
             I18n.language = lang
             try {
                 phoneTest(widthDp = width) {
