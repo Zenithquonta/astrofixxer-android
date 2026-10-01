@@ -8,6 +8,13 @@ Every update and fix to AstroFixxer, newest first. Dates are when the work lande
 The first Android version: a Kotlin + Jetpack Compose port of the AstroFixxer web app, which grew out of
 [AstroHopper / skyhopper](https://github.com/artyom-beilis/skyhopper) by Artyom Beilis.
 
+### Licences, privacy and contributing (1 Oct 2026)
+
+- **Help → Licences and source** now credits ESA Gaia DR3 and Hipparcos (the plate-solving star list) and CelesTrak (ISS and Tiangong orbits), says that only the modern constellation illustrations are under the Free Art License (the Indian ones are CC BY-SA 4.0), and points to `PRIVACY.md` and `NOTICE.md`.
+- `PRIVACY.md` follows `POLICY.md` point by point: a typed location is saved, Ask starts only when tapped, camera pictures stay in memory, the update check runs only on a tap in the GitHub download, and the full list of what is stored on the phone, including the camera offset and the temporary update download.
+- `POLICY.md`: the web app's only request to another site is the optional Wikipedia page; the stored-data list adds the camera offset and the update file.
+- `CONTRIBUTING.md`: sign off every commit (DCO 1.1); contributions are GPLv3, data keeps its own licence, no CLA.
+
 ### Hindi interface switched off for now (1 Oct 2026)
 
 - The Hindi interface is switched off for now and returns in a later release. The app shows English only, the language choice is hidden, and a saved Hindi language loads as English. The Indian (Vedic) sky culture is not affected.

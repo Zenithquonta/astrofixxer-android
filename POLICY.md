@@ -1,6 +1,6 @@
 # AstroFixxer policy
 
-Effective date: 30 September 2026.
+Effective date: 1 October 2026.
 
 This file explains, in plain words, the terms that go with AstroFixxer besides its licence: warranty, safety, data, contributions and names. It is not legal advice.
 
@@ -62,9 +62,9 @@ The full text is in `PRIVACY.md`, which is the privacy policy. In short:
 - **Location.** The app reads the phone's last known approximate location (Android's coarse location permission) to draw your sky. It does not track you. A location you type in yourself is saved on the phone.
 - **Microphone.** Used only after you tap Ask. Your phone's speech-recognition service turns speech into text. The app asks for offline recognition, but that is a request, and the service may use the internet under its own provider's privacy policy (usually Google's). The app receives only the text. It does not record or keep audio. Spoken answers come from your phone's text-to-speech engine.
 - **Camera.** Versions with camera plate solving ask for the camera permission only when you open the camera. The picture is turned into brightness values in memory to find your position among the stars. It is not saved and not uploaded. A picture you choose from the gallery is handled the same way.
-- **Web app.** The `web/` app runs in your browser. It keeps its settings in the browser's local storage, uses the browser's location and sensor features, has no analytics, and makes no requests to other sites. Whoever hosts a copy of it (for example a Vercel project) sees ordinary web-server logs.
+- **Web app.** The `web/` app runs in your browser. It keeps its settings in the browser's local storage, uses the browser's location and sensor features, has no analytics, and its only request to another site is the optional Wikipedia page that opens when you tap the W button. Whoever hosts a copy of it (for example a Vercel project) sees ordinary web-server logs.
 - **Internet.** The app fetches the ISS and Tiangong orbit file from celestrak.org, at most once a day, with no personal data in the request. In the GitHub download only, the update button (used only when you tap it) asks api.github.com for the newest release and downloads its files from github.com. Those sites see your IP address, as any website does. Everything else works offline.
-- **Stored on your phone.** Your lists and objects, your settings and telescope setup, the alignment, a typed location and the last orbit file. Clearing the app's data or uninstalling deletes them. Android backup may copy them if you have backup turned on.
+- **Stored on your phone.** Your lists and objects, your settings and telescope setup, the alignment, a typed location, the camera offset (versions with camera plate solving), the last orbit file and, in the GitHub download only, an update file while an update is downloaded. Clearing the app's data or uninstalling deletes them. Android backup may copy them if you have backup turned on.
 - The maintainer sees only what you choose to post in GitHub issues, and the names and emails in git commits. Do not put private data in a public issue.
 
 ## 7. Third-party services and data

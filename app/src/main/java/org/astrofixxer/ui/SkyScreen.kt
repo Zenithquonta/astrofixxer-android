@@ -444,9 +444,17 @@ private fun ListsSheet(state: SkyState, catalog: Catalog?, onClose: () -> Unit) 
 const val SOURCE_URL = "https://github.com/Zenithquonta/astrofixxer-android"
 
 private const val LICENCES = "AstroFixxer is free software under the GNU GPL v3. Source code: $SOURCE_URL. " +
-    "Based on AstroHopper by Artyom Beilis (GPLv3, source: github.com/artyom-beilis/skyhopper). Deep-sky catalogue, names, meteor showers and comet orbits from Stellarium " +
-    "(GPL-2.0-or-later). Sky cultures from Stellarium (CC BY-SA 4.0); constellation artwork under the Free Art License. " +
-    "Star positions from the HYG database (CC BY-SA). Planet theory VSOP87 and position reduction by Greg Miller (public domain)."
+    "Based on AstroHopper by Artyom Beilis (GPLv3, source: github.com/artyom-beilis/skyhopper). " +
+    "Deep-sky catalogue, names, meteor showers, and comet and asteroid orbits come from Stellarium (GPL-2.0-or-later). " +
+    "Sky cultures come from Stellarium: names and data are CC BY-SA 4.0. Modern constellation illustrations are under the Free Art License. " +
+    "Indian sky culture illustrations are CC BY-SA 4.0. " +
+    "The star list for plate solving comes from Stellarium's catalogues, built on ESA Gaia DR3 (CC BY-SA 3.0 IGO) and Hipparcos (ESA). " +
+    "This work has made use of data from the European Space Agency (ESA) mission Gaia, processed by the Gaia Data Processing and Analysis Consortium (DPAC). " +
+    "Star positions and colours come from the HYG database v3 (CC BY-SA). " +
+    "The planet series VSOP87 and the position reduction (CPReduce) are by Greg Miller (public domain). " +
+    "ISS and Tiangong orbits are downloaded from CelesTrak (celestrak.org) when you are online. " +
+    "The Kotlin, AndroidX and Jetpack Compose libraries are Apache-2.0. " +
+    "Privacy policy, full credits and licences: PRIVACY.md and NOTICE.md at $SOURCE_URL."
 
 private val HELP = listOf(
     "Setting up" to "Attach the phone to the telescope and tell the app how in the setup wizard (or Sky & viewing, Telescope & orientation): flat on the tube, camera facing along it, or on the eyepiece. Allow location so the sky matches your place and time.",
