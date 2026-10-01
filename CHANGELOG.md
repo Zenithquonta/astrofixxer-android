@@ -8,6 +8,10 @@ Every update and fix to AstroFixxer, newest first. Dates are when the work lande
 The first Android version: a Kotlin + Jetpack Compose port of the AstroFixxer web app, which grew out of
 [AstroHopper / skyhopper](https://github.com/artyom-beilis/skyhopper) by Artyom Beilis.
 
+### Hindi interface switched off for now (1 Oct 2026)
+
+- The Hindi interface is switched off for now and returns in a later release. The app shows English only, the language choice is hidden, and a saved Hindi language loads as English. The Indian (Vedic) sky culture is not affected.
+
 ### Solve with the camera (30 Sep 2026)
 
 - **Solve with camera.** A guided full-screen flow from More, Sky & viewing → Telescope & orientation, and the alignment panel ("Align with a photo"): confirm the arrangement, capture tips, a live camera view, solving, and the result. It finds where the telescope points from a photo of the stars, entirely on the phone. Photos are never saved or uploaded; the app does not use the network for this.
@@ -27,6 +31,16 @@ The first Android version: a Kotlin + Jetpack Compose port of the AstroFixxer we
 - **Check with another star** (under More) reports how far off the alignment was and refines it with both stars.
 - **Guidance** is a big arrow with words ("↗ Up 3.2° · Right 5.1°") and the distance; Close is amber, On target is a filled bullseye. Details, the eyepiece-view controls and the check are behind More.
 - **Match eyepiece view** draws the sky map turned and mirrored like the eyepiece; directions never change. The + is now a small marker at the exact centre.
+
+### In-app updates for the GitHub download (30 Sep 2026)
+
+- **Sky & viewing → More → App updates** (the GitHub preview download only): shows the installed version and build, and **Check for updates** compares it with the newest build on GitHub. If there is one, it shows the version, the size and a link to what's new, then **Download and install**: a system download with a notification and progress, a check of the file's SHA-256, and Android's own installer, which always asks you first.
+- Nothing is checked in the background. GitHub is contacted only when you tap the button, and nothing about you is sent (see `PRIVACY.md`).
+- **Safe by construction.** Only HTTPS addresses inside this repository's own release are used, `update.json` and the APK have size limits, the APK must match the SHA-256 and size in `update.json` (a mismatch deletes it), and Android refuses an update signed with a different key (see `SECURITY.md`).
+- **Builds without the permanent signing key** are flagged in the app: they can't install over yours, so the app says so plainly and needs a second tap before downloading one.
+- Every failure has its own message: offline, timeout, GitHub's request limit (with when to try again), no release, a release without `update.json`, unreadable data, a release for another app, a full phone, a cancelled or damaged download.
+- **Google Play builds have none of this.** Play forbids apps that update themselves, so the screen and the `REQUEST_INSTALL_PACKAGES` permission exist only in the preview and debug builds (`app/src/preview` and `app/src/debug`), and CI fails if the release build asks for the permission.
+- **Release metadata.** Every published preview build has a `versionCode` that grows with the build number, and the `latest-build` release carries `update.json` next to `AstroFixxer.apk`, with the release title showing the build number. CI checks the APK's signature and that its versionCode and applicationId match `update.json`. Numbered tag releases are no longer marked Latest, so the updater keeps finding the preview build. Tag releases (the Google Play bundle) now also get a growing `versionCode` from the build number, because Play rejects a repeated one.
 
 ### New screens and sky plotting (29 Sep 2026)
 

@@ -4,6 +4,11 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+// A bad value fails the build rather than quietly publishing a build the updater would think is old.
+val buildVersionCode: Int = System.getenv("ASTROFIXXER_VERSION_CODE")?.takeIf { it.isNotBlank() }?.let {
+    it.toIntOrNull()?.takeIf { n -> n > 0 } ?: throw GradleException("ASTROFIXXER_VERSION_CODE must be a positive whole number, not '$it'")
+} ?: 1
+
 android {
     namespace = "org.astrofixxer"
     compileSdk = 35
@@ -12,8 +17,13 @@ android {
         applicationId = "org.astrofixxer"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
+        // CI sets ASTROFIXXER_VERSION_CODE (the build number plus an offset) so every published preview build has a larger
+        // versionCode than the one before; that is how the in-app updater knows a build is newer. Without it: 1.
+        versionCode = buildVersionCode
         versionName = "0.1.0"
+        // Off unless a build type turns it on. Google Play forbids apps that update themselves, so the updater screen and
+        // the install permission (REQUEST_INSTALL_PACKAGES, in the preview and debug manifests only) exist just in those builds.
+        buildConfigField("boolean", "UPDATER_ENABLED", "false")
     }
 
     // Release signing comes from the environment (CI secrets), never from the repo. Without it, release builds are unsigned.
@@ -37,6 +47,9 @@ android {
     }
 
     buildTypes {
+        debug {
+            buildConfigField("boolean", "UPDATER_ENABLED", "true")
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -50,6 +63,7 @@ android {
             versionNameSuffix = "-preview"
             signingConfig = signingConfigs.getByName(if (previewKeystore != null) "preview" else "debug")
             matchingFallbacks += listOf("release")
+            buildConfigField("boolean", "UPDATER_ENABLED", "true")
         }
     }
 
@@ -62,6 +76,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

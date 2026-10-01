@@ -1,5 +1,6 @@
 import org.astrofixxer.ui.I18n
 import org.junit.Assert.assertTrue
+import org.junit.Ignore
 import org.junit.Test
 import java.io.File
 
@@ -15,6 +16,7 @@ class I18nTest {
 
     private fun unescape(s: String) = s.replace("\\\"", "\"").replace("\\n", "\n")
 
+    @Ignore("Hindi interface switched off until a later release")
     @Test fun everyLiteralPassedToTHasAHindiEntry() {
         val literal = Regex("""\bt\("((?:[^"\\]|\\.)*)"\)""")
         val missing = mutableListOf<String>()

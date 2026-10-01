@@ -553,6 +553,8 @@ class SkyState(nowMillis: Long, lat: Double, lon: Double) {
         s["culture"]?.takeIf { it == "modern" || it == "indian" }?.let { skyCulture = it }
         d("telescopeMm") { telescopeFocalMm = it }; d("eyepieceMm") { eyepieceFocalMm = it }; d("eyepieceAfov") { eyepieceAfovDeg = it }
         b("haptics") { haptics = it }
+        // A saved language that isn't available (Hindi while it is switched off) loads as English.
+        s["language"]?.let { v -> I18n.language = if (I18n.languages.any { it.first == v }) v else "en" }
         b("setupDone") { setupDone = it }; b("matchEyepiece") { matchEyepieceView = it }
         var t = setup
         // The old "equatorial" key (before mount types existed) only counts when no mount type was saved.

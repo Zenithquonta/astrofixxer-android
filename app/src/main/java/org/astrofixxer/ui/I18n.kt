@@ -4,15 +4,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
+/** The Hindi interface is switched off until a later release; set to true to bring it back. */
+const val HINDI_AVAILABLE = false
+
 /**
  * UI translations keyed by the English text, like the web app's i18n dictionaries.
  * [language] is snapshot state, so switching it recomposes the screen.
  */
 object I18n {
     var language by mutableStateOf("en")
-    val languages = listOf("en" to "English", "hi" to "हिन्दी")
+    val languages = if (HINDI_AVAILABLE) listOf("en" to "English", "hi" to "हिन्दी") else listOf("en" to "English")
 
-    fun t(en: String): String = if (language == "hi") HI[en] ?: en else en
+    fun t(en: String): String = if (HINDI_AVAILABLE && language == "hi") HI[en] ?: en else en
 
     private val HI = mapOf(
         // Toolbar and status
@@ -509,6 +512,55 @@ object I18n {
             "आपने दोबारा न पूछने को चुना, इसलिए Android अब सवाल नहीं दिखाएगा। फ़ोन की सेटिंग में इस ऐप के लिए कैमरे की अनुमति दें, या गैलरी की फ़ोटो इस्तेमाल करें।",
         "Put the phone on the eyepiece, or with its camera along the telescope, then tap Solve with camera (under More, in Sky & viewing, Telescope & orientation, or Align with a photo). Take a 1 to 4 second photo of the stars: the app finds where the telescope points, on the phone, and aligns to it if you ask. Photos are never saved or sent anywhere." to
             "फ़ोन को आईपीस पर लगाएँ, या उसका कैमरा टेलीस्कोप की दिशा में रखें, फिर कैमरे से हल करें दबाएँ (अधिक में, आकाश और दृश्य → टेलीस्कोप और दिशा में, या फ़ोटो से संरेखित करें से)। तारों की 1 से 4 सेकंड की फ़ोटो लें: ऐप फ़ोन पर ही पता लगाता है कि टेलीस्कोप कहाँ है, और आप कहें तो उसी से संरेखित करता है। फ़ोटो कभी सहेजी या कहीं भेजी नहीं जाती।",
+        // App updates (preview builds)
+        "App updates" to "ऐप अपडेट", "AstroFixxer update" to "AstroFixxer अपडेट",
+        "Installed: %s (build %d)" to "स्थापित: %s (बिल्ड %d)",
+        "Checks GitHub only when you tap the button. Nothing about you is sent." to "GitHub को केवल तब जाँचा जाता है जब आप बटन दबाते हैं। आपके बारे में कुछ नहीं भेजा जाता।",
+        "Check for updates" to "अपडेट जाँचें",
+        "Check again" to "फिर जाँचें",
+        "Checking for updates…" to "अपडेट जाँचे जा रहे हैं…",
+        "You have the latest version." to "आपके पास नवीनतम संस्करण है।",
+        "Update available: %s (build %d)" to "अपडेट उपलब्ध: %s (बिल्ड %d)",
+        "A newer build of the version you have." to "आपके मौजूदा संस्करण का नया बिल्ड।",
+        "Download size: %s MB" to "डाउनलोड आकार: %s MB",
+        "What's new (CHANGELOG)" to "क्या नया है (CHANGELOG)",
+        "Download and install" to "डाउनलोड करें और इंस्टॉल करें",
+        "This build can't be installed over yours. It is signed with a temporary key, so Android will refuse it. To use it you would have to uninstall AstroFixxer first, and you would lose your saved lists." to
+            "यह बिल्ड आपके वर्तमान ऐप के ऊपर इंस्टॉल नहीं हो सकता। यह अस्थायी कुंजी से हस्ताक्षरित है, इसलिए Android इसे मना कर देगा। इसे उपयोग करने के लिए पहले AstroFixxer को अनइंस्टॉल करना होगा, और आपकी सहेजी सूचियाँ मिट जाएँगी।",
+        "Continue anyway" to "फिर भी आगे बढ़ें",
+        "Only continue if you accept losing your saved lists." to "केवल तभी आगे बढ़ें जब आप अपनी सहेजी सूचियाँ खोने को मानते हैं।",
+        "Download anyway" to "फिर भी डाउनलोड करें",
+        "Downloading… %d%%" to "डाउनलोड हो रहा है… %d%%",
+        "Downloading…" to "डाउनलोड हो रहा है…",
+        "Checking that the download is intact…" to "जाँचा जा रहा है कि डाउनलोड सही है…",
+        "The download is checked and ready. Android will ask you to confirm the install." to "डाउनलोड जाँच लिया गया है और तैयार है। Android इंस्टॉल की पुष्टि माँगेगा।",
+        "If Android says the app can't be installed, this build has a different signature: uninstall AstroFixxer first. Saved lists will be lost." to
+            "अगर Android कहे कि ऐप इंस्टॉल नहीं हो सकता, तो इस बिल्ड का हस्ताक्षर अलग है: पहले AstroFixxer अनइंस्टॉल करें। सहेजी सूचियाँ मिट जाएँगी।",
+        "Install" to "इंस्टॉल करें",
+        "Android needs your permission before AstroFixxer can install updates. Tap the button, allow it for AstroFixxer, then come back." to
+            "AstroFixxer के अपडेट इंस्टॉल करने से पहले Android को आपकी अनुमति चाहिए। बटन दबाएँ, AstroFixxer के लिए अनुमति दें, फिर वापस आएँ।",
+        "Open settings" to "सेटिंग खोलें",
+        "Can't reach GitHub. Check your internet connection and try again." to "GitHub तक नहीं पहुँच सके। इंटरनेट कनेक्शन जाँचें और फिर कोशिश करें।",
+        "GitHub took too long to answer. Try again in a moment." to "GitHub ने जवाब देने में बहुत देर की। थोड़ी देर बाद फिर कोशिश करें।",
+        "GitHub says there were too many requests. Try again in about %d min." to "GitHub के अनुसार बहुत अधिक अनुरोध हुए। लगभग %d मिनट बाद फिर कोशिश करें।",
+        "GitHub says there were too many requests. Try again later." to "GitHub के अनुसार बहुत अधिक अनुरोध हुए। बाद में फिर कोशिश करें।",
+        "No release was found on GitHub." to "GitHub पर कोई रिलीज़ नहीं मिली।",
+        "The newest release has no update information, so it can't be installed from here. Get it from the GitHub Releases page." to
+            "नवीनतम रिलीज़ में अपडेट की जानकारी नहीं है, इसलिए इसे यहाँ से इंस्टॉल नहीं किया जा सकता। इसे GitHub Releases पेज से लें।",
+        "GitHub's answer wasn't in the expected form. Try again later." to "GitHub का जवाब अपेक्षित रूप में नहीं था। बाद में फिर कोशिश करें।",
+        "The newest release is for a different app, so it was not offered." to "नवीनतम रिलीज़ किसी दूसरे ऐप की है, इसलिए इसे नहीं दिखाया गया।",
+        "The update was refused because its download address or size looked unsafe." to "अपडेट अस्वीकार कर दिया गया क्योंकि उसका डाउनलोड पता या आकार असुरक्षित लगा।",
+        "The secure connection to GitHub failed. Check your network and the date and time, then try again." to
+            "GitHub से सुरक्षित कनेक्शन विफल रहा। नेटवर्क और तारीख़-समय जाँचें, फिर कोशिश करें।",
+        "GitHub answered with error %d. Try again later." to "GitHub ने त्रुटि %d दी। बाद में फिर कोशिश करें।",
+        "The download failed (code %d). Try again." to "डाउनलोड विफल रहा (कोड %d)। फिर कोशिश करें।",
+        "The download was cancelled." to "डाउनलोड रद्द कर दिया गया।",
+        "Not enough free space. About %d MB is needed." to "पर्याप्त खाली जगह नहीं है। लगभग %d MB चाहिए।",
+        "The downloaded file is the wrong size, so it was deleted. Nothing was installed." to "डाउनलोड की फ़ाइल का आकार गलत है, इसलिए उसे मिटा दिया गया। कुछ भी इंस्टॉल नहीं हुआ।",
+        "The downloaded file doesn't match its checksum, so it was deleted. Nothing was installed." to "डाउनलोड की फ़ाइल चेकसम से मेल नहीं खाती, इसलिए उसे मिटा दिया गया। कुछ भी इंस्टॉल नहीं हुआ।",
+        "The downloaded file is gone. Download it again." to "डाउनलोड की फ़ाइल नहीं मिली। फिर से डाउनलोड करें।",
+        "This phone has no app that can install updates." to "इस फ़ोन में अपडेट इंस्टॉल करने वाला कोई ऐप नहीं है।",
+        "Something went wrong (%s)." to "कुछ गड़बड़ हो गई (%s)।",
         // Cardinal points
         "N" to "उ", "NE" to "उपू", "E" to "पू", "SE" to "दपू", "S" to "द", "SW" to "दप", "W" to "प", "NW" to "उप",
     )

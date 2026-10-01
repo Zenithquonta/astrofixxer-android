@@ -37,7 +37,7 @@ import org.junit.Test
 import java.io.File
 
 /**
- * Checks every screen, in English and Hindi, day and night, on 360 dp and 411 dp phones:
+ * Checks every screen, in every available language (English only while Hindi is switched off), day and night, on 360 dp and 411 dp phones:
  * - every tappable control is at least 48 × 48 dp (Android accessibility guideline),
  * - no text is clipped or runs off the screen,
  * - no two pieces of text overlap on the sky screen,
@@ -51,6 +51,7 @@ class AuditTest {
         /** The fake phone for the plate-solve flow (null: the sky screen has no camera button). */
         val host: (() -> FakeHost)? = null,
         val solver: ((GrayImage, SolveHints, StarSource) -> SolveResult)? = null,
+        val updater: org.astrofixxer.ui.UpdateStatus? = null,
     )
 
     private val catalog get() = Fixtures.catalog
@@ -176,6 +177,10 @@ class AuditTest {
         }),
         Screen("tutorial", true, { it.showOnboarding = true }),
         *solveScreens(),
+        // Sky & viewing → More → App updates (preview and debug builds), every state.
+        *updaterStates.map { (name, status) ->
+            Screen("updater-$name", true, {}, { onNode(button(I18n.t("Sky"))).tap(); tab(I18n.t("More")); onNode(hasText(I18n.t("App updates"))).performScrollTo() }, updater = status)
+        }.toTypedArray(),
     )
 
     // ---------------------------------------------------------------- the camera plate-solve flow, every step
@@ -279,12 +284,12 @@ class AuditTest {
     @Test fun everyScreenPassesTheAudit() {
         val findings = mutableListOf<String>()
         var checked = 0
-        for (width in listOf(360, 411)) for (lang in listOf("en", "hi")) for (night in listOf(false, true)) for (screen in screens) {
+        for (width in listOf(360, 411)) for (lang in I18n.languages.map { it.first }) for (night in listOf(false, true)) for (screen in screens) {
             I18n.language = lang
             try {
                 phoneTest(widthDp = width) {
                     val state = Fixtures.state().apply { this.night = night; screen.setup(this) }
-                    setContent { AppScreen(state, host = screen.host?.invoke(), model = screen.solver?.let { modelWith(it) }) }
+                    setContent { AppScreen(state, host = screen.host?.invoke(), model = screen.solver?.let { modelWith(it) }, updater = screen.updater?.let { FakeUpdater(it) }) }
                     screen.open(this)
                     waitForIdle()
                     val where = "${screen.name} [$width dp, $lang, ${if (night) "night" else "day"}]"

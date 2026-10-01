@@ -100,6 +100,8 @@ fun SkyScreen(
     plateSolve: PlateSolveHost? = null,
     /** The plate-solve flow's state; the host does not need to pass one (tests do, to swap the solver). */
     solveModel: PlateSolveModel = remember { PlateSolveModel() },
+    /** The in-app updater, only in preview and debug builds; null (Google Play builds) hides the "App updates" block. */
+    updater: Updater? = null,
 ) {
     var sheet by remember { mutableStateOf(Sheet.NONE) }
     var skyTab by remember { mutableStateOf(0) }
@@ -167,7 +169,7 @@ fun SkyScreen(
                 Sheet.EVENTS -> EventsSheet(state, events) { sheet = Sheet.NONE }
                 Sheet.SKY -> SkyOptionsSheet(state, catalog, onClose = { sheet = Sheet.NONE }, onLists = { sheet = Sheet.LISTS },
                     onHelp = { sheet = Sheet.HELP }, onTutorial = { sheet = Sheet.NONE; state.showOnboarding = true },
-                    onCheckOrientation = { sheet = Sheet.CHECK }, onSolveWithCamera = openSolve, initialTab = skyTab)
+                    onCheckOrientation = { sheet = Sheet.CHECK }, onSolveWithCamera = openSolve, updater = updater, initialTab = skyTab)
                 Sheet.CHECK -> OrientationCheckSheet(state) { sheet = Sheet.NONE }
                 Sheet.LISTS -> ListsSheet(state, catalog) { sheet = Sheet.NONE }
                 Sheet.HELP -> HelpSheet { sheet = Sheet.NONE }

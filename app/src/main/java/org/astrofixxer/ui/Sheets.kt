@@ -187,7 +187,7 @@ internal const val TELESCOPE_TAB = 5
 @Composable
 internal fun SkyOptionsSheet(
     state: SkyState, catalog: Catalog?, onClose: () -> Unit, onLists: () -> Unit, onHelp: () -> Unit, onTutorial: () -> Unit,
-    onCheckOrientation: () -> Unit, onSolveWithCamera: (() -> Unit)? = null, initialTab: Int = 0,
+    onCheckOrientation: () -> Unit, onSolveWithCamera: (() -> Unit)? = null, updater: Updater? = null, initialTab: Int = 0,
 ) {
     var tab by remember { mutableStateOf(initialTab) }
     val tabs = listOf("Sky", "Deep-sky", "Markings", "Culture", "Landscape", "Telescope & orientation", "Place & time", "More")
@@ -239,7 +239,7 @@ internal fun SkyOptionsSheet(
                     item { CityList(state) }
                     item { DateTimeEditor(state) }
                 }
-                else -> item { MoreSettings(state, catalog, onLists, onHelp, onTutorial) }
+                else -> item { MoreSettings(state, catalog, onLists, onHelp, onTutorial, updater) }
             }
         }
     }
@@ -355,7 +355,7 @@ private fun DateTimeEditor(state: SkyState) {
 }
 
 @Composable
-private fun MoreSettings(state: SkyState, catalog: Catalog?, onLists: () -> Unit, onHelp: () -> Unit, onTutorial: () -> Unit) {
+private fun MoreSettings(state: SkyState, catalog: Catalog?, onLists: () -> Unit, onHelp: () -> Unit, onTutorial: () -> Unit, updater: Updater?) {
     val c = MaterialTheme.colorScheme
     var confirmReset by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -366,13 +366,17 @@ private fun MoreSettings(state: SkyState, catalog: Catalog?, onLists: () -> Unit
             OutlinedButton(onClick = onTutorial, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) { Label(t("Tutorial")) }
         }
         val langs = I18n.languages
-        val next = { langs[(langs.indexOfFirst { it.first == I18n.language } + 1) % langs.size].first.also { I18n.language = it } }
-        Stepper(t("Language"), langs.first { it.first == I18n.language }.second, onMinus = { next() }, onPlus = { next() })
+        if (langs.size > 1) { // hidden while only English is available
+            val next = { langs[(langs.indexOfFirst { it.first == I18n.language } + 1) % langs.size].first.also { I18n.language = it } }
+            Stepper(t("Language"), langs.first { it.first == I18n.language }.second, onMinus = { next() }, onPlus = { next() })
+        }
         Text(t("Data"), color = c.primary, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
         Text(if (catalog == null) t("Loading sky catalogue…")
             else t("Stellarium catalogue: %,d objects, %d constellations, %d boundary edges.").format(
                 catalog.objects.size, catalog.constellations["modern"].orEmpty().size, catalog.boundaries.size),
             color = c.onSurface, fontSize = 14.sp)
+        // Only the preview and debug builds have an updater; Google Play builds never show this.
+        if (updater != null) UpdaterPanel(updater)
         if (!confirmReset) OutlinedButton(onClick = { confirmReset = true }, modifier = Modifier.padding(top = 8.dp).heightIn(min = 48.dp)) { Text(t("Reset all")) }
         else Button(onClick = { state.resetAll(catalog); confirmReset = false }, modifier = Modifier.padding(top = 8.dp).heightIn(min = 48.dp),
             colors = ButtonDefaults.buttonColors(containerColor = c.error)) { Text(t("Tap again to reset every setting and list")) }
