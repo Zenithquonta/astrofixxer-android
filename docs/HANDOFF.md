@@ -22,7 +22,7 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 
 ## TAKEOVER: read this first (updated 2026-10-01; resume sequence step 3, docs pass)
 
-**Resumed 2026-10-01 (owner: "continue what the handoff says").** **Owner decision: Hindi switched off for now and no Hindi work at all; W7 is parked (step 1 is replaced by the Hindi switch-off, merged). Step 2 (W4 camera flow) is merged to integration as `ab0a661` but CI on W4 found a clipped label at 360 dp on wider fonts (see newest entry); the fix goes on `feature/tsap-w4` and is merged again. Local run before that after a full supervisor run (desktop 120 tests, 0 failures, 2 Hindi skipped; audit 492 variants, no findings; JVM 147, 0 failures; Android compile clean). Step 3 (docs pass) is next: `feature/tsap-docs` (`43affc6`, pushed, reviewed) holds PRIVACY, CONTRIBUTING, POLICY and plan corrections; the in-app licences text is still to do. Owner added for W8: a camera-screen image and a pixel-art animation of the camera solve in the README.** Step 4.1 (W7) is in progress on `feature/tsap-w7`; see the newest dated entry. Earlier stop note, kept for history: the owner said "enough for today". The owner subsequently authorized only this handoff cleanup; do not resume feature work until asked. There is no complete W7 candidate verification and no merge to integration or main. The next session must read this entire handoff, especially the newest entries, plan section 7b, POLICY, PRIVACY, SECURITY, CONTRIBUTING, NOTICE, README and CHANGELOG before acting.
+**Resumed 2026-10-01 (owner: "continue what the handoff says").** **Owner decision: Hindi switched off for now and no Hindi work at all; W7 is parked (step 1 is replaced by the Hindi switch-off, merged). Step 2 (W4) and step 3 (docs pass, in-app licences) are combined on `feature/tsap-candidate` (`1afc381`) after CI found a clipped label at 360 dp (fixed in `7748d42`); CI run 41 on the candidate is the gate. Next: if green, fast-forward integration to the candidate, then main (step 4). Then W8 README showcase. Owner added for W8: a camera-screen image and a pixel-art animation of the camera solve in the README.** W7 (`feature/tsap-w7`, WIP `16195d9`) stays parked and unmerged. Nothing is merged to main yet. The next session must read this entire handoff, especially the newest entries, plan section 7b, POLICY, PRIVACY, SECURITY, CONTRIBUTING, NOTICE, README and CHANGELOG before acting.
 
 ### 1. Pushed branches and checkout ownership
 
@@ -124,6 +124,17 @@ Preserve GPL and all credits; no Android imports in ui/astro/update; user-visibl
 ## Entries
 
 Historical entries retain the evidence and instructions recorded at the time. Their **Next step** instructions are superseded by the current TAKEOVER above.
+
+### 2026-10-01: Clipping fixed; candidate with W4 fix, docs pass and in-app licences pushed for CI
+
+**W4 fix (`7748d42`, implementation; supervisor reviewed):** `Label` (`ui/SkyScreen.kt`) keeps the one-line 15→11 sp steps; when none fits it wraps to two centred lines at the largest size that fits with no word broken, and clips only as a last resort. New `LabelFitTest` (3 tests) reproduced the CI finding before the fix with DejaVu Sans (`FONTCONFIG_FILE` pointing at a fontconfig file that aliases sans-serif to DejaVu Sans; Noto, Liberation and FreeSans did not reproduce it) and checks the tube bar at 360 dp day/night, buttons at least 48 dp tall, and narrow buttons (140–200 dp) never clipped and never taller than 58 dp (a wrapped label grows a 56 dp button by about 1 dp). Implementation ran with DejaVu: LabelFitTest 3/3, PlateSolveFlowTest 26/26, GuidanceTest 7/7, SetupWizardTest 10/10, UpdaterTest 11/11, JourneyTest 12 (1 Hindi skipped). Android compile clean. Audit not weakened.
+
+**Docs branch (`feature/tsap-docs`):** `3fd63cb`, `43affc6` (markdown, see previous entry) and `cc24fc6` in-app licences: Gaia DR3 (CC BY-SA 3.0 IGO) and Hipparcos with the ESA/DPAC acknowledgement, CelesTrak, modern illustrations Free Art License and Indian CC BY-SA 4.0, PRIVACY/NOTICE pointer. Each credit checked against NOTICE.md/POLICY and code. **CI run 39 on `cc24fc6`: success** (build, ui-check, secret-scan).
+
+**Candidate `feature/tsap-candidate` = integration + W4 fix + docs:**
+- `f0da4f6` merges `7748d42`; `1afc381` merges the docs branch. PRIVACY.md conflict resolved to the docs-branch text plus "you can solve a photo from the gallery instead" from the camera branch. CHANGELOG gains "Licences, privacy and contributing (1 Oct 2026)".
+- Supervisor local checks on `1afc381`: JVM 147 tests 0 failures; Android compile clean; LabelFitTest 3/3 with DejaVu.
+- **CI run 41 on `1afc381` in progress** (run 40 on `7748d42` too). If all green, fast-forward the integration branch to the candidate (the exact CI-verified tree plus this docs-only entry), then `git merge --no-ff` integration into main.
 
 ### 2026-10-01: CI found a clipped label on W4; integration merge was premature
 
