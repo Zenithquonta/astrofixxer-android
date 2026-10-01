@@ -20,9 +20,9 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 | Codebase analysis (web page) | https://claude.ai/artifact/SMf5adtidjB5CsJt5ZrxNW |
 | Bug-hunt and UI proof report | https://claude.ai/artifact/WxJfBipQQCRwaAE9qAkGYb |
 
-## TAKEOVER: read this first (updated 2026-10-01; STOPPED at owner request)
+## TAKEOVER: read this first (updated 2026-10-01; RESUMED at owner request: step 4.1, W7)
 
-The owner said **"enough for today"**. All implementation and local test work remains stopped. The owner subsequently authorized only this handoff cleanup; do not resume feature work until asked. There is no complete W7 candidate verification and no merge to integration or main. The next session must read this entire handoff, especially the newest entries, plan section 7b, POLICY, PRIVACY, SECURITY, CONTRIBUTING, NOTICE, README and CHANGELOG before acting.
+**Resumed 2026-10-01 (owner: "continue what the handoff says").** Step 4.1 (W7) is in progress on `feature/tsap-w7`; see the newest dated entry. Earlier stop note, kept for history: the owner said "enough for today". The owner subsequently authorized only this handoff cleanup; do not resume feature work until asked. There is no complete W7 candidate verification and no merge to integration or main. The next session must read this entire handoff, especially the newest entries, plan section 7b, POLICY, PRIVACY, SECURITY, CONTRIBUTING, NOTICE, README and CHANGELOG before acting.
 
 ### 1. Pushed branches and checkout ownership
 
@@ -124,6 +124,19 @@ Preserve GPL and all credits; no Android imports in ui/astro/update; user-visibl
 ## Entries
 
 Historical entries retain the evidence and instructions recorded at the time. Their **Next step** instructions are superseded by the current TAKEOVER above.
+
+### 2026-10-01: Resumed; W7 implementation restarted from the handoff
+
+**What was done**
+- The owner asked to continue from this handoff. The supervisor verified the docs-only handoff cleanup (commits `611724b`..`56dbca1`):
+  - no dated entries were lost (19 before, 31 after);
+  - the old TAKEOVER steps survive in section 4;
+  - the only prerequisite removed was "reproduce the CI clipping locally before fixing", which matches the new rule.
+- The implementation agent was briefed on W7 (`feature/tsap-w7` at `fd40967`) with the four open review findings: AuditTest filters, Label cache keys, the two-line fallback, and the fixed line height. Also briefed: the confirmed font-scale 2.0 clipping in `HindiLayoutTest`.
+- Fonts on the cloud verification machine: Lohit Devanagari and other Devanagari families are installed.
+
+**Next step**
+- Implementation finishes the W7 fixes and focused tests. The supervisor then reviews every line and runs one full unfiltered desktop suite.
 
 ### 2026-10-01: Remove unnecessary resume prerequisites from the active handoff
 
