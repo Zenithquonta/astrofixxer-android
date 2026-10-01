@@ -22,7 +22,7 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 
 ## TAKEOVER: read this first (updated 2026-10-01; RESUMED at owner request: step 4.1, W7)
 
-**Resumed 2026-10-01 (owner: "continue what the handoff says").** Step 4.1 (W7) is in progress on `feature/tsap-w7`; see the newest dated entry. Earlier stop note, kept for history: the owner said "enough for today". The owner subsequently authorized only this handoff cleanup; do not resume feature work until asked. There is no complete W7 candidate verification and no merge to integration or main. The next session must read this entire handoff, especially the newest entries, plan section 7b, POLICY, PRIVACY, SECURITY, CONTRIBUTING, NOTICE, README and CHANGELOG before acting.
+**Resumed 2026-10-01 (owner: "continue what the handoff says").** **Owner decision: Hindi interface switched off for now (see the newest entry); W7 is rescoped to that.** Step 4.1 (W7) is in progress on `feature/tsap-w7`; see the newest dated entry. Earlier stop note, kept for history: the owner said "enough for today". The owner subsequently authorized only this handoff cleanup; do not resume feature work until asked. There is no complete W7 candidate verification and no merge to integration or main. The next session must read this entire handoff, especially the newest entries, plan section 7b, POLICY, PRIVACY, SECURITY, CONTRIBUTING, NOTICE, README and CHANGELOG before acting.
 
 ### 1. Pushed branches and checkout ownership
 
@@ -124,6 +124,27 @@ Preserve GPL and all credits; no Android imports in ui/astro/update; user-visibl
 ## Entries
 
 Historical entries retain the evidence and instructions recorded at the time. Their **Next step** instructions are superseded by the current TAKEOVER above.
+
+### 2026-10-01: Owner decision: Hindi interface switched off for now
+
+**Decision (owner):** the Hindi interface is removed from testing and from the APK for now, and will return in a later release.
+
+**Plan (W7 rescoped, branch `feature/tsap-w7`):**
+- A single switch `HINDI_AVAILABLE = false` in `ui/I18n.kt`:
+  - `t()` returns English;
+  - the language choice is hidden;
+  - a saved Hindi setting loads as English.
+- The Hindi strings stay in the code, dormant, so re-enabling is one line.
+- The Indian sky culture (nakshatras) stays: it is sky data, not the interface language.
+- Tests:
+  - AuditTest covers English only while the switch is off;
+  - the Hindi-only tests are `@Ignore`d with the reason "disabled until relaunch" (not deleted);
+  - a new test covers the switch.
+- The WIP AuditTest filters are removed.
+- Kept: the real non-Hindi fix, `Label` caches keyed on density and the text measurer (a font-scale change could reuse a stale measurement), with an English font-scale test.
+- Consequence: the 16 CI Hindi-clipping findings no longer apply while Hindi is off. They must be re-checked when Hindi returns (HindiLayoutTest is kept for that).
+
+**Next step:** the implementation agent applies this. The supervisor reviews every line, runs the full unfiltered desktop suite, merges W7, and verifies CI.
 
 ### 2026-10-01: Resumed; W7 implementation restarted from the handoff
 
