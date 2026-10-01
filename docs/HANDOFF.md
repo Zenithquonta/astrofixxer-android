@@ -22,7 +22,7 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 
 ## TAKEOVER: read this first (updated 2026-10-01; resume sequence step 3, docs pass)
 
-**Resumed 2026-10-01 (owner: "continue what the handoff says").** **Owner decision: Hindi switched off for now and no Hindi work at all; W7 is parked (step 1 is replaced by the Hindi switch-off, merged). Step 2 (W4 camera flow) is DONE: merged to integration as `ab0a661` after a full supervisor run (desktop 120 tests, 0 failures, 2 Hindi skipped; audit 492 variants, no findings; JVM 147, 0 failures; Android compile clean). Step 3 (docs pass) is next: `feature/tsap-docs` (`43affc6`, pushed, reviewed) holds PRIVACY, CONTRIBUTING, POLICY and plan corrections; the in-app licences text is still to do. Owner added for W8: a camera-screen image and a pixel-art animation of the camera solve in the README.** Step 4.1 (W7) is in progress on `feature/tsap-w7`; see the newest dated entry. Earlier stop note, kept for history: the owner said "enough for today". The owner subsequently authorized only this handoff cleanup; do not resume feature work until asked. There is no complete W7 candidate verification and no merge to integration or main. The next session must read this entire handoff, especially the newest entries, plan section 7b, POLICY, PRIVACY, SECURITY, CONTRIBUTING, NOTICE, README and CHANGELOG before acting.
+**Resumed 2026-10-01 (owner: "continue what the handoff says").** **Owner decision: Hindi switched off for now and no Hindi work at all; W7 is parked (step 1 is replaced by the Hindi switch-off, merged). Step 2 (W4 camera flow) is merged to integration as `ab0a661` but CI on W4 found a clipped label at 360 dp on wider fonts (see newest entry); the fix goes on `feature/tsap-w4` and is merged again. Local run before that after a full supervisor run (desktop 120 tests, 0 failures, 2 Hindi skipped; audit 492 variants, no findings; JVM 147, 0 failures; Android compile clean). Step 3 (docs pass) is next: `feature/tsap-docs` (`43affc6`, pushed, reviewed) holds PRIVACY, CONTRIBUTING, POLICY and plan corrections; the in-app licences text is still to do. Owner added for W8: a camera-screen image and a pixel-art animation of the camera solve in the README.** Step 4.1 (W7) is in progress on `feature/tsap-w7`; see the newest dated entry. Earlier stop note, kept for history: the owner said "enough for today". The owner subsequently authorized only this handoff cleanup; do not resume feature work until asked. There is no complete W7 candidate verification and no merge to integration or main. The next session must read this entire handoff, especially the newest entries, plan section 7b, POLICY, PRIVACY, SECURITY, CONTRIBUTING, NOTICE, README and CHANGELOG before acting.
 
 ### 1. Pushed branches and checkout ownership
 
@@ -124,6 +124,15 @@ Preserve GPL and all credits; no Android imports in ui/astro/update; user-visibl
 ## Entries
 
 Historical entries retain the evidence and instructions recorded at the time. Their **Next step** instructions are superseded by the current TAKEOVER above.
+
+### 2026-10-01: CI found a clipped label on W4; integration merge was premature
+
+**CI on `feature/tsap-w4`** (run 38, `791f01a`; run 37 on `28ca51d` failed the same way): `build` and `secret-scan` green; `ui-check` red with 120 tests, 1 failed, 2 skipped. AuditTest checked 492 variants with 2 findings:
+- `solve-tube [360 dp, en, day]: text is cut off: "Change phone placement"`
+- the same at night.
+The runner's fonts are wider than this machine's (here `fc-match sans-serif` gives Noto Sans), so the local audit passed. Cause: `Label` (`ui/SkyScreen.kt`) shrinks one-line button text from 15 to 11 sp and then clips; the TUBE bar in `ui/PlateSolveFlow.kt` puts this label in a 1.4-weight button next to Cancel.
+
+**Supervisor error:** W4 was merged to integration (`ab0a661`) after the local suite without first checking CI on the W4 branch, and the HANDOFF commit on top used `[skip ci]`, so CI did not run on the merge. The integration branch therefore carries this finding. It is fixed forward on `feature/tsap-w4` and merged again; the next code push to integration runs CI. **Rule added: check CI on the work branch before merging it, and never push a merge with only a `[skip ci]` commit on top.**
 
 ### 2026-10-01: W4 camera flow verified and merged to integration
 
