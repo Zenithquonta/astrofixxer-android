@@ -43,6 +43,9 @@ MAIN = {
     "orient-3-result": "readme-orient-3-result",
     "view-more": "readme-view-more",
     "updates-available": "readme-updates-available",
+    "events": "readme-events",
+    "time-travel": "readme-time-travel",
+    "night": "readme-night",
 }
 CAMERA = {
     "camera-1-arrangement": "readme-solve-1-arrangement",

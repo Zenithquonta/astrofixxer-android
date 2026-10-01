@@ -195,4 +195,25 @@ class ReadmeShotsTest {
         onNode(button("Download and install")).performScrollTo()
         screenshot("readme-updates-available")
     }
+
+    // ---------------------------------------------------------------- 7. events, time travel and night mode
+
+    @Test fun eventsTimeTravelAndNightMode() = phoneTest {
+        val s = guidedAt(12.0)
+        setContent { AppScreen(s) }
+        onNode(button("Events")).tap()
+        onNode(hasText("★ Moon covers Antares")).assertExists()
+        screenshot("readme-events")
+        onNode(button("Close")).tap()
+        onNode(hasText("21:30") and hasClickAction()).tap() // the clock chip opens the time bar
+        onNode(button("+1 d")).tap()
+        onNode(hasText("Tue 29 Sep 2026, 21:30")).assertExists()
+        screenshot("readme-time-travel")
+        onNode(button("Now")).tap()
+        onNode(button("Night")).tap()
+        assertTrue(s.night)
+        onNode(button("Day")).assertExists()
+        onNode(hasText("Move to M57")).assertExists()
+        screenshot("readme-night")
+    }
 }

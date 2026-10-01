@@ -43,7 +43,7 @@ build is out, the app shows its version, size and what's new, then downloads it,
 Android's installer, which asks you to confirm. Allow **install unknown apps** for AstroFixxer when Android asks, then come back.
 
 - It only checks when you tap the button; nothing runs in the background and nothing about you is sent (see [PRIVACY.md](PRIVACY.md)).
-- The official downloads are signed with one permanent key kept in this repository's GitHub Secrets, so each installs over the last and keeps your lists. A build signed with a one-off key (for example a fork's build without the key) can't be installed over yours: the app says so and asks for a second tap, and uninstalling AstroFixxer first would install it but erase your saved lists.
+- Builds signed with this repository's permanent key (kept in its GitHub Secrets) install over each other and keep your lists. If a build was signed with a one-off debug key instead (for example when that secret is missing, or in a fork), it can't be installed over yours: the app says so before downloading and asks for a second tap. Uninstalling AstroFixxer first would install it but erase your saved lists.
 - The SHA-256 catches a damaged or wrong file. It comes from the same GitHub release as the APK, so it does not stop a tampered release; Android's signature check does (see [SECURITY.md](SECURITY.md)).
 - The Google Play version has no updater (Play forbids it); Play updates it for you.
 
@@ -66,8 +66,8 @@ AstroFixxer does the hopping maths for you.
 
 ## The telescope tools, step by step
 
-Every picture below is a real screen of the app, drawn by the desktop test harness (see [Proof it works](#proof-it-works)).
-Nothing here has been run on a real telescope yet, see [Tested and not yet tested](#tested-and-not-yet-tested).
+Every screenshot below is a real screen of the app, drawn by the desktop test harness (see [Proof it works](#proof-it-works)); the pixel animations are drawings.
+The sensors, the camera and the alignment have not been tried on a real phone or telescope yet, see [Tested and not yet tested](#tested-and-not-yet-tested).
 
 ### 1. Set it up once
 
@@ -163,7 +163,7 @@ which way the phone points along the telescope (from two alignment stars), and w
 
 | Events | Time travel | Night mode |
 |:---:|:---:|:---:|
-| <img src="docs/screens/events.png" width="190" alt="Events list"> | <img src="docs/screens/time-travel.png" width="190" alt="Time-travel bar"> | <img src="docs/screens/night.png" width="190" alt="Night mode"> |
+| <img src="docs/screens/new/events.png" width="190" alt="Events list: tonight's summary, then the Full Moon, the Orionids peak and the Moon covering Antares"> | <img src="docs/screens/new/time-travel.png" width="190" alt="Time-travel bar with the clock set a day ahead, and the Now button to come back"> | <img src="docs/screens/new/night.png" width="190" alt="Night mode: the whole screen in red, with the guidance arrow to M57"> |
 
 <p align="center"><img src="docs/art/divider.gif" width="800" alt=""></p>
 
@@ -243,7 +243,7 @@ The screenshots in this README are produced by those tests: `./gradlew test --of
 | The build and tests on GitHub's machines (CI) | Alignment accuracy at the eyepiece |
 | | Android's DownloadManager and installer, and the live updater against a real release |
 
-So far nobody has used AstroFixxer on a real telescope. The protocol for finding out is in **[docs/FIELD_TEST.md](docs/FIELD_TEST.md)**.
+None of the right-hand column has been tried on a real phone or telescope yet. How it will be tried is in **[docs/FIELD_TEST.md](docs/FIELD_TEST.md)**.
 
 <p align="center"><img src="docs/art/divider.gif" width="800" alt=""></p>
 
@@ -282,8 +282,7 @@ python3 tools/repo-art/make_art.py           # regenerates the pixel art (needs 
 ```
 
 The `preview` build is optimised like a release and has its own application ID (`org.astrofixxer.preview`), so it sits
-next to a Play Store copy instead of replacing it. Your own build is signed with your computer's debug key. The official
-downloads are signed with a key kept in GitHub Secrets, so only this repository can publish updates that install over them. A fork without that secret signs with a throwaway debug key (see `SECURITY.md`). The downloadable build's `versionCode` is the CI run number plus 1000 (`VERSION_CODE_OFFSET` in `android.yml`); a local build has `versionCode` 1.
+next to a Play Store copy instead of replacing it. Your own build is signed with your computer's debug key. A build signed with this repository's permanent key, kept in GitHub Secrets, installs over the previous official download; when that secret is missing (a fork, for example) CI signs with a throwaway debug key, and the app says such a build can't be installed over yours (see `SECURITY.md`). The downloadable build's `versionCode` is the CI run number plus 1000 (`VERSION_CODE_OFFSET` in `android.yml`); a local build has `versionCode` 1.
 
 ## Make it your own
 
