@@ -54,7 +54,9 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.astrofixxer.astro.Catalog
@@ -302,17 +304,28 @@ private fun Toolbar(state: SkyState, onAsk: (() -> Unit)?, onSearch: () -> Unit,
     }
 }
 
-/** One-line button label that steps its font down (15 to 11 sp) until it fits, so no label is ever cut off. */
+/**
+ * Button label that is never cut off. It takes the largest size (15 down to 11 sp) that fits on one line; when none does,
+ * the largest size that fits on two centred lines with no word broken in the middle; only when even that fails does it
+ * clip at 11 sp. Two lines need about 40 dp, so a 48 dp button grows a little when its label wraps (a 56 dp one by about a dp).
+ */
 @Composable
 internal fun Label(text: String, color: Color = Color.Unspecified) = BoxWithConstraints(contentAlignment = Alignment.Center) {
     val measurer = rememberTextMeasurer()
     val base = LocalTextStyle.current
     val maxPx = constraints.maxWidth
-    val style = remember(text, maxPx, base) {
-        listOf(15, 14, 13, 12, 11).map { base.copy(fontSize = it.sp) }
-            .firstOrNull { measurer.measure(text, it, maxLines = 1, softWrap = false).size.width <= maxPx } ?: base.copy(fontSize = 11.sp)
+    val sizes = listOf(15, 14, 13, 12, 11)
+    val fit = remember(text, maxPx, base) {
+        sizes.map { base.copy(fontSize = it.sp) }.firstOrNull { measurer.measure(text, it, maxLines = 1, softWrap = false).size.width <= maxPx }
+            ?.let { it to 1 }
+            ?: sizes.map { base.copy(fontSize = it.sp, lineHeight = (it + 3).sp) }.firstOrNull {
+                val r = measurer.measure(text, it, maxLines = 2, constraints = Constraints(maxWidth = maxPx))
+                !r.hasVisualOverflow && (0 until r.lineCount - 1).all { line -> text[r.getLineEnd(line) - 1].isWhitespace() }
+            }?.let { it to 2 }
+            ?: (base.copy(fontSize = 11.sp) to 1)
     }
-    Text(text, style = style, color = color, maxLines = 1, softWrap = false)
+    val (style, lines) = fit
+    Text(text, style = style, color = color, maxLines = lines, softWrap = lines > 1, textAlign = TextAlign.Center)
 }
 
 @Composable
