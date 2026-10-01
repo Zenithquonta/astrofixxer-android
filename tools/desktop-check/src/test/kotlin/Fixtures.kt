@@ -1,5 +1,6 @@
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asSkiaBitmap
@@ -20,6 +21,8 @@ import org.astrofixxer.astro.Catalog
 import org.astrofixxer.astro.Pointing
 import org.astrofixxer.astro.SkyObject
 import org.astrofixxer.ui.EventItem
+import org.astrofixxer.ui.PlateSolveHost
+import org.astrofixxer.ui.PlateSolveModel
 import org.astrofixxer.ui.SkyScreen
 import org.astrofixxer.ui.SkyState
 import org.astrofixxer.ui.solarSystem
@@ -91,11 +94,14 @@ object BackButton {
     fun press(): Boolean = handler?.let { it(); true } ?: false
 }
 
-/** SkyScreen wired like MainActivity does it. */
+/** SkyScreen wired like MainActivity does it; [host] is the phone's camera side for the plate-solve flow (null: no camera button anywhere). */
 @Composable
-fun AppScreen(state: SkyState, events: List<EventItem>? = Fixtures.sampleEvents, updater: org.astrofixxer.ui.Updater? = null) {
+fun AppScreen(state: SkyState, events: List<EventItem>? = Fixtures.sampleEvents, host: PlateSolveHost? = null, model: PlateSolveModel? = null,
+    updater: org.astrofixxer.ui.Updater? = null) {
+    val solveModel = model ?: remember { PlateSolveModel() }
     SkyScreen(state, Fixtures.catalog, solarSystem(state), events, onAsk = null,
-        backHandler = { enabled, onBack -> SideEffect { BackButton.handler = if (enabled) onBack else null } }, updater = updater)
+        backHandler = { enabled, onBack -> SideEffect { BackButton.handler = if (enabled) onBack else null } },
+        plateSolve = host, solveModel = solveModel, updater = updater)
 }
 
 @OptIn(ExperimentalTestApi::class)

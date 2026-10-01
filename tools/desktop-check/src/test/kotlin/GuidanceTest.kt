@@ -4,9 +4,7 @@ import androidx.compose.ui.test.hasText
 import org.astrofixxer.astro.Pointing
 import org.astrofixxer.astro.SkyObject
 import org.astrofixxer.ui.MountType
-import org.astrofixxer.ui.SkyScreen
 import org.astrofixxer.ui.SkyState
-import org.astrofixxer.ui.solarSystem
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -156,8 +154,8 @@ class GuidanceTest {
     @Test fun moreHoldsTheDetailsAndTheCameraSlot() = phoneTest {
         val s = alignedOnVega()
         s.target = offset(s, 6.0, 3.0)
-        var solved = 0
-        setContent { SkyScreen(s, Fixtures.catalog, solarSystem(s), Fixtures.sampleEvents, onSolveWithCamera = { solved++ }) }
+        val model = org.astrofixxer.ui.PlateSolveModel()
+        setContent { AppScreen(s, host = FakeHost(), model = model) }
         onNode(button("Solve with camera")).assertDoesNotExist()
         onNode(button("More")).tap()
         onNode(hasText("ΔAlt")).assertExists()
@@ -173,7 +171,11 @@ class GuidanceTest {
         onNode(button("Mirror view")).tap()
         assertTrue(s.setup.viewMirrored)
         onNode(button("Solve with camera")).tap()
-        assertEquals(1, solved)
+        assertTrue("the camera slot opens the plate-solve flow", model.open)
+        onNode(hasText("Centre the bright eyepiece circle", substring = true)).assertDoesNotExist() // the default setup is on the tube
+        onNode(hasText("Solving is not possible with the phone flat on the tube")).assertExists()
+        onNode(button("Cancel")).tap()
+        assertFalse(model.open)
         onNode(button("Less")).tap()
         onNode(button("Check with another star")).assertDoesNotExist()
         s.night = true
