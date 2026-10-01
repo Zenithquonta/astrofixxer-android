@@ -35,6 +35,7 @@ import org.astrofixxer.ui.SkyState
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Checks every screen, in every available language (English only while Hindi is switched off), day and night, on 360 dp and 411 dp phones:
@@ -281,21 +282,52 @@ class AuditTest {
         )
     }
 
+    /**
+     * Runs one screen variant and fails, naming it, when it throws or takes longer than [limitMs]. Every wait in the
+     * navigation steps (waitForIdle, waitUntil, tap) happens inside, so none can hang the whole run without saying where:
+     * after the limit the test thread is interrupted with its stack printed, and if it still does not return the JVM stops.
+     */
+    private fun <T> withinTime(where: String, limitMs: Long = 600_000, body: () -> T): T {
+        val test = Thread.currentThread()
+        val finished = AtomicBoolean(false)
+        val dog = Thread {
+            try { Thread.sleep(limitMs) } catch (e: InterruptedException) { return@Thread }
+            if (finished.get()) return@Thread
+            System.err.println("AUDIT HANG: $where did not finish in ${limitMs / 1000} s. Test thread:\n" + test.stackTrace.joinToString("\n") { "    at $it" })
+            test.interrupt()
+            try { Thread.sleep(30_000) } catch (e: InterruptedException) { return@Thread }
+            if (!finished.get()) {
+                System.err.println("AUDIT HANG: $where ignored the interrupt; stopping the test JVM.")
+                System.err.flush()
+                Runtime.getRuntime().halt(1)
+            }
+        }.apply { isDaemon = true; start() }
+        try {
+            return body()
+        } catch (e: Throwable) {
+            throw AssertionError("Audit screen $where failed: ${e.message ?: e}", e)
+        } finally {
+            finished.set(true); dog.interrupt(); Thread.interrupted()
+        }
+    }
+
     @Test fun everyScreenPassesTheAudit() {
         val findings = mutableListOf<String>()
         var checked = 0
         for (width in listOf(360, 411)) for (lang in I18n.languages.map { it.first }) for (night in listOf(false, true)) for (screen in screens) {
             I18n.language = lang
+            val where = "${screen.name} [$width dp, $lang, ${if (night) "night" else "day"}]"
             try {
-                phoneTest(widthDp = width) {
-                    val state = Fixtures.state().apply { this.night = night; screen.setup(this) }
-                    setContent { AppScreen(state, host = screen.host?.invoke(), model = screen.solver?.let { modelWith(it) }, updater = screen.updater?.let { FakeUpdater(it) }) }
-                    screen.open(this)
-                    waitForIdle()
-                    val where = "${screen.name} [$width dp, $lang, ${if (night) "night" else "day"}]"
-                    findings += audit(this, where, width, checkOverlap = !screen.overlayOpen)
-                    if (width == 360) screenshot("audit-${screen.name}-$lang-${if (night) "night" else "day"}")
-                    checked++
+                withinTime(where) {
+                    phoneTest(widthDp = width) {
+                        val state = Fixtures.state().apply { this.night = night; screen.setup(this) }
+                        setContent { AppScreen(state, host = screen.host?.invoke(), model = screen.solver?.let { modelWith(it) }, updater = screen.updater?.let { FakeUpdater(it) }) }
+                        screen.open(this)
+                        waitForIdle()
+                        findings += audit(this, where, width, checkOverlap = !screen.overlayOpen)
+                        if (width == 360) screenshot("audit-${screen.name}-$lang-${if (night) "night" else "day"}")
+                        checked++
+                    }
                 }
             } finally {
                 I18n.language = "en"
