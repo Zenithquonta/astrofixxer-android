@@ -144,7 +144,14 @@ Historical entries retain the evidence and instructions recorded at the time. Th
 
 **Next:** supervisor review, CI on `feature/settings-gear`, then merge.
 
+
 **Supervisor review:** every changed line read; screenshots viewed (day/night sky, worst-case time travel with guidance, centring a star): the gear reads as a gear and crowds nothing. Removed the two Hindi entries orphaned by the reworded help strings (no new Hindi). Re-ran with DejaVu fonts: AlignFlowTest 19, JourneyTest 11, LabelFitTest 3, NewScreensTest 9, OrientationTest 9, PlateSolveFlowTest 27, SettingsGearTest 5, SetupWizardTest 12, all passed; I18nTest skipped by design (Hindi off). The branch is merged with `feature/beta-guide` so the tree CI tests is the tree that lands on main (both add entries at the top of CHANGELOG and this file).
+
+### 2026-10-02: Beta tester guide added to the repository (branch, CI pending)
+
+Owner: "commit all to astrofixxer-android". All code was already committed and pushed (every local branch is contained in main); the only work outside the repo was the beta tester guide. `feature/beta-guide` (from main `d860be9`) adds `docs/BETA_GUIDE.md` (the guide's own Markdown export, with the 28 picture placeholders replaced by links to the existing `docs/screens/new/*.png` and `docs/art/*.gif`, all checked to exist), the two mounting diagrams as `docs/art/guide-eyepiece.png` and `docs/art/guide-mounting.png`, and the Word copy `docs/AstroFixxer-Beta-Tester-Guide.docx` (rendered to 21 pages and every page checked; editor metadata stripped). README links the guide under Download; CHANGELOG "Beta tester guide (2 Oct 2026)". Docs only, no code. The guide's "temporary key" notes should go once the preview signing Secrets are added.
+
+**Next:** CI on `feature/beta-guide`; if green, merge into main and integration.
 
 ### 2026-10-02: Newtonian eyepiece rule and hint wording merged to main (CI run 47 green)
 

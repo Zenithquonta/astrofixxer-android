@@ -13,6 +13,10 @@ The first Android version: a Kotlin + Jetpack Compose port of the AstroFixxer we
 - **A gear at the top right of the sky screen** opens Sky & viewing on the Telescope & orientation tab, where the telescope, eyepiece and phone placement are set. The Sky button at the bottom still opens the Sky tab.
 - The gear sits above the Not aligned chip and the clock, so it never narrows them or the target card, even on a 360 dp phone with a long date. Help now mentions it.
 
+### Beta tester guide (2 Oct 2026)
+
+- `docs/BETA_GUIDE.md` and a Word copy (`docs/AstroFixxer-Beta-Tester-Guide.docx`): a beginner's guide for beta testers covering safe download and install (every Android prompt), the security checks each build passes, where the eyepiece sits on a refractor and a Newtonian, the three ways to mount the phone (two new diagrams in `docs/art/`), setup, alignment, guidance, the eyepiece-view check, camera solving, troubleshooting, and what to test and how to report it. The README links to it.
+
 ### Newtonian eyepiece (2 Oct 2026)
 
 - **A Newtonian's eyepiece is always at a right angle.** The setup wizard, Telescope & orientation and the solve arrangement step no longer offer "Straight" or "Not sure" for a reflector (they only ask which phone edge points to the front), and the axis, view guess, summary texts and saved settings all treat a reflector as right-angle; an older saved reflector with a straight or unsure eyepiece loads as right angle. Choosing a reflector while the phone sat on a straight eyepiece clears the alignment, as any change in how the phone sits does. Refractors and other telescopes keep the three choices.
