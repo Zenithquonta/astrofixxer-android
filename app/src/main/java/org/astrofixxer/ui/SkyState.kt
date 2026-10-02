@@ -532,7 +532,7 @@ class SkyState(nowMillis: Long, lat: Double, lon: Double) {
         "telescopeMm" to "$telescopeFocalMm", "eyepieceMm" to "$eyepieceFocalMm", "eyepieceAfov" to "$eyepieceAfovDeg",
         "haptics" to "$haptics",
         "setupDone" to "$setupDone", "telescopeType" to setup.type.name, "mountType" to setup.mount.name, "placement" to setup.placement.name,
-        "phoneEdge" to setup.edge.name, "eyepieceAngle" to setup.eyepieceAngle.name, "erecting" to setup.erecting.name,
+        "phoneEdge" to setup.edge.name, "eyepieceAngle" to setup.effectiveEyepieceAngle.name, "erecting" to setup.erecting.name,
         "viewRotation" to "${setup.viewRotationDeg}", "viewMirrored" to "${setup.viewMirrored}", "matchEyepiece" to "$matchEyepieceView",
         "alignMatrix" to (alignMatrix?.joinToString(",") ?: ""), "alignStar" to (alignStar?.name ?: alignStarName ?: ""),
         "alignedAt" to (alignedAtMillis?.toString() ?: ""),
@@ -565,7 +565,7 @@ class SkyState(nowMillis: Long, lat: Double, lon: Double) {
         e("eyepieceAngle", EyepieceAngle.values()) { t = t.copy(eyepieceAngle = it) }; e("erecting", Erecting.values()) { t = t.copy(erecting = it) }
         s["viewRotation"]?.toIntOrNull()?.takeIf { it in listOf(0, 90, 180, 270) }?.let { t = t.copy(viewRotationDeg = it) }
         s["viewMirrored"]?.toBooleanStrictOrNull()?.let { t = t.copy(viewMirrored = it) }
-        setup = t
+        setup = t.normalised() // an older save of a Newtonian with a straight or unsure eyepiece loads as a right angle
         restoreAlignment(s["alignMatrix"], s["alignStar"], s["alignedAt"])
         // Two fractions of the picture, both inside it; anything else is ignored.
         s["cameraOffset"]?.split(',')?.mapNotNull { it.toDoubleOrNull() }?.takeIf { it.size == 2 && it.all { v -> v in 0.0..1.0 } }

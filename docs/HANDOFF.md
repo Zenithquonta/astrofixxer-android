@@ -22,7 +22,7 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 
 ## TAKEOVER: read this first (updated 2026-10-01; resume sequence step 3, docs pass)
 
-**Resumed 2026-10-01 (owner: "continue what the handoff says").** **Owner decision: Hindi switched off for now and no Hindi work at all; W7 is parked (step 1 is replaced by the Hindi switch-off, merged). Phase 7b is on main (`e76d8e7`, CI run 43 green) and the W8 README showcase is merged (CI run 42 green). Resume steps 1–5 are done. Open items need the owner or a real device: field test (docs/FIELD_TEST.md), v0.2.0 tag after the Play signing secrets are confirmed, Hindi later (W7 parked), and one wording follow-up in the eyepiece live view; see the newest entry.** W7 (`feature/tsap-w7`, WIP `16195d9`) stays parked and unmerged. Nothing is merged to main yet. The next session must read this entire handoff, especially the newest entries, plan section 7b, POLICY, PRIVACY, SECURITY, CONTRIBUTING, NOTICE, README and CHANGELOG before acting.
+**Resumed 2026-10-01 (owner: "continue what the handoff says").** **Owner decision: Hindi switched off for now and no Hindi work at all; W7 is parked (step 1 is replaced by the Hindi switch-off, merged). Phase 7b is on main (`e76d8e7`, CI run 43 green) and the W8 README showcase is merged (CI run 42 green). Resume steps 1–5 are done. Open items need the owner or a real device: field test (docs/FIELD_TEST.md), v0.2.0 tag after the Play signing secrets are confirmed, Hindi later (W7 parked), and the live-view hint wording fix on `feature/solve-hint-wording` awaiting CI; see the newest entry.** W7 (`feature/tsap-w7`, WIP `16195d9`) stays parked and unmerged. Nothing is merged to main yet. The next session must read this entire handoff, especially the newest entries, plan section 7b, POLICY, PRIVACY, SECURITY, CONTRIBUTING, NOTICE, README and CHANGELOG before acting.
 
 ### 1. Pushed branches and checkout ownership
 
@@ -125,6 +125,24 @@ Preserve GPL and all credits; no Android imports in ui/astro/update; user-visibl
 
 Historical entries retain the evidence and instructions recorded at the time. Their **Next step** instructions are superseded by the current TAKEOVER above.
 
+### 2026-10-02: Owner note: a Newtonian's eyepiece is on the side; rule added (branch, CI pending)
+
+**Owner:** on a reflector (Newtonian) the eyepiece sits on the side of the tube, at right angles to where it looks; on a refractor it is at the back, along the tube (a star diagonal makes it a right angle).
+
+**Before:** the wizard, the Telescope & orientation tab and the solve arrangement step offered Straight / Right angle / Not sure for every type, so a Newtonian could be set to "Straight" and the pointing axis would be wrong by 90°.
+
+**`feature/newtonian-eyepiece` `3b2e508`** (stacked on `feature/solve-hint-wording`; implementation, supervisor reviewed):
+- Rule in one place: `Mounting.effectiveEyepieceAngle(type, angle)` returns RIGHT_ANGLE for REFLECTOR. `TelescopeSetup.effectiveEyepieceAngle`/`normalised()`; `axis()`, `viewGuess()`, `mountingDiffers` (angle counts only on the eyepiece), the summary text and saved settings use it. An older save of REFLECTOR + STRAIGHT/UNSURE loads as RIGHT_ANGLE.
+- UI: for a reflector on the eyepiece the wizard ANGLE step, the tab and the solve arrangement step show "On a Newtonian the eyepiece is on the side, at right angles to the tube." and only the edge picker. Refractors and Other unchanged. New English strings have no Hindi entry (Hindi off).
+- Tests: MountingTest (new reflector-axis test; `initialViewOrientationTable` fixed where it encoded reflector + UNSURE), SetupWizardTest +2 and round-trip extended, AlignFlowTest +2 (clears alignment after straight→Newtonian, keeps it after right angle→Newtonian), PlateSolveFlowTest +1, AuditTest screen `wizard-4-angle-newtonian`.
+- Implementation results (DejaVu fonts): SetupWizardTest 12/12, AlignFlowTest 19/19, OrientationTest 9/9, PlateSolveFlowTest 27/27, LabelFitTest 3/3; JVM 148, 0 failures; Android compile clean. Supervisor checked that every remaining raw `eyepieceAngle` read sits in the non-Newtonian branch.
+
+**Next:** CI on `feature/newtonian-eyepiece` (covers the hint wording too); if green, merge into main and integration, log.
+
+### 2026-10-02: Live-view hint wording fixed (branch, CI pending)
+
+`feature/solve-hint-wording` (from main `256188d`): `712142d` (implementation; supervisor reviewed) changes the camera live-view line from "Move the telescope until the star reaches the +" to "The + shows where the telescope points." The old line only showed when a + is drawn (eyepiece: photo centre; beside the tube with a calibrated offset: the "Telescope" spot); while calibrating there is no + and the star-naming line is unchanged. Tests updated (PlateSolveFlowTest lines ~106, ~221; ReadmeCameraShotsTest ~136); the unused Hindi entry for the old string removed (no new Hindi); CHANGELOG "Solve hint wording (2 Oct 2026)". Implementation ran with DejaVu: PlateSolveFlowTest 26/26, LabelFitTest 3/3, ReadmeCameraShotsTest 3/3; Android compile clean. Supervisor re-rendered the two changed README screenshots with the default font (the other five camera PNGs came out byte-identical) and viewed both. Next: CI on the branch, then merge into main and integration.
+
 ### 2026-10-02: Phase 7b on main; CI green on main; README showcase merged
 
 **Main:** `e76d8e7` merges the integration branch (`--no-ff`, signed off; tree identical to integration `8dce197`, whose code is the CI-verified `1afc381`). **CI run 43 on main `e76d8e7`: build, ui-check and secret-scan all green.** The main build publishes the downloadable APK as before. No tag was made.
@@ -137,7 +155,7 @@ Historical entries retain the evidence and instructions recorded at the time. Th
 - field test on a real phone and telescope (sensors, Camera2 capture and exposure, real sky photos, alignment accuracy, DownloadManager/installer, live updater): docs/FIELD_TEST.md;
 - v0.2.0 tag only after the owner confirms the Play signing secrets;
 - Hindi parked on `feature/tsap-w7` (owner: later release);
-- app wording follow-up: the eyepiece live view always says "Move the telescope until the star reaches the +" (`ui/PlateSolveFlow.kt` ~353), even with no chosen star;
+- app wording follow-up (live-view hint): fixed on `feature/solve-hint-wording`, see newer entry;
 - local paper (not in git) still describes Hindi and older test counts.
 
 ### 2026-10-01: Candidate CI green; integration fast-forwarded; W8 README ready

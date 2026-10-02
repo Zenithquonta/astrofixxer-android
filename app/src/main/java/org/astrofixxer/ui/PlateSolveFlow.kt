@@ -126,7 +126,9 @@ private fun Scrolling(modifier: Modifier = Modifier, content: @Composable () -> 
 private fun ArrangementStep(state: SkyState, model: PlateSolveModel, onChangePlacement: () -> Unit) {
     val s = state.setup
     // The eyepiece angle is only asked when the saved setup does not know it.
-    var askAngle by remember { mutableStateOf(s.eyepieceAngle == EyepieceAngle.UNSURE) }
+    // A Newtonian's eyepiece is always a right angle, so it only has the edge question.
+    var askAngle by remember { mutableStateOf(s.effectiveEyepieceAngle == EyepieceAngle.UNSURE) }
+    val newtonian = s.type == TelescopeType.REFLECTOR
     Column(Modifier.fillMaxSize()) {
         Scrolling(Modifier.weight(1f).fillMaxWidth()) {
             MountingPreview(s, Modifier.fillMaxWidth().height(120.dp))
@@ -139,7 +141,11 @@ private fun ArrangementStep(state: SkyState, model: PlateSolveModel, onChangePla
                 }
                 PhonePlacement.EYEPIECE -> {
                     Heading(t("Centre the bright eyepiece circle in the camera view and focus on stars"))
-                    if (askAngle) {
+                    if (newtonian) {
+                        Body(t("On a Newtonian the eyepiece is on the side, at right angles to the tube."))
+                        Body(t("Which edge points toward the front of the telescope?"))
+                        EdgePicker(s.edge, drawing = false) { state.updateSetup(s.copy(edge = it)) }
+                    } else if (askAngle) {
                         Body(t("Does the eyepiece go straight in, or at a right angle (diagonal or Newtonian)?"))
                         Segmented(listOf(t("Straight") to EyepieceAngle.STRAIGHT, t("Right angle") to EyepieceAngle.RIGHT_ANGLE, t("Not sure") to EyepieceAngle.UNSURE), s.eyepieceAngle) {
                             state.updateSetup(s.copy(eyepieceAngle = it))
@@ -350,7 +356,7 @@ private fun LiveStep(state: SkyState, model: PlateSolveModel, host: PlateSolveHo
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         model.calibrating?.let { Body(t("Centre %s in the eyepiece, then take the photo.").format(it.name)) }
         if (model.calibrating == null && state.setup.placement == PhonePlacement.EYEPIECE) Body(t("Centre the bright eyepiece circle in the camera view and focus on stars"))
-        if (position != null) Body(t("Move the telescope until the star reaches the +"))
+        if (position != null) Body(t("The + shows where the telescope points."))
         else if (model.calibrating == null) Small(t("The camera offset is not calibrated, so this photo will say where the camera points, not the telescope."))
         Box(Modifier.weight(1f).fillMaxWidth()) {
             key(attempt) {

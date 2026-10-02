@@ -25,6 +25,7 @@ import org.astrofixxer.ui.CameraPermission
 import org.astrofixxer.ui.CameraProblem
 import org.astrofixxer.ui.EyepieceAngle
 import org.astrofixxer.ui.GalleryResult
+import org.astrofixxer.ui.PhoneEdge
 import org.astrofixxer.ui.PhonePlacement
 import org.astrofixxer.ui.PhotoShot
 import org.astrofixxer.ui.PlateSolveModel
@@ -32,6 +33,7 @@ import org.astrofixxer.ui.PointingMode
 import org.astrofixxer.ui.SkyState
 import org.astrofixxer.ui.SolveOutcome
 import org.astrofixxer.ui.SolveStep
+import org.astrofixxer.ui.TelescopeType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -80,6 +82,28 @@ class PlateSolveFlowTest {
 
     // ---------------------------------------------------------------- eyepiece: solve, apply
 
+    @Test fun aNewtonianArrangementOnlyAsksForTheEdge() = phoneTest {
+        // An older save: a reflector whose eyepiece angle was never answered. It is a right angle, so the edge is the only question.
+        val state = eyepieceState(vega)
+        state.setup = state.setup.copy(type = TelescopeType.REFLECTOR, eyepieceAngle = EyepieceAngle.UNSURE, edge = PhoneEdge.TOP)
+        assertEquals(0.0, state.setup.axis().vector[2], 0.0)
+        assertFalse(state.setup.axis().needsCheck)
+        val model = PlateSolveModel()
+        setContent { AppScreen(state, host = FakeHost().apply { camera += Shots.render(Shots.truth(vega.ra, vega.dec, widthDeg = 13.0, roll = 0.0), 1, limitMag = 6.5) }, model = model) }
+        openFromTelescopeTab()
+        onNode(hasText("Phone: on a right-angle eyepiece, top edge to the front")).assertExists()
+        onNode(hasText("Does the eyepiece go straight in, or at a right angle (diagonal or Newtonian)?")).assertDoesNotExist()
+        onNode(button("Straight")).assertDoesNotExist()
+        onNode(button("Right angle")).assertDoesNotExist()
+        onNode(button("Not sure")).assertDoesNotExist()
+        onNode(hasText("On a Newtonian the eyepiece is on the side, at right angles to the tube.")).assertExists()
+        onNode(hasText("Which edge points toward the front of the telescope?")).assertExists()
+        onNode(button("Left edge")).performScrollTo().tap()
+        assertEquals(PhoneEdge.LEFT, state.setup.edge)
+        assertEquals(-1.0, state.setup.axis().vector[0], 0.0)
+        onNode(hasText("Phone: on a right-angle eyepiece, left edge to the front")).assertExists()
+    }
+
     @Test fun eyepiecePhotoSolvesAndAlignsFromTheAlignmentPanel() = phoneTest {
         val state = eyepieceState(vega, compassErrorDeg = 20.0) // x5: a 65 degree phone camera sees 13 degrees of sky
         val truth = Shots.truth(vega.ra, vega.dec, widthDeg = 13.0, roll = 47.0)
@@ -103,7 +127,7 @@ class PlateSolveFlowTest {
         screenshot("solve-tips")
         next()
         // c. live view
-        onNode(hasText("Move the telescope until the star reaches the +")).assertExists()
+        onNode(hasText("The + shows where the telescope points.")).assertExists()
         assertEquals(1, host.liveViewsOpened)
         onNode(hasText("Camera field of view: 65°")).assertExists()
         screenshot("solve-live-eyepiece")
@@ -218,7 +242,7 @@ class PlateSolveFlowTest {
         // 3. a photo of another sky: Apply is enabled and puts the telescope where the offset says
         aim(state, t3.raDeg, t3.decDeg, errorDeg = -25.0)
         toLive()
-        onNode(hasText("Move the telescope until the star reaches the +")).assertExists()
+        onNode(hasText("The + shows where the telescope points.")).assertExists()
         onNode(hasText("Telescope")).assertExists()
         takePhotoAndWait(model)
         onNode(hasText("Apply to alignment")).assertIsEnabled()

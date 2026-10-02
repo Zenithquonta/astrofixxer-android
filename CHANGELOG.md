@@ -8,6 +8,14 @@ Every update and fix to AstroFixxer, newest first. Dates are when the work lande
 The first Android version: a Kotlin + Jetpack Compose port of the AstroFixxer web app, which grew out of
 [AstroHopper / skyhopper](https://github.com/artyom-beilis/skyhopper) by Artyom Beilis.
 
+### Newtonian eyepiece (2 Oct 2026)
+
+- **A Newtonian's eyepiece is always at a right angle.** The setup wizard, Telescope & orientation and the solve arrangement step no longer offer "Straight" or "Not sure" for a reflector (they only ask which phone edge points to the front), and the axis, view guess, summary texts and saved settings all treat a reflector as right-angle; an older saved reflector with a straight or unsure eyepiece loads as right angle. Choosing a reflector while the phone sat on a straight eyepiece clears the alignment, as any change in how the phone sits does. Refractors and other telescopes keep the three choices.
+
+### Solve hint wording (2 Oct 2026)
+
+- **Live view hint.** The camera live view no longer says "Move the telescope until the star reaches the +", which meant nothing when no star had been chosen. It now says "The + shows where the telescope points." (the + is the photo centre at the eyepiece, or the calibrated Telescope spot beside the tube). While calibrating the camera offset there is no + and the line naming the star is unchanged. Text only; nothing else changes.
+
 ### Licences, privacy and contributing (1 Oct 2026)
 
 - **Help → Licences and source** now credits ESA Gaia DR3 and Hipparcos (the plate-solving star list) and CelesTrak (ISS and Tiangong orbits), says that only the modern constellation illustrations are under the Free Art License (the Indian ones are CC BY-SA 4.0), and points to `PRIVACY.md` and `NOTICE.md`.

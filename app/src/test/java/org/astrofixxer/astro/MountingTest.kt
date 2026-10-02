@@ -177,6 +177,33 @@ class MountingTest {
             else assertNotNull("$up/$right", Mounting.orientationFromNudges(up, right))
         }
     }
+    @Test fun aNewtonianEyepieceIsAlwaysARightAngleSoItUsesTheEdgeAxis() {
+        val edges = mapOf(PhoneEdge.TOP to v(0.0, 1.0, 0.0), PhoneEdge.BOTTOM to v(0.0, -1.0, 0.0), PhoneEdge.RIGHT to v(1.0, 0.0, 0.0), PhoneEdge.LEFT to v(-1.0, 0.0, 0.0))
+        for ((edge, axis) in edges) for (angle in EyepieceAngle.values()) {
+            // Whatever was chosen or saved, a reflector on the eyepiece points along the chosen edge, never the rear camera, and needs no check.
+            val reflector = Mounting.phoneAxis(TelescopeType.REFLECTOR, PhonePlacement.EYEPIECE, edge, angle)
+            assertArrayEquals("reflector $angle $edge", axis, reflector.vector, 0.0)
+            assertFalse(reflector.needsCheck)
+            // A refractor and an unknown telescope keep the three choices.
+            for (type in listOf(TelescopeType.REFRACTOR, TelescopeType.OTHER)) {
+                assertArrayEquals("$type $angle", Mounting.phoneAxis(PhonePlacement.EYEPIECE, edge, angle).vector,
+                    Mounting.phoneAxis(type, PhonePlacement.EYEPIECE, edge, angle).vector, 0.0)
+                assertEquals(angle == EyepieceAngle.UNSURE, Mounting.phoneAxis(type, PhonePlacement.EYEPIECE, edge, angle).needsCheck)
+            }
+            // Other placements ignore the eyepiece, for every type.
+            for (type in TelescopeType.values()) {
+                assertArrayEquals(axis, Mounting.phoneAxis(type, PhonePlacement.TUBE, edge, angle).vector, 0.0)
+                assertArrayEquals(v(0.0, 0.0, -1.0), Mounting.phoneAxis(type, PhonePlacement.CAMERA_FORWARD, edge, angle).vector, 0.0)
+            }
+        }
+        assertArrayEquals(v(0.0, 0.0, -1.0), Mounting.phoneAxis(TelescopeType.REFRACTOR, PhonePlacement.EYEPIECE, PhoneEdge.TOP, EyepieceAngle.STRAIGHT).vector, 0.0)
+        assertArrayEquals(v(0.0, 1.0, 0.0), Mounting.phoneAxis(TelescopeType.REFRACTOR, PhonePlacement.EYEPIECE, PhoneEdge.TOP, EyepieceAngle.RIGHT_ANGLE).vector, 0.0)
+        for (angle in EyepieceAngle.values()) {
+            assertEquals(EyepieceAngle.RIGHT_ANGLE, Mounting.effectiveEyepieceAngle(TelescopeType.REFLECTOR, angle))
+            assertEquals(angle, Mounting.effectiveEyepieceAngle(TelescopeType.REFRACTOR, angle))
+            assertEquals(angle, Mounting.effectiveEyepieceAngle(TelescopeType.OTHER, angle))
+        }
+    }
 
     // ---- initialViewOrientation
 
@@ -191,11 +218,13 @@ class MountingTest {
         assertEquals(ViewGuess(ViewOrientation(180, false), false), g(TelescopeType.REFRACTOR, EyepieceAngle.STRAIGHT, Erecting.NO))
         assertEquals(ViewGuess(ViewOrientation(180, false), true), g(TelescopeType.REFLECTOR, EyepieceAngle.RIGHT_ANGLE, Erecting.NO))
         assertEquals(ViewGuess(ViewOrientation(180, false), true), g(TelescopeType.REFLECTOR, EyepieceAngle.STRAIGHT, Erecting.NO))
-        // Unsure: upright and please check, whatever the type says.
+        // Unsure: upright and please check, whatever the type says, except a Newtonian, whose eyepiece is never unsure.
         for (type in TelescopeType.values()) {
-            assertEquals(ViewGuess(upright, true), g(type, EyepieceAngle.UNSURE, Erecting.NO))
+            val angleGuess = if (type == TelescopeType.REFLECTOR) ViewGuess(ViewOrientation(180, false), true) else ViewGuess(upright, true)
+            assertEquals(angleGuess, g(type, EyepieceAngle.UNSURE, Erecting.NO))
             assertEquals(ViewGuess(upright, true), g(type, EyepieceAngle.STRAIGHT, Erecting.UNSURE))
         }
+        for (angle in EyepieceAngle.values()) assertEquals(g(TelescopeType.REFLECTOR, EyepieceAngle.RIGHT_ANGLE, Erecting.NO), g(TelescopeType.REFLECTOR, angle, Erecting.NO))
         // The type alone never decides: an unknown telescope with a straight eyepiece is only a guess.
         assertEquals(ViewGuess(upright, true), g(TelescopeType.OTHER, EyepieceAngle.STRAIGHT, Erecting.NO))
         // Where the phone sits does not change the guess.

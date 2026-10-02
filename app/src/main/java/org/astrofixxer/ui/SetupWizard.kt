@@ -40,7 +40,7 @@ internal enum class WizardStep { TYPE, MOUNT, PLACEMENT, EDGE, ANGLE, ERECTING, 
 /**
  * Steps for [s]: telescope, mount and phone placement always; then only the follow-ups that placement needs.
  * On the tube: which edge points forward. On the eyepiece: straight or right angle (a right angle also asks for the
- * edge, on the same step), then the prism. Camera forward needs nothing more. At most six steps.
+ * edge, on the same step; a Newtonian skips the question and only asks the edge there), then the prism. Camera forward needs nothing more. At most six steps.
  */
 internal fun wizardSteps(s: TelescopeSetup): List<WizardStep> = buildList {
     add(WizardStep.TYPE); add(WizardStep.MOUNT); add(WizardStep.PLACEMENT)
@@ -75,7 +75,7 @@ internal fun SetupWizard(state: SkyState, step: Int, onStep: (Int) -> Unit) {
             Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = { onStep(i - 1) }, enabled = i > 0, modifier = Modifier.weight(1f).heightIn(min = 56.dp)) { Label(t("Back")) }
                 Button(onClick = {
-                    if (last) { state.updateSetup(draft.withGuessedView()); state.setupDone = true } else onStep(i + 1)
+                    if (last) { state.updateSetup(draft.normalised().withGuessedView()); state.setupDone = true } else onStep(i + 1)
                 }, modifier = Modifier.weight(1f).heightIn(min = 56.dp)) { Label(t(if (last) "Finish" else "Next")) }
             }
         }
@@ -123,7 +123,12 @@ private fun WizardContent(step: WizardStep, s: TelescopeSetup, change: (Telescop
             Text(t("Hold the phone upright with the screen facing you."), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 15.sp)
             EdgePicker(s.edge, drawing = true) { change(s.copy(edge = it)) }
         }
-        WizardStep.ANGLE -> {
+        WizardStep.ANGLE -> if (s.type == TelescopeType.REFLECTOR) {
+            // A Newtonian's eyepiece is always on the side, so there is nothing to ask but the edge.
+            Heading(t("Which edge of the phone points toward the front of the telescope?"))
+            Text(t("On a Newtonian the eyepiece is on the side, at right angles to the tube."), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 15.sp)
+            EdgePicker(s.edge, drawing = true) { change(s.copy(edge = it)) }
+        } else {
             Heading(t("Does the eyepiece go straight in, or at a right angle (diagonal or Newtonian)?"))
             OptionCard(t("Straight"), null, s.eyepieceAngle == EyepieceAngle.STRAIGHT, { EyepieceAngleDrawing(EyepieceAngle.STRAIGHT, art) }) {
                 change(s.copy(eyepieceAngle = EyepieceAngle.STRAIGHT))
@@ -168,7 +173,7 @@ internal fun describeSetup(s: TelescopeSetup): List<String> {
     val phone = when (s.placement) {
         PhonePlacement.TUBE -> t("Phone: flat on the tube, %s to the front").format(edge)
         PhonePlacement.CAMERA_FORWARD -> t("Phone: rear camera points along the telescope")
-        PhonePlacement.EYEPIECE -> when (s.eyepieceAngle) {
+        PhonePlacement.EYEPIECE -> when (s.effectiveEyepieceAngle) {
             EyepieceAngle.STRAIGHT -> t("Phone: on a straight eyepiece, rear camera looks through it")
             EyepieceAngle.RIGHT_ANGLE -> t("Phone: on a right-angle eyepiece, %s to the front").format(edge)
             EyepieceAngle.UNSURE -> t("Phone: on the eyepiece (angle not sure: check it with two stars)")
