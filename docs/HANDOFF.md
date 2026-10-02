@@ -131,7 +131,7 @@ Historical entries retain the evidence and instructions recorded at the time. Th
 
 **Other CI:** run 40 on `feature/tsap-w4` `7748d42`: all green. **Run 42 on `feature/tsap-w8` `2be5d0a`: all green** (README-shot tests are skipped without `-PreadmeShots`, so CI writes no images).
 
-**W8 merged:** integration merge of `feature/tsap-w8` (README showcase: real camera screens, `solve-how.gif` pixel animation, guide, Sun warning, tested/not-yet-tested table). Apart from this file, the merged tree equals the tested `2be5d0a`. Then integration merged into main again and pushed; CI runs on that push.
+**W8 merged:** integration merge of `feature/tsap-w8` (README showcase: real camera screens, `solve-how.gif` pixel animation, guide, Sun warning, tested/not-yet-tested table). Apart from this file, the merged tree equals the tested `2be5d0a`. Then integration merged into main again (`03ecfc2`) and pushed. **CI run 45 on main `03ecfc2`: build, ui-check and secret-scan all green** (run 44 on integration `0c7205b`, same tree, also green).
 
 **Phase 7b status:** done in code and CI. Still open, all needing the owner or a real device:
 - field test on a real phone and telescope (sensors, Camera2 capture and exposure, real sky photos, alignment accuracy, DownloadManager/installer, live updater): docs/FIELD_TEST.md;
