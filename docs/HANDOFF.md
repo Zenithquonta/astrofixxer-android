@@ -144,6 +144,8 @@ Historical entries retain the evidence and instructions recorded at the time. Th
 
 **Next:** supervisor review, CI on `feature/settings-gear`, then merge.
 
+**Supervisor review:** every changed line read; screenshots viewed (day/night sky, worst-case time travel with guidance, centring a star): the gear reads as a gear and crowds nothing. Removed the two Hindi entries orphaned by the reworded help strings (no new Hindi). Re-ran with DejaVu fonts: AlignFlowTest 19, JourneyTest 11, LabelFitTest 3, NewScreensTest 9, OrientationTest 9, PlateSolveFlowTest 27, SettingsGearTest 5, SetupWizardTest 12, all passed; I18nTest skipped by design (Hindi off). The branch is merged with `feature/beta-guide` so the tree CI tests is the tree that lands on main (both add entries at the top of CHANGELOG and this file).
+
 ### 2026-10-02: Newtonian eyepiece rule and hint wording merged to main (CI run 47 green)
 
 CI run 47 (`36990876367`) on `feature/newtonian-eyepiece` head `dbc254c` (which includes `feature/solve-hint-wording`): build, ui-check (desktop suite plus the 492-variant audit) and secret-scan all green. `dbc254c` sits directly on main `256188d`, so the `--no-ff` merge `ded2ec3` has exactly the tree CI tested. Merged into main and fast-forwarded integration (`feature/telescope-setup-alignment-platesolve`) to the same commit. This entry is pushed without `[skip ci]` so main CI runs on the merge.

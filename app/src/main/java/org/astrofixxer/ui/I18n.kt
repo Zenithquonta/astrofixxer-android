@@ -62,8 +62,6 @@ object I18n {
             "अपना लक्ष्य छुएँ और तीरों का पालन करें जब तक संख्याएँ शून्य न हो जाएँ। हर नए लक्ष्य के लिए फिर से संरेखण करें।",
         // Help
         "Setting up" to "तैयारी",
-        "Attach the phone to the telescope and tell the app how in the setup wizard (or Sky & viewing, Telescope & orientation): flat on the tube, camera facing along it, or on the eyepiece. Allow location so the sky matches your place and time." to
-            "फ़ोन को टेलीस्कोप पर लगाएँ और सेटअप विज़ार्ड (या आकाश व दृश्य, टेलीस्कोप और दिशा) में ऐप को बताएँ कैसे: नली पर सपाट, कैमरा टेलीस्कोप की दिशा में, या आईपीस पर। स्थान की अनुमति दें ताकि आकाश आपके स्थान और समय से मेल खाए।",
         "Aligning" to "संरेखण",
         "Tap Align, then tap a bright star or planet near your target. Centre that star in the eyepiece by moving the telescope, drag the map until the star is under the +, and tap Confirm alignment. The app then says how big the correction was. Re-align for each new target; phone sensors drift over a few minutes." to
             "संरेखण दबाएँ, फिर लक्ष्य के पास कोई चमकीला तारा या ग्रह छुएँ। टेलीस्कोप घुमाकर उस तारे को आईपीस के बीच में लाएँ, नक्शे को खींचकर तारे को + के नीचे लाएँ, और संरेखण पक्का करें दबाएँ। ऐप बताएगा कि सुधार कितना बड़ा था। हर नए लक्ष्य के लिए फिर से संरेखण करें; फ़ोन के सेंसर कुछ मिनटों में खिसकते हैं।",
@@ -176,8 +174,6 @@ object I18n {
             "दूसरा मोड: आकाश फ़ोन के सेंसर को नहीं मानता और आप उसे किसी भी दिशा में खींच सकते हैं, तारामंडल-भवन की तरह। बदलने के लिए कम्पास / मुक्त दृश्य बटन दबाएँ।",
         "Tap the target card at the top left, or long-press any object, for its names, constellation, rise and set times, a graph of its altitude tonight and how it looks in your eyepiece." to
             "नाम, तारामंडल, उदय-अस्त समय, आज रात की ऊँचाई का ग्राफ़ और आईपीस में दृश्य देखने के लिए ऊपर बाईं ओर लक्ष्य कार्ड छुएँ, या किसी वस्तु को देर तक दबाएँ।",
-        "In Sky & viewing, Telescope & orientation: enter the telescope's and eyepiece's focal lengths and the eyepiece's apparent field. The circle around the + is your eyepiece's view, and On target means the target is inside it. Equatorial mounts get directions in RA and Dec." to
-            "आकाश व दृश्य, टेलीस्कोप और दिशा में: टेलीस्कोप और आईपीस की फ़ोकल लंबाई और आईपीस का आभासी क्षेत्र भरें। + के चारों ओर का वृत्त आपके आईपीस का दृश्य है, और लक्ष्य पर का अर्थ है कि लक्ष्य उसके भीतर है। विषुवतीय माउंट के लिए दिशाएँ RA और Dec में मिलती हैं।",
         // Telescope setup, alignment flow, guidance, orientation check
         "Choose a star" to "तारा चुनें",
         "Aligning…" to "संरेखण हो रहा है…",
