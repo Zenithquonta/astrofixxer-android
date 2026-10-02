@@ -22,7 +22,7 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 
 ## TAKEOVER: read this first (updated 2026-10-01; resume sequence step 3, docs pass)
 
-**Resumed 2026-10-01 (owner: "continue what the handoff says").** **Owner decision: Hindi switched off for now and no Hindi work at all; W7 is parked (step 1 is replaced by the Hindi switch-off, merged). Phase 7b is on main (`e76d8e7`, CI run 43 green) and the W8 README showcase is merged (CI run 42 green). Resume steps 1–5 are done. Open items need the owner or a real device: field test (docs/FIELD_TEST.md), v0.2.0 tag after the Play signing secrets are confirmed, Hindi later (W7 parked), and the live-view hint wording fix on `feature/solve-hint-wording` awaiting CI; see the newest entry.** W7 (`feature/tsap-w7`, WIP `16195d9`) stays parked and unmerged. Nothing is merged to main yet. The next session must read this entire handoff, especially the newest entries, plan section 7b, POLICY, PRIVACY, SECURITY, CONTRIBUTING, NOTICE, README and CHANGELOG before acting.
+**Resumed 2026-10-01 (owner: "continue what the handoff says").** **Owner decision: Hindi switched off for now and no Hindi work at all; W7 is parked (step 1 is replaced by the Hindi switch-off, merged). Phase 7b is on main (`e76d8e7`, CI run 43 green) and the W8 README showcase is merged (CI run 42 green). Resume steps 1–5 are done. Open items need the owner or a real device: field test (docs/FIELD_TEST.md), v0.2.0 tag after the Play signing secrets are confirmed, Hindi later (W7 parked), the preview signing-key Secrets and private vulnerability reporting (owner). The Newtonian eyepiece rule and the live-view hint wording are on main (CI run 47); see the newest entry.** W7 (`feature/tsap-w7`, WIP `16195d9`) stays parked and unmerged. Nothing is merged to main yet. The next session must read this entire handoff, especially the newest entries, plan section 7b, POLICY, PRIVACY, SECURITY, CONTRIBUTING, NOTICE, README and CHANGELOG before acting.
 
 ### 1. Pushed branches and checkout ownership
 
@@ -124,6 +124,14 @@ Preserve GPL and all credits; no Android imports in ui/astro/update; user-visibl
 ## Entries
 
 Historical entries retain the evidence and instructions recorded at the time. Their **Next step** instructions are superseded by the current TAKEOVER above.
+
+### 2026-10-02: Newtonian eyepiece rule and hint wording merged to main (CI run 47 green)
+
+CI run 47 (`36990876367`) on `feature/newtonian-eyepiece` head `dbc254c` (which includes `feature/solve-hint-wording`): build, ui-check (desktop suite plus the 492-variant audit) and secret-scan all green. `dbc254c` sits directly on main `256188d`, so the `--no-ff` merge `ded2ec3` has exactly the tree CI tested. Merged into main and fast-forwarded integration (`feature/telescope-setup-alignment-platesolve`) to the same commit. This entry is pushed without `[skip ci]` so main CI runs on the merge.
+
+Also this session (outside the repo): the beta tester guide exists as a private Claude Doc and as a Word file with all screenshots, sent to the owner. Owner actions still open: add the `PREVIEW_KEYSTORE_BASE64` and `PREVIEW_KEYSTORE_PASSWORD` GitHub Secrets so preview builds keep one signing key (until then every build has a new debug key and updates need an uninstall); turn on private vulnerability reporting; field test; v0.2.0 tag only after the Play signing secrets are confirmed; Hindi later.
+
+**Next:** confirm main CI green on the merge, then field test.
 
 ### 2026-10-02: Owner note: a Newtonian's eyepiece is on the side; rule added (branch, CI pending)
 
