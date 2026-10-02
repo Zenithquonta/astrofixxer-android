@@ -125,6 +125,12 @@ Preserve GPL and all credits; no Android imports in ui/astro/update; user-visibl
 
 Historical entries retain the evidence and instructions recorded at the time. Their **Next step** instructions are superseded by the current TAKEOVER above.
 
+### 2026-10-02: Beta tester guide added to the repository (branch, CI pending)
+
+Owner: "commit all to astrofixxer-android". All code was already committed and pushed (every local branch is contained in main); the only work outside the repo was the beta tester guide. `feature/beta-guide` (from main `d860be9`) adds `docs/BETA_GUIDE.md` (the guide's own Markdown export, with the 28 picture placeholders replaced by links to the existing `docs/screens/new/*.png` and `docs/art/*.gif`, all checked to exist), the two mounting diagrams as `docs/art/guide-eyepiece.png` and `docs/art/guide-mounting.png`, and the Word copy `docs/AstroFixxer-Beta-Tester-Guide.docx` (rendered to 21 pages and every page checked; editor metadata stripped). README links the guide under Download; CHANGELOG "Beta tester guide (2 Oct 2026)". Docs only, no code. The guide's "temporary key" notes should go once the preview signing Secrets are added.
+
+**Next:** CI on `feature/beta-guide`; if green, merge into main and integration.
+
 ### 2026-10-02: Newtonian eyepiece rule and hint wording merged to main (CI run 47 green)
 
 CI run 47 (`36990876367`) on `feature/newtonian-eyepiece` head `dbc254c` (which includes `feature/solve-hint-wording`): build, ui-check (desktop suite plus the 492-variant audit) and secret-scan all green. `dbc254c` sits directly on main `256188d`, so the `--no-ff` merge `ded2ec3` has exactly the tree CI tested. Merged into main and fast-forwarded integration (`feature/telescope-setup-alignment-platesolve`) to the same commit. This entry is pushed without `[skip ci]` so main CI runs on the merge.

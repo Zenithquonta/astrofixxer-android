@@ -34,6 +34,8 @@ If a newer build won't install over the old one, uninstall the old AstroFixxer f
 
 What changed in each update, including every bug fix, is in **[CHANGELOG.md](CHANGELOG.md)**.
 
+New to telescopes, or testing the beta? **[docs/BETA_GUIDE.md](docs/BETA_GUIDE.md)** walks through installing safely, mounting the phone and finding your first target, with a picture of every screen ([Word copy](docs/AstroFixxer-Beta-Tester-Guide.docx)).
+
 ### Updating
 
 <img align="right" src="docs/screens/new/updates-available.png" width="220" alt="Sky and viewing, More tab: App updates says an update is available (0.2.0-preview, build 15), with a Download and install button">

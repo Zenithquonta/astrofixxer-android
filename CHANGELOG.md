@@ -8,6 +8,10 @@ Every update and fix to AstroFixxer, newest first. Dates are when the work lande
 The first Android version: a Kotlin + Jetpack Compose port of the AstroFixxer web app, which grew out of
 [AstroHopper / skyhopper](https://github.com/artyom-beilis/skyhopper) by Artyom Beilis.
 
+### Beta tester guide (2 Oct 2026)
+
+- `docs/BETA_GUIDE.md` and a Word copy (`docs/AstroFixxer-Beta-Tester-Guide.docx`): a beginner's guide for beta testers covering safe download and install (every Android prompt), the security checks each build passes, where the eyepiece sits on a refractor and a Newtonian, the three ways to mount the phone (two new diagrams in `docs/art/`), setup, alignment, guidance, the eyepiece-view check, camera solving, troubleshooting, and what to test and how to report it. The README links to it.
+
 ### Newtonian eyepiece (2 Oct 2026)
 
 - **A Newtonian's eyepiece is always at a right angle.** The setup wizard, Telescope & orientation and the solve arrangement step no longer offer "Straight" or "Not sure" for a reflector (they only ask which phone edge points to the front), and the axis, view guess, summary texts and saved settings all treat a reflector as right-angle; an older saved reflector with a straight or unsure eyepiece loads as right angle. Choosing a reflector while the phone sat on a straight eyepiece clears the alignment, as any change in how the phone sits does. Refractors and other telescopes keep the three choices.
