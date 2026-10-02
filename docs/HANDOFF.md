@@ -125,6 +125,28 @@ Preserve GPL and all credits; no Android imports in ui/astro/update; user-visibl
 
 Historical entries retain the evidence and instructions recorded at the time. Their **Next step** instructions are superseded by the current TAKEOVER above.
 
+### 2026-10-02: Settings gear on the sky screen (branch, CI pending)
+
+**Owner:** "add a setting icon on the app to access".
+
+**`feature/settings-gear`** (from main `d860be9`):
+- A 48 dp round gear button on the sky screen's top right. It opens the existing Sky & viewing sheet on Telescope & orientation (`skyTab = TELESCOPE_TAB; sheet = Sheet.SKY`), where the telescope, eyepiece and phone placement live. The bottom Sky button is unchanged and still opens the Sky tab. No new screen.
+- Icon: drawn in code (`ui/Icons.kt`, `AppIcons.Gear`, an eight-tooth ring with a round hole as an `ImageVector`), not a library. Nothing imports `androidx.compose.material.icons`, and the Material icon set is not a guaranteed dependency of both the app and `tools/desktop-check`; no dependency was added. `contentDescription = t("Settings")`; tinted `onSurface` on a `surface` circle like the other chips, so night mode turns it red with no extra code.
+- Placement decision: the gear is the first item of the right-hand chip column, above Not aligned and the clock, not a third item in the Row. Beside the column it would take 56 dp from the target card (about 102 dp left on a 360 dp phone); beside the Not aligned chip it would squeeze "Aligned 40 d ago · re-align soon" further. Stacked, the widths of the card, the chips and the clock are exactly what they were; only the chips move down 54 dp. Checked in the worst cases at 360 dp, day and night: time-travel clock with a full date, the longest align label, long target name (M31), centring a star, guidance open (target card hidden).
+- The wizard, tutorial and plate-solve flow are drawn after the top bar in the same Box and swallow touches, so the gear cannot be tapped under them (tested for the wizard). A Sky & viewing sheet starts 48 dp from the top, so the gear's top part is still visible above an open sheet, as the chips already are; tapping it there leaves the open sheet as it is.
+- Help: "Setting up" and "Telescope settings" now mention the gear at the top right. Their Hindi entries in `I18n.kt` still hold the old English keys (Hindi is off, nothing added).
+
+**Files:** `ui/Icons.kt` (new), `ui/SkyScreen.kt`, `tools/desktop-check/src/test/kotlin/SettingsGearTest.kt` (new, 5 tests: 48 dp button, opens Telescope & orientation and Back closes it, Sky button still opens the Sky tab, wizard blocks the gear, no overlap with any text or control at 360 dp in six worst cases, day and night), `AuditTest.kt` (two new screens `sky-gear-long-target`, `sky-gear-time-travel-aligned-long-ago`; new optional env `AUDIT_SCREENS=prefix,prefix` runs only matching screens, unset runs all), `CHANGELOG.md`.
+
+**Results (DejaVu fonts):** SettingsGearTest 5/5, NewScreensTest 9/9, JourneyTest 11/11, LabelFitTest 3/3, SetupWizardTest 12/12, AlignFlowTest 19/19, OrientationTest 9/9, PlateSolveFlowTest 27/27. AuditTest with `AUDIT_SCREENS=sky` (every sky-* screen incl. the new ones, 360 and 411 dp, day and night): 140 variants, no findings. The full audit was not run here; CI runs it. Android compile via the desktop harness (`act-gear`): clean. `:app:testDebugUnitTest` cannot run offline here (Android Gradle plugin not available); no app JVM test touches this change.
+
+**Not done:** README / `docs/screens/` screenshots still show the old top bar without the gear (follow-up re-render).
+
+**Next:** supervisor review, CI on `feature/settings-gear`, then merge.
+
+
+**Supervisor review:** every changed line read; screenshots viewed (day/night sky, worst-case time travel with guidance, centring a star): the gear reads as a gear and crowds nothing. Removed the two Hindi entries orphaned by the reworded help strings (no new Hindi). Re-ran with DejaVu fonts: AlignFlowTest 19, JourneyTest 11, LabelFitTest 3, NewScreensTest 9, OrientationTest 9, PlateSolveFlowTest 27, SettingsGearTest 5, SetupWizardTest 12, all passed; I18nTest skipped by design (Hindi off). The branch is merged with `feature/beta-guide` so the tree CI tests is the tree that lands on main (both add entries at the top of CHANGELOG and this file).
+
 ### 2026-10-02: Beta tester guide added to the repository (branch, CI pending)
 
 Owner: "commit all to astrofixxer-android". All code was already committed and pushed (every local branch is contained in main); the only work outside the repo was the beta tester guide. `feature/beta-guide` (from main `d860be9`) adds `docs/BETA_GUIDE.md` (the guide's own Markdown export, with the 28 picture placeholders replaced by links to the existing `docs/screens/new/*.png` and `docs/art/*.gif`, all checked to exist), the two mounting diagrams as `docs/art/guide-eyepiece.png` and `docs/art/guide-mounting.png`, and the Word copy `docs/AstroFixxer-Beta-Tester-Guide.docx` (rendered to 21 pages and every page checked; editor metadata stripped). README links the guide under Download; CHANGELOG "Beta tester guide (2 Oct 2026)". Docs only, no code. The guide's "temporary key" notes should go once the preview signing Secrets are added.

@@ -153,6 +153,9 @@ class AuditTest {
             s.guideAnswer = "M31 is 38 degrees up in the north-east."
         }),
         Screen("sky-time-travel", false, { it.shiftTime(86_400_000L * 40) }),
+        // The top bar with the settings gear in its worst cases: a long target name, the longest align label with a full-date clock.
+        Screen("sky-gear-long-target", false, { it.target = catalog.find("M31") }),
+        Screen("sky-gear-time-travel-aligned-long-ago", false, { s -> guided(s); s.target = catalog.find("M31"); s.shiftTime(86_400_000L * 40) }),
         Screen("find-empty", true, {}, { onNode(button(I18n.t("Find"))).tap() }),
         Screen("find-results", true, {}, {
             onNode(button(I18n.t("Find"))).tap()
@@ -315,7 +318,10 @@ class AuditTest {
     @Test fun everyScreenPassesTheAudit() {
         val findings = mutableListOf<String>()
         var checked = 0
+        // AUDIT_SCREENS=sky,wizard-4 runs only the screens whose name starts with one of these (a quick check while working; CI runs all).
+        val only = System.getenv("AUDIT_SCREENS")?.split(",")?.filter { it.isNotBlank() }
         for (width in listOf(360, 411)) for (lang in I18n.languages.map { it.first }) for (night in listOf(false, true)) for (screen in screens) {
+            if (only != null && only.none { screen.name.startsWith(it) }) continue
             I18n.language = lang
             val where = "${screen.name} [$width dp, $lang, ${if (night) "night" else "day"}]"
             try {

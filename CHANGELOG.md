@@ -8,6 +8,11 @@ Every update and fix to AstroFixxer, newest first. Dates are when the work lande
 The first Android version: a Kotlin + Jetpack Compose port of the AstroFixxer web app, which grew out of
 [AstroHopper / skyhopper](https://github.com/artyom-beilis/skyhopper) by Artyom Beilis.
 
+### Settings gear (2 Oct 2026)
+
+- **A gear at the top right of the sky screen** opens Sky & viewing on the Telescope & orientation tab, where the telescope, eyepiece and phone placement are set. The Sky button at the bottom still opens the Sky tab.
+- The gear sits above the Not aligned chip and the clock, so it never narrows them or the target card, even on a 360 dp phone with a long date. Help now mentions it.
+
 ### Beta tester guide (2 Oct 2026)
 
 - `docs/BETA_GUIDE.md` and a Word copy (`docs/AstroFixxer-Beta-Tester-Guide.docx`): a beginner's guide for beta testers covering safe download and install (every Android prompt), the security checks each build passes, where the eyepiece sits on a refractor and a Newtonian, the three ways to mount the phone (two new diagrams in `docs/art/`), setup, alignment, guidance, the eyepiece-view check, camera solving, troubleshooting, and what to test and how to report it. The README links to it.

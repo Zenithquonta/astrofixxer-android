@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -25,6 +26,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -41,6 +43,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.ImageBitmap
@@ -143,6 +146,8 @@ fun SkyScreen(
                 val guidanceOpen = state.guidanceExpanded && state.align == AlignState.ALIGNED && state.alignResult == null && state.target != null
                 Box(Modifier.weight(1f)) { if (!guidanceOpen) InfoOverlay(state, Modifier) { infoObject = state.target; sheet = Sheet.INFO } }
                 Column(Modifier.widthIn(max = 170.dp), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    // Stacked above the chips, not beside them, so it takes nothing from their width or from the target card's.
+                    SettingsButton { skyTab = TELESCOPE_TAB; sheet = Sheet.SKY }
                     AlignChip(state)
                     ClockChip(state) { showTime = !showTime }
                 }
@@ -224,6 +229,16 @@ private fun InfoOverlay(state: SkyState, modifier: Modifier, onOpen: () -> Unit)
         if (altDeg >= 0) Text(t("%d° up · %s").format(altDeg.roundToInt(), t(compass(azDeg))), color = c.primary, fontSize = 14.sp)
         else Text(t("Below the horizon"), color = c.error, fontSize = 14.sp)
         Text("RA ${hms(obj.ra)} · Dec ${dms(obj.dec)}", color = c.onSurfaceVariant, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+    }
+}
+
+/** The gear at the top right: opens Sky & viewing on the Telescope & orientation tab. */
+@Composable
+private fun SettingsButton(onClick: () -> Unit) {
+    val c = MaterialTheme.colorScheme
+    Box(Modifier.size(48.dp).background(c.surface, CircleShape).clip(CircleShape).clickable(role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center) {
+        Icon(AppIcons.Gear, contentDescription = t("Settings"), tint = c.onSurface, modifier = Modifier.size(26.dp))
     }
 }
 
@@ -457,7 +472,7 @@ private const val LICENCES = "AstroFixxer is free software under the GNU GPL v3.
     "Privacy policy, full credits and licences: PRIVACY.md and NOTICE.md at $SOURCE_URL."
 
 private val HELP = listOf(
-    "Setting up" to "Attach the phone to the telescope and tell the app how in the setup wizard (or Sky & viewing, Telescope & orientation): flat on the tube, camera facing along it, or on the eyepiece. Allow location so the sky matches your place and time.",
+    "Setting up" to "Attach the phone to the telescope and tell the app how in the setup wizard (or the gear at the top right, then Telescope & orientation): flat on the tube, camera facing along it, or on the eyepiece. Allow location so the sky matches your place and time.",
     "Aligning" to "Tap Align, then tap a bright star or planet near your target. Centre that star in the eyepiece by moving the telescope, drag the map until the star is under the +, and tap Confirm alignment. The app then says how big the correction was. Re-align for each new target; phone sensors drift over a few minutes.",
     "Finding a target" to "Tap an object on the sky or use Find. Follow the arrows in the guidance panel until both numbers are close to zero.",
     "Compass and dragging" to "Compass uses the phone's compass. If the alignment star isn't on screen, or the phone has no compass, drag the map while aligning until the star is under the +. Dragging never changes the alignment at any other time.",
@@ -466,7 +481,7 @@ private val HELP = listOf(
     "Eyepiece view" to "Eyepieces can show the sky upside down, reversed or turned. In Sky & viewing, Telescope & orientation, tap Check orientation to find out which, then turn on Match eyepiece view to draw the map the same way. Directions never change.",
     "Solve with camera" to "Put the phone on the eyepiece, or with its camera along the telescope, then tap Solve with camera (under More, in Sky & viewing, Telescope & orientation, or Align with a photo). Take a 1 to 4 second photo of the stars: the app finds where the telescope points, on the phone, and aligns to it if you ask. Photos are never saved or sent anywhere.",
     "Object info" to "Tap the target card at the top left, or long-press any object, for its names, constellation, rise and set times, a graph of its altitude tonight and how it looks in your eyepiece.",
-    "Telescope settings" to "In Sky & viewing, Telescope & orientation: enter the telescope's and eyepiece's focal lengths and the eyepiece's apparent field. The circle around the + is your eyepiece's view, and On target means the target is inside it. Equatorial mounts get directions in RA and Dec.",
+    "Telescope settings" to "Tap the gear at the top right (or Sky & viewing, Telescope & orientation): enter the telescope's and eyepiece's focal lengths and the eyepiece's apparent field. The circle around the + is your eyepiece's view, and On target means the target is inside it. Equatorial mounts get directions in RA and Dec.",
     "Zoom" to "Pinch or use + and −. Fainter stars and deep-sky objects appear as you zoom in.",
     "Events" to "Moon phases, eclipses, meteor showers, conjunctions, transits, occultations and bright comets for the next 60 days, all worked out on the phone. Tap one to show the sky at that time; Now returns to the present.",
     "Time travel" to "Tap the clock at the top right to step the sky by hours or days. While you are away from the present the clock turns pink; Now returns to the present.",
