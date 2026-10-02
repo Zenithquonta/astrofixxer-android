@@ -22,7 +22,7 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 
 ## TAKEOVER: read this first (updated 2026-10-01; resume sequence step 3, docs pass)
 
-**Resumed 2026-10-01 (owner: "continue what the handoff says").** **Owner decision: Hindi switched off for now and no Hindi work at all; W7 is parked (step 1 is replaced by the Hindi switch-off, merged). Integration CI green (run 41) and fast-forwarded to the candidate: W4 camera flow with label fix, docs pass and in-app licences are in. Next: merge integration into main and verify CI on main (step 4), then merge W8 README (pushed on `feature/tsap-w8`, reviewed) after its CI. Owner's camera-screen image and pixel-art camera-solve animation are in W8.** W7 (`feature/tsap-w7`, WIP `16195d9`) stays parked and unmerged. Nothing is merged to main yet. The next session must read this entire handoff, especially the newest entries, plan section 7b, POLICY, PRIVACY, SECURITY, CONTRIBUTING, NOTICE, README and CHANGELOG before acting.
+**Resumed 2026-10-01 (owner: "continue what the handoff says").** **Owner decision: Hindi switched off for now and no Hindi work at all; W7 is parked (step 1 is replaced by the Hindi switch-off, merged). Phase 7b is on main (`e76d8e7`, CI run 43 green) and the W8 README showcase is merged (CI run 42 green). Resume steps 1–5 are done. Open items need the owner or a real device: field test (docs/FIELD_TEST.md), v0.2.0 tag after the Play signing secrets are confirmed, Hindi later (W7 parked), and one wording follow-up in the eyepiece live view; see the newest entry.** W7 (`feature/tsap-w7`, WIP `16195d9`) stays parked and unmerged. Nothing is merged to main yet. The next session must read this entire handoff, especially the newest entries, plan section 7b, POLICY, PRIVACY, SECURITY, CONTRIBUTING, NOTICE, README and CHANGELOG before acting.
 
 ### 1. Pushed branches and checkout ownership
 
@@ -124,6 +124,21 @@ Preserve GPL and all credits; no Android imports in ui/astro/update; user-visibl
 ## Entries
 
 Historical entries retain the evidence and instructions recorded at the time. Their **Next step** instructions are superseded by the current TAKEOVER above.
+
+### 2026-10-02: Phase 7b on main; CI green on main; README showcase merged
+
+**Main:** `e76d8e7` merges the integration branch (`--no-ff`, signed off; tree identical to integration `8dce197`, whose code is the CI-verified `1afc381`). **CI run 43 on main `e76d8e7`: build, ui-check and secret-scan all green.** The main build publishes the downloadable APK as before. No tag was made.
+
+**Other CI:** run 40 on `feature/tsap-w4` `7748d42`: all green. **Run 42 on `feature/tsap-w8` `2be5d0a`: all green** (README-shot tests are skipped without `-PreadmeShots`, so CI writes no images).
+
+**W8 merged:** integration merge of `feature/tsap-w8` (README showcase: real camera screens, `solve-how.gif` pixel animation, guide, Sun warning, tested/not-yet-tested table). Apart from this file, the merged tree equals the tested `2be5d0a`. Then integration merged into main again and pushed; CI runs on that push.
+
+**Phase 7b status:** done in code and CI. Still open, all needing the owner or a real device:
+- field test on a real phone and telescope (sensors, Camera2 capture and exposure, real sky photos, alignment accuracy, DownloadManager/installer, live updater): docs/FIELD_TEST.md;
+- v0.2.0 tag only after the owner confirms the Play signing secrets;
+- Hindi parked on `feature/tsap-w7` (owner: later release);
+- app wording follow-up: the eyepiece live view always says "Move the telescope until the star reaches the +" (`ui/PlateSolveFlow.kt` ~353), even with no chosen star;
+- local paper (not in git) still describes Hindi and older test counts.
 
 ### 2026-10-01: Candidate CI green; integration fast-forwarded; W8 README ready
 
