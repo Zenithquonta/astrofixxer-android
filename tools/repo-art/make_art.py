@@ -1,6 +1,8 @@
 """
 Pixel-art animations for the README: the hero banner and Hop's idle loop.
-Run: python3 tools/repo-art/make_art.py   (needs Pillow). Writes docs/art/*.gif, including cosmos.py's animations.
+Run: python3 tools/repo-art/make_art.py   (needs Pillow). Writes docs/art/*.gif, including cosmos.py's animations
+and guide_art.py's explainers (banner, how alignment works, plate solving, next star). walkthrough.py stitches the
+real app screens in docs/screens/new/ into docs/art/walkthrough.gif; run readme_screens.py first to refresh them.
 
 The banner acts out what the app does: Hop starts at the telescope, lines up on a bright guide star (Vega),
 then star-hops along the guidance line to a faint target (the Andromeda galaxy), where the reticle locks on.
@@ -257,3 +259,7 @@ if __name__ == "__main__":
     cosmos.spiral_galaxy()
     cosmos.planets()
     cosmos.divider()
+    import guide_art
+    guide_art.build_all()
+    import walkthrough
+    walkthrough.build()

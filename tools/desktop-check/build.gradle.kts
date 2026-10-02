@@ -35,5 +35,7 @@ dependencies {
 tasks.test {
     workingDir = file("../../app") // tests read src/main/assets like the app does
     systemProperty("screens", file("build/screens").absolutePath)
+    // The README screenshot tests only run when asked: ./gradlew test --offline --tests ReadmeShotsTest --tests ReadmeCameraShotsTest -PreadmeShots
+    if (project.hasProperty("readmeShots")) { systemProperty("readmeShots", "1"); outputs.upToDateWhen { false } }
     testLogging { events("passed", "failed"); exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL; showStandardStreams = true }
 }
