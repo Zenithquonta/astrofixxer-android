@@ -22,7 +22,7 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 
 ## TAKEOVER: read this first (updated 2026-10-01; resume sequence step 3, docs pass)
 
-**Resumed 2026-10-01 (owner: "continue what the handoff says").** **Owner decision: Hindi switched off for now and no Hindi work at all; W7 is parked (step 1 is replaced by the Hindi switch-off, merged). Phase 7b is on main (`e76d8e7`, CI run 43 green) and the W8 README showcase is merged (CI run 42 green). Resume steps 1–5 are done. Open items need the owner or a real device: field test (docs/FIELD_TEST.md), v0.2.0 tag after the Play signing secrets are confirmed, Hindi later (W7 parked), the preview signing-key Secrets and private vulnerability reporting (owner). The Newtonian eyepiece rule and the live-view hint wording are on main (CI run 47); see the newest entry.** W7 (`feature/tsap-w7`, WIP `16195d9`) stays parked and unmerged. Nothing is merged to main yet. The next session must read this entire handoff, especially the newest entries, plan section 7b, POLICY, PRIVACY, SECURITY, CONTRIBUTING, NOTICE, README and CHANGELOG before acting.
+**Resumed 2026-10-01 (owner: "continue what the handoff says").** **Owner decision: Hindi switched off for now and no Hindi work at all; W7 is parked (step 1 is replaced by the Hindi switch-off, merged). Phase 7b is on main (`e76d8e7`, CI run 43 green) and the W8 README showcase is merged (CI run 42 green). Resume steps 1–5 are done. Open items need the owner or a real device: field test (docs/FIELD_TEST.md), v0.2.0 tag after the Play signing secrets are confirmed, Hindi later (W7 parked), the preview signing-key Secrets and private vulnerability reporting (owner). The Newtonian eyepiece rule, the live-view hint wording, the beta tester guide and the settings gear are on main (CI runs 47, 50, 51); see the newest entries.** W7 (`feature/tsap-w7`, WIP `16195d9`) stays parked and unmerged. Nothing is merged to main yet. The next session must read this entire handoff, especially the newest entries, plan section 7b, POLICY, PRIVACY, SECURITY, CONTRIBUTING, NOTICE, README and CHANGELOG before acting.
 
 ### 1. Pushed branches and checkout ownership
 
@@ -124,6 +124,12 @@ Preserve GPL and all credits; no Android imports in ui/astro/update; user-visibl
 ## Entries
 
 Historical entries retain the evidence and instructions recorded at the time. Their **Next step** instructions are superseded by the current TAKEOVER above.
+
+### 2026-10-02: Beta guide and settings gear merged to main (CI runs 50 and 51 green)
+
+CI run 50 on `feature/beta-guide` `3e5bfc4` was green and it was merged as `bcd2a0d` (main and integration). CI run 51 on `feature/settings-gear` `5c07f24` (which already contains the beta-guide branch): build, ui-check (desktop suite plus the full audit, including the two new gear screens) and secret-scan all green. Merged with `--no-ff` as `d5e5fab`; `git diff HEAD 5c07f24` is empty, so main has exactly the tree CI tested. Integration fast-forwarded to the same commit. Pushed without `[skip ci]` so main CI runs on the merge. Still open: README and guide screenshots show the top bar without the gear (re-render later).
+
+**Next:** owner request "alignment should work on any celestial object, not only stars" (planets, the Moon and so on); see the next entry once it exists.
 
 ### 2026-10-02: Settings gear on the sky screen (branch, CI pending)
 
