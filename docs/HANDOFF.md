@@ -125,6 +125,20 @@ Preserve GPL and all credits; no Android imports in ui/astro/update; user-visibl
 
 Historical entries retain the evidence and instructions recorded at the time. Their **Next step** instructions are superseded by the current TAKEOVER above.
 
+### 2026-10-02: Owner note: a Newtonian's eyepiece is on the side; rule added (branch, CI pending)
+
+**Owner:** on a reflector (Newtonian) the eyepiece sits on the side of the tube, at right angles to where it looks; on a refractor it is at the back, along the tube (a star diagonal makes it a right angle).
+
+**Before:** the wizard, the Telescope & orientation tab and the solve arrangement step offered Straight / Right angle / Not sure for every type, so a Newtonian could be set to "Straight" and the pointing axis would be wrong by 90°.
+
+**`feature/newtonian-eyepiece` `3b2e508`** (stacked on `feature/solve-hint-wording`; implementation, supervisor reviewed):
+- Rule in one place: `Mounting.effectiveEyepieceAngle(type, angle)` returns RIGHT_ANGLE for REFLECTOR. `TelescopeSetup.effectiveEyepieceAngle`/`normalised()`; `axis()`, `viewGuess()`, `mountingDiffers` (angle counts only on the eyepiece), the summary text and saved settings use it. An older save of REFLECTOR + STRAIGHT/UNSURE loads as RIGHT_ANGLE.
+- UI: for a reflector on the eyepiece the wizard ANGLE step, the tab and the solve arrangement step show "On a Newtonian the eyepiece is on the side, at right angles to the tube." and only the edge picker. Refractors and Other unchanged. New English strings have no Hindi entry (Hindi off).
+- Tests: MountingTest (new reflector-axis test; `initialViewOrientationTable` fixed where it encoded reflector + UNSURE), SetupWizardTest +2 and round-trip extended, AlignFlowTest +2 (clears alignment after straight→Newtonian, keeps it after right angle→Newtonian), PlateSolveFlowTest +1, AuditTest screen `wizard-4-angle-newtonian`.
+- Implementation results (DejaVu fonts): SetupWizardTest 12/12, AlignFlowTest 19/19, OrientationTest 9/9, PlateSolveFlowTest 27/27, LabelFitTest 3/3; JVM 148, 0 failures; Android compile clean. Supervisor checked that every remaining raw `eyepieceAngle` read sits in the non-Newtonian branch.
+
+**Next:** CI on `feature/newtonian-eyepiece` (covers the hint wording too); if green, merge into main and integration, log.
+
 ### 2026-10-02: Live-view hint wording fixed (branch, CI pending)
 
 `feature/solve-hint-wording` (from main `256188d`): `712142d` (implementation; supervisor reviewed) changes the camera live-view line from "Move the telescope until the star reaches the +" to "The + shows where the telescope points." The old line only showed when a + is drawn (eyepiece: photo centre; beside the tube with a calibrated offset: the "Telescope" spot); while calibrating there is no + and the star-naming line is unchanged. Tests updated (PlateSolveFlowTest lines ~106, ~221; ReadmeCameraShotsTest ~136); the unused Hindi entry for the old string removed (no new Hindi); CHANGELOG "Solve hint wording (2 Oct 2026)". Implementation ran with DejaVu: PlateSolveFlowTest 26/26, LabelFitTest 3/3, ReadmeCameraShotsTest 3/3; Android compile clean. Supervisor re-rendered the two changed README screenshots with the default font (the other five camera PNGs came out byte-identical) and viewed both. Next: CI on the branch, then merge into main and integration.
