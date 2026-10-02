@@ -142,6 +142,57 @@ class SetupWizardTest {
         assertFalse(state.setup.viewMirrored)
     }
 
+    @Test fun aNewtonianEyepieceIsAlwaysRightAngleSoOnlyTheEdgeIsAsked() = phoneTest {
+        val state = fresh()
+        setContent { AppScreen(state) }
+        onNode(button("Reflector (Newtonian)")).tap()
+        next(); next()
+        onNode(button("Attached to the eyepiece")).tap()
+        next()
+        // The angle question and its Straight / Not sure answers are not offered: only the edge, with the reason.
+        onNode(hasText(angleQ)).assertDoesNotExist()
+        onNode(button("Straight")).assertDoesNotExist()
+        onNode(button("Right angle")).assertDoesNotExist()
+        onNode(button("Not sure")).assertDoesNotExist()
+        onNode(hasText("On a Newtonian the eyepiece is on the side, at right angles to the tube.")).assertExists()
+        onNode(hasText(edgeQ)).assertExists()
+        screenshot("wizard-4-angle-newtonian")
+        onNode(button("Bottom edge")).performScrollTo().tap()
+        next()
+        onNode(hasText(prismQ)).assertExists()
+        onNode(button("No")).tap()
+        next()
+        onNode(hasText("Step 6 of 6")).assertExists() // the step count is the same as for a refractor on the eyepiece
+        onNode(hasText("Phone: on a right-angle eyepiece, bottom edge to the front")).assertExists()
+        onNode(button("Finish")).tap()
+        assertEquals(EyepieceAngle.RIGHT_ANGLE, state.setup.eyepieceAngle)
+        assertEquals(PhoneEdge.BOTTOM, state.setup.edge)
+        assertEquals(-1.0, state.setup.axis().vector[1], 0.0) // the edge, never the rear camera
+        assertEquals(0.0, state.setup.axis().vector[2], 0.0)
+    }
+
+    @Test fun aNewtonianChosenAfterAStraightEyepieceStillGetsTheEdgeAxis() = phoneTest {
+        val state = fresh()
+        setContent { AppScreen(state) }
+        onNode(button("Refractor")).tap()
+        next(); next()
+        onNode(button("Attached to the eyepiece")).tap()
+        next()
+        onNode(button("Straight")).tap()
+        onNode(button("Back")).tap(); onNode(button("Back")).tap(); onNode(button("Back")).tap()
+        onNode(button("Reflector (Newtonian)")).tap() // changes the answer after a straight eyepiece was picked
+        next(); next(); next()
+        onNode(hasText(angleQ)).assertDoesNotExist()
+        onNode(button("Straight")).assertDoesNotExist()
+        onNode(button("Left edge")).performScrollTo().tap()
+        next()
+        onNode(button("No")).tap()
+        next()
+        onNode(button("Finish")).tap()
+        assertEquals(EyepieceAngle.RIGHT_ANGLE, state.setup.eyepieceAngle)
+        assertEquals(-1.0, state.setup.axis().vector[0], 0.0)
+    }
+
     @Test fun finishAppliesTheFirstGuessOfTheEyepieceView() = phoneTest {
         val state = fresh()
         setContent { AppScreen(state) }
@@ -221,6 +272,20 @@ class SetupWizardTest {
         b.applySettings(mapOf("telescopeType" to "SPACESHIP", "placement" to "", "phoneEdge" to "up", "viewRotation" to "45", "viewMirrored" to "maybe", "setupDone" to "yes"))
         assertEquals(a.setup, b.setup) // nothing malformed was accepted
         assertTrue(b.setupDone)
+        // A Newtonian saved by an older build with a straight or unsure eyepiece loads as a right angle; others keep theirs.
+        for (old in listOf(EyepieceAngle.STRAIGHT, EyepieceAngle.UNSURE)) {
+            val n = fresh().apply { applySettings(mapOf("telescopeType" to "REFLECTOR", "placement" to "EYEPIECE", "phoneEdge" to "LEFT", "eyepieceAngle" to old.name)) }
+            assertEquals(EyepieceAngle.RIGHT_ANGLE, n.setup.eyepieceAngle)
+            assertEquals(-1.0, n.setup.axis().vector[0], 0.0)
+            assertEquals("RIGHT_ANGLE", n.settings()["eyepieceAngle"])
+            val r = fresh().apply { applySettings(mapOf("telescopeType" to "REFRACTOR", "placement" to "EYEPIECE", "eyepieceAngle" to old.name)) }
+            assertEquals(old, r.setup.eyepieceAngle)
+            val o = fresh().apply { applySettings(mapOf("telescopeType" to "OTHER", "eyepieceAngle" to old.name)) }
+            assertEquals(old, o.setup.eyepieceAngle)
+        }
+        // The angle is applied after the type whatever the key order, and a missing angle on a reflector is a right angle too.
+        val m = fresh().apply { applySettings(mapOf("telescopeType" to "REFLECTOR", "placement" to "EYEPIECE")) }
+        assertEquals(EyepieceAngle.RIGHT_ANGLE, m.setup.eyepieceAngle)
         // The new mount key beats the old one; the old one alone still counts.
         val c = fresh().apply { applySettings(mapOf("equatorial" to "true", "mountType" to "ALT_AZ")) }
         assertEquals(MountType.ALT_AZ, c.setup.mount)

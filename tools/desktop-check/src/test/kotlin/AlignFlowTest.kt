@@ -335,6 +335,51 @@ class AlignFlowTest {
         assertEquals(AlignState.NOT_ALIGNED, state.align)
     }
 
+    @Test fun choosingANewtonianAfterAStraightEyepieceClearsTheAlignmentAndSaysSo() = phoneTest {
+        val state = Fixtures.state()
+        state.setup = state.setup.copy(type = TelescopeType.REFRACTOR, placement = PhonePlacement.EYEPIECE, eyepieceAngle = org.astrofixxer.ui.EyepieceAngle.STRAIGHT)
+        Fixtures.pointTelescopeAt(state, vega)
+        Fixtures.align(state, vega)
+        assertEquals(-1.0, state.setup.axis().vector[2], 0.0) // looking through the eyepiece
+        setContent { AppScreen(state) }
+        val notice = "The phone is mounted differently now, so the old alignment no longer fits. Align on a star again."
+        onNode(button("Sky")).tap()
+        tab("Telescope & orientation")
+        onNode(button("Straight")).performScrollTo().assertExists()
+        onNode(button("Reflector")).performScrollTo().tap()
+        // A Newtonian's eyepiece is on the side, so the phone's axis moved to an edge: the old alignment is void.
+        assertEquals(TelescopeType.REFLECTOR, state.setup.type)
+        assertEquals(org.astrofixxer.ui.EyepieceAngle.RIGHT_ANGLE, state.setup.effectiveEyepieceAngle)
+        assertEquals(0.0, state.setup.axis().vector[2], 0.0)
+        assertNull(state.alignMatrix)
+        assertEquals(AlignState.NOT_ALIGNED, state.align)
+        onNode(hasText(notice)).assertExists()
+        onNode(button("Later")).tap()
+        // Only the edge is asked now, and the choices that cannot exist on a Newtonian are gone.
+        onNode(hasText("On a Newtonian the eyepiece is on the side, at right angles to the tube.")).performScrollTo().assertExists()
+        onNode(hasText("Which edge points toward the front of the telescope?")).performScrollTo().assertExists()
+        onNode(button("Straight")).assertDoesNotExist()
+        onNode(button("Right angle")).assertDoesNotExist()
+        // Back to a refractor: its own three choices return, with the earlier answer.
+        onNode(button("Refractor")).performScrollTo().tap()
+        onNode(button("Straight")).performScrollTo().assertExists()
+        assertEquals(-1.0, state.setup.axis().vector[2], 0.0)
+    }
+
+    @Test fun choosingANewtonianWhenTheEyepieceWasAlreadyARightAngleKeepsTheAlignment() = phoneTest {
+        val state = Fixtures.state()
+        state.setup = state.setup.copy(type = TelescopeType.REFRACTOR, placement = PhonePlacement.EYEPIECE, eyepieceAngle = org.astrofixxer.ui.EyepieceAngle.RIGHT_ANGLE)
+        Fixtures.pointTelescopeAt(state, vega)
+        Fixtures.align(state, vega)
+        setContent { AppScreen(state) }
+        onNode(button("Sky")).tap()
+        tab("Telescope & orientation")
+        onNode(button("Reflector")).performScrollTo().tap()
+        assertEquals(AlignState.ALIGNED, state.align) // the axis did not change
+        assertNotNull(state.alignMatrix)
+        onNode(hasText("The phone is mounted differently now, so the old alignment no longer fits. Align on a star again.")).assertDoesNotExist()
+    }
+
     @Test fun alignNowInTheMountingDialogStartsPicking() = phoneTest {
         val state = Fixtures.state()
         Fixtures.pointAt(state, vega)

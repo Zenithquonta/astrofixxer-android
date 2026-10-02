@@ -125,6 +125,7 @@ class AuditTest {
         Screen("wizard-5-summary-tube", true, { it.setupDone = false }, { next(4) }),
         Screen("wizard-4-camera-summary", true, { it.setupDone = false; it.setup = it.setup.copy(placement = PhonePlacement.CAMERA_FORWARD) }, { next(3) }),
         Screen("wizard-4-angle", true, { it.setupDone = false; it.setup = it.setup.copy(placement = PhonePlacement.EYEPIECE) }, { next(3) }),
+        Screen("wizard-4-angle-newtonian", true, { it.setupDone = false; it.setup = it.setup.copy(type = TelescopeType.REFLECTOR, placement = PhonePlacement.EYEPIECE) }, { next(3) }),
         Screen("wizard-4-angle-edge", true, { it.setupDone = false; it.setup = it.setup.copy(placement = PhonePlacement.EYEPIECE, eyepieceAngle = EyepieceAngle.RIGHT_ANGLE) }, { next(3) }),
         Screen("wizard-5-prism", true, { it.setupDone = false; it.setup = it.setup.copy(placement = PhonePlacement.EYEPIECE) }, { next(4) }),
         Screen("wizard-6-summary-eyepiece", true, { it.setupDone = false; it.setup = it.setup.copy(placement = PhonePlacement.EYEPIECE, eyepieceAngle = EyepieceAngle.RIGHT_ANGLE, erecting = Erecting.NO, type = TelescopeType.REFRACTOR) }, { next(5) }),

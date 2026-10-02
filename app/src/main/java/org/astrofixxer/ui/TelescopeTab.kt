@@ -44,11 +44,15 @@ internal fun TelescopeSettings(state: SkyState, onCheckOrientation: () -> Unit, 
                 EdgePicker(s.edge, drawing = false) { state.updateSetup(s.copy(edge = it)) }
             }
             PhonePlacement.EYEPIECE -> {
-                Text(t("Does the eyepiece go straight in, or at a right angle (diagonal or Newtonian)?"), color = c.onSurface, fontSize = 15.sp)
-                Segmented(listOf(t("Straight") to EyepieceAngle.STRAIGHT, t("Right angle") to EyepieceAngle.RIGHT_ANGLE, t("Not sure") to EyepieceAngle.UNSURE), s.eyepieceAngle) {
-                    state.updateSetup(s.copy(eyepieceAngle = it))
+                if (s.type == TelescopeType.REFLECTOR) {
+                    Text(t("On a Newtonian the eyepiece is on the side, at right angles to the tube."), color = c.onSurface, fontSize = 15.sp)
+                } else {
+                    Text(t("Does the eyepiece go straight in, or at a right angle (diagonal or Newtonian)?"), color = c.onSurface, fontSize = 15.sp)
+                    Segmented(listOf(t("Straight") to EyepieceAngle.STRAIGHT, t("Right angle") to EyepieceAngle.RIGHT_ANGLE, t("Not sure") to EyepieceAngle.UNSURE), s.eyepieceAngle) {
+                        state.updateSetup(s.copy(eyepieceAngle = it))
+                    }
                 }
-                if (s.eyepieceAngle == EyepieceAngle.RIGHT_ANGLE) {
+                if (s.effectiveEyepieceAngle == EyepieceAngle.RIGHT_ANGLE) {
                     Text(t("Which edge points toward the front of the telescope?"), color = c.onSurface, fontSize = 15.sp)
                     EdgePicker(s.edge, drawing = false) { state.updateSetup(s.copy(edge = it)) }
                 }

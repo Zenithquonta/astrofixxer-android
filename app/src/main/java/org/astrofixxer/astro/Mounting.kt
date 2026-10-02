@@ -14,7 +14,10 @@ enum class PhonePlacement { TUBE, CAMERA_FORWARD, EYEPIECE }
 /** The phone edge that points toward the front (sky end) of the telescope. */
 enum class PhoneEdge { TOP, BOTTOM, LEFT, RIGHT }
 
-/** How the eyepiece meets the tube: straight in, or at a right angle (star diagonal, Newtonian). */
+/**
+ * How the eyepiece meets the tube: straight in, or at a right angle (star diagonal, Newtonian). A Newtonian's eyepiece
+ * is always at a right angle; see [Mounting.effectiveEyepieceAngle].
+ */
 enum class EyepieceAngle { STRAIGHT, RIGHT_ANGLE, UNSURE }
 
 /** Whether an image-erecting prism is used. */
@@ -71,6 +74,17 @@ object Mounting {
     }
 
     private fun rearCamera() = doubleArrayOf(0.0, 0.0, -1.0)
+
+    /**
+     * The eyepiece angle that really applies. A Newtonian reflector has its eyepiece on the side of the tube, at a right
+     * angle to where it looks, whatever was chosen or saved; refractors and other telescopes keep the choice.
+     */
+    fun effectiveEyepieceAngle(type: TelescopeType, eyepieceAngle: EyepieceAngle): EyepieceAngle =
+        if (type == TelescopeType.REFLECTOR) EyepieceAngle.RIGHT_ANGLE else eyepieceAngle
+
+    /** [phoneAxis] for a telescope of [type]: a reflector's eyepiece is always a right angle. */
+    fun phoneAxis(type: TelescopeType, placement: PhonePlacement, edge: PhoneEdge, eyepieceAngle: EyepieceAngle): PhoneAxis =
+        phoneAxis(placement, edge, effectiveEyepieceAngle(type, eyepieceAngle))
 
     /**
      * The telescope axis in phone coordinates.
@@ -142,15 +156,16 @@ object Mounting {
      * eyepiece and any prism, and the type only settles the cases that depend on it.
      * - An image-erecting prism: upright.
      * - Unsure about the prism or the eyepiece angle: upright, and the user is asked to check.
-     * - Reflector (Newtonian): rotated 180°; it varies with where the eyepiece sits, so the user is asked to check.
+     * - Reflector (Newtonian, whose eyepiece is always a right angle): rotated 180°; it varies with where the eyepiece sits, so the user is asked to check.
      * - Right-angle diagonal on a refractor or other telescope: mirrored (upright but left-right reversed).
      * - Straight-through refractor: rotated 180° (upside down and reversed).
      * - Anything else (straight eyepiece on an unknown telescope): upright, please check.
      * The phone [placement] does not change the guess: the view depends on the optics, not on where the phone sits.
      */
     @Suppress("UNUSED_PARAMETER")
-    fun initialViewOrientation(type: TelescopeType, placement: PhonePlacement, eyepieceAngle: EyepieceAngle, erecting: Erecting): ViewGuess {
+    fun initialViewOrientation(type: TelescopeType, placement: PhonePlacement, angle: EyepieceAngle, erecting: Erecting): ViewGuess {
         val upright = ViewOrientation.UPRIGHT
+        val eyepieceAngle = effectiveEyepieceAngle(type, angle)
         return when {
             erecting == Erecting.YES -> ViewGuess(upright, false)
             erecting == Erecting.UNSURE || eyepieceAngle == EyepieceAngle.UNSURE -> ViewGuess(upright, true)
