@@ -103,7 +103,7 @@ class PlateSolveFlowTest {
         screenshot("solve-tips")
         next()
         // c. live view
-        onNode(hasText("Move the telescope until the star reaches the +")).assertExists()
+        onNode(hasText("The + shows where the telescope points.")).assertExists()
         assertEquals(1, host.liveViewsOpened)
         onNode(hasText("Camera field of view: 65°")).assertExists()
         screenshot("solve-live-eyepiece")
@@ -218,7 +218,7 @@ class PlateSolveFlowTest {
         // 3. a photo of another sky: Apply is enabled and puts the telescope where the offset says
         aim(state, t3.raDeg, t3.decDeg, errorDeg = -25.0)
         toLive()
-        onNode(hasText("Move the telescope until the star reaches the +")).assertExists()
+        onNode(hasText("The + shows where the telescope points.")).assertExists()
         onNode(hasText("Telescope")).assertExists()
         takePhotoAndWait(model)
         onNode(hasText("Apply to alignment")).assertIsEnabled()

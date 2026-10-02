@@ -398,8 +398,6 @@ object I18n {
             "फ़ोटो में तारे खोजे और आकाश से मिलाए जा रहे हैं। इसमें 25 सेकंड तक लग सकते हैं। फ़ोटो फ़ोन पर ही रहती है।",
         "Mirrored: the photo is a mirror image of the sky." to
             "दर्पण जैसा उलटा: फ़ोटो आकाश का प्रतिबिंब है।",
-        "Move the telescope until the star reaches the +" to
-            "टेलीस्कोप को तब तक हिलाएँ जब तक तारा + पर न आ जाए",
         "No bright star is high enough right now. Try again later." to
             "अभी कोई चमकीला तारा पर्याप्त ऊँचाई पर नहीं है। बाद में फिर कोशिश करें।",
         "No camera on this phone" to

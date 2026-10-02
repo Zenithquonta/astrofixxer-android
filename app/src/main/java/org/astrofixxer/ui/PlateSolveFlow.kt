@@ -350,7 +350,7 @@ private fun LiveStep(state: SkyState, model: PlateSolveModel, host: PlateSolveHo
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         model.calibrating?.let { Body(t("Centre %s in the eyepiece, then take the photo.").format(it.name)) }
         if (model.calibrating == null && state.setup.placement == PhonePlacement.EYEPIECE) Body(t("Centre the bright eyepiece circle in the camera view and focus on stars"))
-        if (position != null) Body(t("Move the telescope until the star reaches the +"))
+        if (position != null) Body(t("The + shows where the telescope points."))
         else if (model.calibrating == null) Small(t("The camera offset is not calibrated, so this photo will say where the camera points, not the telescope."))
         Box(Modifier.weight(1f).fillMaxWidth()) {
             key(attempt) {

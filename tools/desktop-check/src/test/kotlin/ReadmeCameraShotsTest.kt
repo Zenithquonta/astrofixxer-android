@@ -133,7 +133,7 @@ class ReadmeCameraShotsTest {
         onNode(hasText("Centre the bright eyepiece circle in the camera view and focus on stars")).assertExists()
         screenshot("readme-solve-1-arrangement")
         next(); next(); waitForIdle()
-        onNode(hasText("Move the telescope until the star reaches the +")).assertExists()
+        onNode(hasText("The + shows where the telescope points.")).assertExists()
         screenshot("readme-solve-2-live-eyepiece")
         onNode(button("Take photo")).tap()
         waitForResult(model); waitForIdle()
