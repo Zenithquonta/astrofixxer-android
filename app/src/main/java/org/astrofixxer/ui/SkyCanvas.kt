@@ -285,10 +285,10 @@ private fun DrawScope.drawSky(
         }
     }
 
-    state.alignStar?.let { s -> if (state.align == AlignState.ALIGNED) proj.project(state.ray(s))?.let { drawCircle(pal.alignStar, 12f, it, style = Stroke(2f)) } }
+    state.alignStar?.let { s -> if (state.align == AlignState.ALIGNED) proj.project(state.ray(state.current(s)))?.let { drawCircle(pal.alignStar, 12f, it, style = Stroke(2f)) } }
     // The star being centred: a ring and a line to the + so it is easy to see how far the map must move.
     state.centerStar?.let { s ->
-        val sr = state.ray(s)
+        val sr = state.ray(state.current(s))
         val p = proj.project(sr)?.takeIf { it.x in 0f..size.width && it.y in 0f..size.height }
         if (p != null) {
             drawCircle(pal.alignStar, 16f, p, style = Stroke(3f))

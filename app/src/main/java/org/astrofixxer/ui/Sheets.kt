@@ -420,7 +420,7 @@ private fun TonightLines(s: TonightSummary) {
 // ---------------------------------------------------------------- Long-press quick menu
 
 @Composable
-/** [onAlign] is null for objects that cannot be an alignment star (deep-sky objects, the Sun and Moon, anything below the horizon). */
+/** [onAlign] is null for objects that cannot be an alignment object (the Sun, constellations, positions, anything below the horizon or near the Sun). */
 internal fun QuickMenu(obj: SkyObject, at: Offset, onDismiss: () -> Unit, onTarget: () -> Unit, onAlign: (() -> Unit)?, onAdd: () -> Unit, onInfo: () -> Unit) {
     val density = LocalDensity.current
     Box(Modifier.fillMaxSize().clickable(onClick = onDismiss)) {
@@ -431,7 +431,7 @@ internal fun QuickMenu(obj: SkyObject, at: Offset, onDismiss: () -> Unit, onTarg
             Column(Modifier.padding(8.dp)) {
                 Text(obj.name, color = MaterialTheme.colorScheme.primary, fontSize = 16.sp, fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
-                for ((label, action) in listOfNotNull("Set as target" to onTarget, onAlign?.let { "Align using this star" to it }, "Add to list" to onAdd, "Info" to onInfo)) {
+                for ((label, action) in listOfNotNull("Set as target" to onTarget, onAlign?.let { "Align on this object" to it }, "Add to list" to onAdd, "Info" to onInfo)) {
                     Box(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { action(); onDismiss() }.padding(horizontal = 8.dp),
                         contentAlignment = Alignment.CenterStart) {
                         Text(t(label), color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp)

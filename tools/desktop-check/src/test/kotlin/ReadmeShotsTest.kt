@@ -105,7 +105,7 @@ class ReadmeShotsTest {
         setContent { AppScreen(state) }
         onNode(button("Align")).tap()
         assertEquals(AlignState.PICK_STAR, state.align)
-        onNode(hasText("Tap the star you will centre in the telescope")).assertExists()
+        onNode(hasText("Tap the object you will centre in the telescope")).assertExists()
         screenshot("readme-align-1-pick")
         onRoot().performTouchInput { click(px(state, vega)) }
         assertEquals(AlignState.CENTER_STAR, state.align)

@@ -246,7 +246,7 @@ private fun SettingsButton(onClick: () -> Unit) {
 private fun AlignChip(state: SkyState) {
     val (label, color) = when (state.align) {
         AlignState.NOT_ALIGNED -> t("Not aligned") to MaterialTheme.colorScheme.error
-        AlignState.PICK_STAR -> t("Choose a star") to MaterialTheme.colorScheme.primary
+        AlignState.PICK_STAR -> t("Choose an object") to MaterialTheme.colorScheme.primary
         AlignState.CENTER_STAR -> t("Aligning…") to MaterialTheme.colorScheme.primary
         AlignState.ALIGNED -> alignAgeText(state) to MaterialTheme.colorScheme.primary
     }
@@ -473,7 +473,7 @@ private const val LICENCES = "AstroFixxer is free software under the GNU GPL v3.
 
 private val HELP = listOf(
     "Setting up" to "Attach the phone to the telescope and tell the app how in the setup wizard (or the gear at the top right, then Telescope & orientation): flat on the tube, camera facing along it, or on the eyepiece. Allow location so the sky matches your place and time.",
-    "Aligning" to "Tap Align, then tap a bright star or planet near your target. Centre that star in the eyepiece by moving the telescope, drag the map until the star is under the +, and tap Confirm alignment. The app then says how big the correction was. Re-align for each new target; phone sensors drift over a few minutes.",
+    "Aligning" to "Tap Align, then tap a bright star, planet or other object near your target. Centre that object in the eyepiece by moving the telescope, drag the map until it is under the +, and tap Confirm alignment. The app then says how big the correction was. Re-align for each new target; phone sensors drift over a few minutes.",
     "Finding a target" to "Tap an object on the sky or use Find. Follow the arrows in the guidance panel until both numbers are close to zero.",
     "Compass and dragging" to "Compass uses the phone's compass. If the alignment star isn't on screen, or the phone has no compass, drag the map while aligning until the star is under the +. Dragging never changes the alignment at any other time.",
     "Free look" to "The other pointing mode: the sky ignores the phone's sensors and you drag it in any direction, like a planetarium. Tap the Compass / Free look button to switch.",

@@ -171,7 +171,7 @@ Alignment tells the app where your telescope really points, so the map and the a
 | :-: | :-: | :-: | :-: |
 | <img src="screens/new/align-1-pick.png" width="180" alt="Tap the star you will centre in the telescope: Vega is chosen on the map"> | <img src="screens/new/align-2-centre.png" width="180" alt="Vega panel: centre Vega in the eyepiece, then drag the map to place Vega under the +"> | <img src="screens/new/align-3-dragged.png" width="180" alt="Vega now sits under the + in the middle of the map"> | <img src="screens/new/align-4-result.png" width="180" alt="Aligned on Vega, correction 5.0 degrees, with Retry and Done"> |
 
-1. Tap **Align**, then tap a bright star or planet well above the horizon. Good first stars: Vega, Arcturus, Capella, Sirius, Jupiter. (You can also press and hold a star and choose **Align using this star**.)
+1. Tap **Align**, then tap a bright star, a planet, the Moon or any other object you can centre, well above the horizon. Good first choices: Vega, Arcturus, Capella, Sirius, Jupiter. (You can also press and hold an object and choose **Align on this object**.)
 2. **Move the telescope** until that star sits in the middle of the eyepiece. Use your lowest-power eyepiece; it is much easier.
 3. **Drag the map** with your finger until the same star is under the **+** in the middle of the screen. This only lines up the map on screen; it never moves the telescope.
 4. Tap **Confirm alignment**. The card says how big the correction was. **Retry** repeats the same star; **Reset adjustment** undoes your dragging.
@@ -181,7 +181,7 @@ Alignment tells the app where your telescope really points, so the map and the a
 - **A big correction** (the app warns you) usually means the wrong star was centred. Check the star in the eyepiece is the one you tapped.
 - **No compass on your phone?** Step 3 also sets the starting direction, so it still works.
 - **Want to check it?** In the guidance panel tap **More → Check with another star**. The app says how far off the alignment was and refines it using both stars.
-- The app will not let you align on the Sun.
+- The app will not let you align on the Sun, or on anything within 15° of it while the Sun is up (Venus or the Moon by day). For a big object such as the Moon, centre its middle.
 
 ## Find a target
 

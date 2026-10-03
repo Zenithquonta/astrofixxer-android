@@ -8,6 +8,14 @@ Every update and fix to AstroFixxer, newest first. Dates are when the work lande
 The first Android version: a Kotlin + Jetpack Compose port of the AstroFixxer web app, which grew out of
 [AstroHopper / skyhopper](https://github.com/artyom-beilis/skyhopper) by Artyom Beilis.
 
+### Align on any object (2 Oct 2026)
+
+- **Align on the Moon, planets and deep-sky objects**, not only stars and planets. Comets and your own objects work too. The Sun, constellation labels, typed positions and anything below the horizon are still refused, each with its reason.
+- **Safety:** an object within 15° of the Sun while the Sun is up (Venus or the Moon by day) is refused: "Never point a telescope near the Sun."
+- **The Moon and planets are looked up again when you confirm.** The Moon drifts about 0.5° an hour, so the alignment uses where it is now, not where it was when you tapped it. The ring on the map follows it too.
+- **Restart:** an alignment on a planet or the Moon is restored from its position, not from a catalogue search by name.
+- **Big objects:** for the Moon and anything over 15′ across the panel says "Centre the middle of ...".
+
 ### Settings gear (2 Oct 2026)
 
 - **A gear at the top right of the sky screen** opens Sky & viewing on the Telescope & orientation tab, where the telescope, eyepiece and phone placement are set. The Sky button at the bottom still opens the Sky tab.

@@ -85,7 +85,7 @@ is fixed (flat on the tube, camera facing along it, or on the eyepiece) and the 
 
 Alignment tells the phone where the telescope really points, so the map and the arrows agree with the sky.
 
-1. Tap **Align**, then tap a bright star or planet well above the horizon. (Pressing and holding a star and choosing **Align using this star** starts the same thing.)
+1. Tap **Align**, then tap a bright star, a planet, the Moon or any other object you can centre, well above the horizon. (Pressing and holding an object and choosing **Align on this object** starts the same thing.)
 2. **Centre that star in the eyepiece** by moving the telescope.
 3. **Drag the map** until the star is under the +. This step only lines up the map on screen; it never moves the telescope.
 4. Tap **Confirm alignment**. The result card says how big the correction was and warns if it is large. **Reset adjustment** undoes your dragging; **Retry** does the same star again.

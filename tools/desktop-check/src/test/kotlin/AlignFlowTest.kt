@@ -13,6 +13,7 @@ import androidx.compose.ui.test.swipe
 import org.astrofixxer.astro.Pointing
 import org.astrofixxer.astro.SkyObject
 import org.astrofixxer.ui.AlignState
+import org.astrofixxer.ui.Landscape
 import org.astrofixxer.ui.PhonePlacement
 import org.astrofixxer.ui.PointingMode
 import org.astrofixxer.ui.Projector
@@ -26,6 +27,9 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.math.asin
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
 import kotlin.math.hypot
 
 /** The alignment flow: tap a star, centre it, drag the map under the +, confirm. */
@@ -57,6 +61,33 @@ class AlignFlowTest {
 
     private fun ComposeUiTest.tapAt(p: Offset) = onRoot().performTouchInput { click(p) }
 
+    /** The Moon or a planet as the sky hands it out when tapped: a snapshot of where it is at [state]'s time. */
+    private fun body(state: SkyState, name: String) = org.astrofixxer.ui.solarSystem(state).first { it.obj.name == name }.obj
+
+    /** Moves [state] to a time when [name] is high enough to align on, and still is 30 minutes later; returns it as a snapshot. */
+    private fun upBody(state: SkyState, name: String): SkyObject {
+        var t = Fixtures.start
+        while (t < Fixtures.start + 86_400_000L) {
+            fun ok(at: Long): Boolean { state.timeMillis = at; return body(state, name).let { state.ray(it)[2] > 0.42 && state.canAlignOn(it) } }
+            if (ok(t) && ok(t + 1_800_000L)) { state.timeMillis = t; return body(state, name) }
+            t += 1_800_000L
+        }
+        throw AssertionError("$name is not up at a good time within a day")
+    }
+
+    private fun sunNow(state: SkyState) = body(state, "Sun")
+
+    private fun altitudeOf(state: SkyState, o: SkyObject) = Math.toDegrees(asin(state.ray(o)[2]))
+
+    /** A star-like test object [deltaAltDeg] higher in the sky than the Sun, at the Sun's azimuth. */
+    private fun besideSun(state: SkyState, deltaAltDeg: Double): SkyObject {
+        val sun = state.ray(sunNow(state))
+        val az = atan2(sun[0], sun[1])
+        val alt = asin(sun[2]) + Math.toRadians(deltaAltDeg)
+        val (ra, dec) = Pointing.rayToRaDec(doubleArrayOf(cos(alt) * sin(az), cos(alt) * cos(az), sin(alt)), state.timeMillis, state.lat, state.lon)
+        return SkyObject("Test star", ra, dec, 1.0, "S")
+    }
+
     // ---------------------------------------------------------------- picking and centring
 
     @Test fun tappingAStarStartsCentringAndCalibratesNothing() = phoneTest {
@@ -65,7 +96,7 @@ class AlignFlowTest {
         setContent { AppScreen(state) }
         onNode(button("Align")).tap()
         assertEquals(AlignState.PICK_STAR, state.align)
-        onNode(hasText("Tap the star you will centre in the telescope")).assertExists()
+        onNode(hasText("Tap the object you will centre in the telescope")).assertExists()
         tapAt(centre())
         assertEquals(AlignState.CENTER_STAR, state.align)
         assertEquals("Vega", state.centerStar?.name)
@@ -210,32 +241,141 @@ class AlignFlowTest {
     }
 
     @Test fun ineligibleObjectsAreExplainedAndPickingContinues() = phoneTest {
-        val state = Fixtures.state()
-        val m57 = catalog.find("M31")!! // a galaxy, bright enough to be drawn (and tapped) at this zoom
-        Fixtures.pointAt(state, m57)
+        // Without a landscape the sky draws (and lets you tap) objects below the horizon.
+        val state = Fixtures.state().apply { landscape = Landscape.NONE }
+        val below = catalog.objects.first { it.type == "S" && (it.mag ?: 9.0) < 3 && state.ray(it)[2] < -0.2 }
+        Fixtures.pointAt(state, below)
         setContent { AppScreen(state) }
         onNode(button("Align")).tap()
-        tapAt(centre())
-        assertEquals(AlignState.PICK_STAR, state.align)
-        onNode(hasText("M31 is not a star or planet. Pick a bright star or a planet.")).assertExists()
-        screenshot("align-pick-refused")
-        // The Sun and Moon, and a star below the horizon, are refused too, each with its reason.
-        val moving = org.astrofixxer.ui.solarSystem(state).associate { it.obj.name to it.obj }
-        assertFalse(state.pickStar(moving.getValue("Sun")))
-        assertTrue(state.alignNote!!.render().startsWith("Never point a telescope at the Sun"))
-        assertFalse(state.pickStar(moving.getValue("Moon")))
-        assertTrue(state.alignNote!!.render().contains("Moon is too big"))
-        val below = catalog.objects.first { it.type == "S" && (it.mag ?: 9.0) < 3 && state.ray(it)[2] < -0.2 }
-        assertFalse(state.pickStar(below))
-        assertEquals("${below.name} is below the horizon. Pick a star that is up.", state.alignNote!!.render())
+        tapAt(px(state, below)!!)
         assertEquals(AlignState.PICK_STAR, state.align)
         assertNull(state.centerStar)
-        // A planet above the horizon is fine.
-        val planet = moving.values.firstOrNull { it.type == "P" && it.name != "Sun" && it.name != "Moon" && state.ray(it)[2] > 0.1 }
-        if (planet != null) assertTrue(state.canAlignOn(planet))
-        // The menu offers "Align using this star" only for eligible objects.
-        assertFalse(state.canAlignOn(m57))
+        onNode(hasText("${below.name} is below the horizon. Pick an object that is up.")).assertExists()
+        screenshot("align-pick-refused")
+        // The Sun, a constellation label and a typed position are refused too, each with its reason.
+        assertFalse(state.pickStar(body(state, "Sun")))
+        assertEquals("Never point a telescope at the Sun. Pick another object.", state.alignNote!!.render())
+        val orion = SkyObject("Orion", 83.0, 0.0, null, "Con")
+        assertFalse(state.pickStar(orion))
+        assertEquals("Orion is a constellation, not one object. Pick a star, planet or other object in it.", state.alignNote!!.render())
+        val spot = SkyObject("RA 5h Dec 0°", 75.0, 0.0, null, "Pos")
+        assertFalse(state.pickStar(spot))
+        assertEquals("RA 5h Dec 0° is a position, not an object you can see. Pick an object.", state.alignNote!!.render())
+        // A constellation label below the horizon is still "a constellation": that reason comes before the horizon.
+        assertEquals("Orion is a constellation, not one object. Pick a star, planet or other object in it.",
+            state.alignBlocker(SkyObject("Orion", below.ra, below.dec, null, "Con"))!!.render())
+        assertEquals(AlignState.PICK_STAR, state.align)
+        // Deep-sky objects, a planet and the Moon (when it is up and away from the Sun) are accepted.
+        val m31 = catalog.find("M31")!!
+        assertTrue(state.canAlignOn(m31))
         assertTrue(state.canAlignOn(vega))
+        assertTrue(state.canAlignOn(catalog.objects.first { it.type == "Gc" && state.ray(it)[2] > 0.3 }))
+        assertTrue(state.canAlignOn(SkyObject("My object", m31.ra, m31.dec, null, "U")))
+        assertTrue(state.canAlignOn(SkyObject("Comet X", m31.ra, m31.dec, 8.0, "C")))
+        assertTrue(state.pickStar(upBody(state, "Moon")))
+        assertEquals(AlignState.CENTER_STAR, state.align)
+        state.startAlign()
+        assertTrue(state.pickStar(upBody(state, "Saturn")))
+    }
+
+    @Test fun aDeepSkyObjectAlignsEndToEndAndAsksToCentreItsMiddle() = phoneTest {
+        val state = Fixtures.state()
+        val m31 = catalog.find("M31")!!
+        assertTrue("M31 is large", m31.sizeArcmin > SkyState.LARGE_OBJECT_ARCMIN)
+        assertTrue("M31 is well up", state.ray(m31)[2] > 0.25)
+        pointWithCompassError(state, m31, 6.0)
+        setContent { AppScreen(state) }
+        onNode(button("Align")).tap()
+        tapAt(px(state, m31)!!)
+        assertEquals(AlignState.CENTER_STAR, state.align)
+        assertEquals("M31", state.centerStar?.name)
+        onNode(hasText("Centre the middle of M31.")).assertExists()
+        screenshot("align-centre-large-object")
+        onNode(button("Confirm alignment")).tap()
+        assertEquals(AlignState.ALIGNED, state.align)
+        assertEquals("M31", state.alignStar?.name)
+        assertTrue(Pointing.dot(state.telescopeCamera()[2], state.ray(m31)) > 1 - 1e-12)
+        onNode(hasText("Aligned on M31", substring = true)).assertExists()
+        // A small object gets no such hint.
+        state.startAlign()
+        assertTrue(state.pickStar(catalog.find("M57")!!))
+        assertNull(state.alignNote)
+    }
+
+    @Test fun theMoonIsAlignedWhereItIsNowNotWhereItWasWhenTapped() = phoneTest {
+        val state = Fixtures.state()
+        val moon = upBody(state, "Moon") // the snapshot the sky hands out when the Moon is tapped
+        setContent { AppScreen(state) }
+        state.startAlign()
+        assertTrue(state.pickStar(moon))
+        assertEquals("Centre the middle of the Moon.", state.alignNote!!.render())
+        state.shiftTime(30 * 60_000L) // half an hour passes while the user centres it
+        val fresh = state.current(moon)
+        val stale = state.ray(moon)
+        assertTrue("the Moon moved ${Pointing.angleBetweenDeg(stale, state.ray(fresh))}° in 30 minutes", Pointing.angleBetweenDeg(stale, state.ray(fresh)) > 0.1)
+        pointWithCompassError(state, fresh, 4.0) // the telescope is on the Moon as it is now
+        waitForIdle()
+        onNode(button("Confirm alignment")).tap()
+        assertEquals(AlignState.ALIGNED, state.align)
+        val axis = state.telescopeCamera()[2]
+        assertTrue("on the fresh Moon", Pointing.angleBetweenDeg(axis, state.ray(fresh)) < 0.01)
+        assertTrue("not on the stale snapshot", Pointing.angleBetweenDeg(axis, stale) > 0.1)
+        assertEquals("Moon", state.alignStar?.name)
+        assertEquals("P", state.alignStar?.type)
+        assertTrue("what is stored is the Moon at confirm time", Pointing.angleBetweenDeg(state.ray(state.alignStar!!), state.ray(fresh)) < 1e-5)
+        // Retry centres the Moon at the new time again.
+        state.shiftTime(30 * 60_000L)
+        state.retryAlignment()
+        assertEquals(AlignState.CENTER_STAR, state.align)
+        assertTrue(Pointing.angleBetweenDeg(state.ray(state.centerStar!!), state.ray(state.current(moon))) < 1e-5)
+    }
+
+    @Test fun anObjectNearTheSunIsRefusedOnlyWhileTheSunIsUp() = phoneTest {
+        val state = Fixtures.state()
+        state.timeMillis = Fixtures.start + 12 * 3_600_000L // 09:30 in the morning in Delhi
+        assertTrue("the Sun is high", altitudeOf(state, sunNow(state)) > 20.0)
+        val close = besideSun(state, 5.0)
+        assertEquals("Test star is too close to the Sun. Never point a telescope near the Sun.", state.alignBlocker(close)!!.render())
+        assertFalse(state.pickStar(close))
+        assertFalse(state.beginCentering(close))
+        assertNull(state.centerStar)
+        assertNull("20° from the Sun is far enough", state.alignBlocker(besideSun(state, 20.0)))
+        // The edge of the keep-out circle.
+        val keepOut = SkyState.SUN_KEEP_OUT_DEG
+        assertTrue(Pointing.angleBetweenDeg(state.ray(sunNow(state)), state.ray(besideSun(state, keepOut - 1))) < keepOut)
+        assertNotNull(state.alignBlocker(besideSun(state, keepOut - 1)))
+        assertNull(state.alignBlocker(besideSun(state, keepOut + 1)))
+        // At dusk the Sun is below the horizon: an object 8° from it, just above the horizon, is fine.
+        var t = Fixtures.start - 6 * 3_600_000L
+        while (t < Fixtures.start) {
+            state.timeMillis = t
+            if (altitudeOf(state, sunNow(state)) in -6.0..-2.0) break
+            t += 300_000L
+        }
+        assertTrue("the Sun is just below the horizon", altitudeOf(state, sunNow(state)) in -6.0..-2.0)
+        val dusk = besideSun(state, 8.0)
+        assertTrue(altitudeOf(state, dusk) > 0.0)
+        assertTrue(Pointing.angleBetweenDeg(state.ray(sunNow(state)), state.ray(dusk)) < keepOut)
+        assertNull(state.alignBlocker(dusk))
+    }
+
+    @Test fun aSavedAlignmentOnAPlanetIsRestoredFromItsPositionNotFromTheCatalogue() = phoneTest {
+        // By name alone the catalogue gives "Mars" the star Marsic and "Saturn" the Saturn Nebula (NGC 7009).
+        assertEquals("S", Fixtures.state().resolve("Mars", catalog)?.type)
+        assertEquals("Ne", Fixtures.state().resolve("Saturn", catalog)?.type)
+        for (name in listOf("Mars", "Saturn", "Moon")) {
+            val a = Fixtures.state()
+            val body = upBody(a, name)
+            Fixtures.pointAt(a, body)
+            Fixtures.align(a, body)
+            val b = Fixtures.state().apply { timeMillis = a.timeMillis; applySettings(a.settings()) }
+            assertEquals(name, b.alignStarName)
+            assertNull(b.alignStar)
+            b.restoreAlignStar(catalog)
+            assertEquals(name, b.alignStar?.name)
+            assertEquals("P", b.alignStar?.type)
+            assertTrue("$name is where it is now", Pointing.angleBetweenDeg(b.ray(b.alignStar!!), a.ray(a.current(body))) < 1e-6)
+        }
     }
 
     @Test fun lowStarsGetAWarning() = phoneTest {
@@ -251,7 +391,7 @@ class AlignFlowTest {
         assertNotNull(found)
         setContent { AppScreen(state) }
         assertTrue(state.beginCentering(found!!))
-        onNode(hasText("Low stars are harder to centre")).assertExists()
+        onNode(hasText("Low objects are harder to centre")).assertExists()
         assertEquals(AlignState.CENTER_STAR, state.align) // a warning, not a refusal
     }
 
@@ -272,7 +412,7 @@ class AlignFlowTest {
         assertEquals(AlignState.CENTER_STAR, state.align)
         assertTrue(old.contentEquals(state.alignMatrix!!))
         assertNull(state.alignResult)
-        onNode(hasText("${setter.name} has dropped below the horizon, so nothing was changed. Cancel and pick another star.")).assertExists()
+        onNode(hasText("${setter.name} has dropped below the horizon, so nothing was changed. Cancel and pick another object.")).assertExists()
     }
 
     // ---------------------------------------------------------------- no compass
@@ -390,7 +530,7 @@ class AlignFlowTest {
         onNode(button("Align now")).tap()
         assertEquals(AlignState.PICK_STAR, state.align)
         assertFalse(state.mountingChangedNotice)
-        onNode(hasText("Tap the star you will centre in the telescope")).assertExists()
+        onNode(hasText("Tap the object you will centre in the telescope")).assertExists()
     }
 
     @Test fun aDifferentPhoneAxisIsUsedForPointing() = phoneTest {
@@ -422,7 +562,7 @@ class AlignFlowTest {
         onNode(button("More")).tap()
         onNode(button("Check with another star")).tap()
         assertEquals(AlignState.PICK_STAR, state.align)
-        onNode(hasText("Tap a second star, at least 10° from the first, to check the alignment")).assertExists()
+        onNode(hasText("Tap a second object, at least 10° from the first, to check the alignment")).assertExists()
         val off = Pointing.angleBetweenDeg(state.telescopeCamera()[2], state.ray(altair))
         tapAt(px(state, altair)!!)
         assertEquals(AlignState.CENTER_STAR, state.align)
@@ -451,7 +591,7 @@ class AlignFlowTest {
         Fixtures.pointAt(state, close)
         onNode(button("Confirm alignment")).tap()
         assertFalse(state.alignResult!!.refined)
-        onNode(hasText("Not refined: the two stars are less than 10° apart", substring = true)).assertExists()
+        onNode(hasText("Not refined: the two objects are less than 10° apart", substring = true)).assertExists()
         assertTrue(old.contentEquals(state.alignMatrix!!))
         // Picking the star already aligned on is refused in a check.
         state.dismissAlignResult()
