@@ -70,7 +70,7 @@ class JourneyTest {
         Fixtures.pointAt(state, vega) // telescope (and phone) on Vega
         setContent { AppScreen(state) }
         onNode(button("Align")).tap()
-        onNode(hasText("Tap the star you will centre in the telescope")).assertExists()
+        onNode(hasText("Tap the object you will centre in the telescope")).assertExists()
         screenshot("journey-06-pick-star")
         onRoot().performTouchInput { click(center) } // Vega is under the +
         assertEquals(AlignState.CENTER_STAR, state.align) // tapping only picks the star: nothing is aligned yet

@@ -201,17 +201,42 @@ class SkyState(nowMillis: Long, lat: Double, lon: Double) {
 
     fun ray(o: SkyObject) = Pointing.rayFromPos(o.ra, o.dec, timeMillis, lat, lon)
 
-    private fun altitudeDeg(o: SkyObject) = Math.toDegrees(asin(ray(o)[2].coerceIn(-1.0, 1.0)))
+    private fun altitudeDeg(o: SkyObject) = Math.toDegrees(asin(ray(current(o))[2].coerceIn(-1.0, 1.0)))
+
+    /**
+     * [o] where it is at [timeMillis]. A Moon or planet picked earlier is a snapshot, and the Moon drifts about 0.5° an
+     * hour against the stars, so a solar-system body is looked up again by name. Everything else is returned unchanged
+     * (comets move too slowly to matter).
+     */
+    fun current(o: SkyObject): SkyObject {
+        val body = if (o.type == "P") ApparentPosition.bodies.indexOf(o.name) else -1
+        if (body < 0) return o
+        val (ra, dec) = bodyPosition(body)
+        return SkyObject(o.name, ra, dec, o.mag, o.type, o.sizeArcmin, o.otherNames, o.bv)
+    }
 
     // ---------------------------------------------------------------- alignment
 
-    /** Why [o] cannot be an alignment star (an English template for [t]), or null when it can: stars and planets above the horizon. */
+    /**
+     * Why [o] cannot be an alignment object (an English template for [t]), or null when it can. Any object that can be
+     * centred in the eyepiece works: stars, the Moon and planets, deep-sky objects, comets and the user's own objects.
+     * Refused, in this order: the Sun, constellation labels and typed positions, anything below the horizon, and
+     * anything within [SUN_KEEP_OUT_DEG] of the Sun while the Sun is up (Venus or the Moon by day).
+     */
     fun alignBlocker(o: SkyObject): AlignNote? = when {
-        o.name == "Sun" -> AlignNote("Never point a telescope at the Sun. Pick a star or a planet.")
-        o.name == "Moon" -> AlignNote("The Moon is too big to centre precisely. Pick a star or a planet.")
-        o.type != "S" && o.type != "P" -> AlignNote("%s is not a star or planet. Pick a bright star or a planet.", o.name)
-        altitudeDeg(o) <= 0.0 -> AlignNote("%s is below the horizon. Pick a star that is up.", o.name)
+        o.name == "Sun" -> AlignNote("Never point a telescope at the Sun. Pick another object.")
+        o.type == "Con" -> AlignNote("%s is a constellation, not one object. Pick a star, planet or other object in it.", o.name)
+        o.type == "Pos" -> AlignNote("%s is a position, not an object you can see. Pick an object.", o.name)
+        altitudeDeg(o) <= 0.0 -> AlignNote("%s is below the horizon. Pick an object that is up.", o.name)
+        nearSun(o) -> AlignNote("%s is too close to the Sun. Never point a telescope near the Sun.", o.name)
         else -> null
+    }
+
+    /** True when the Sun is above the horizon and [o] is within [SUN_KEEP_OUT_DEG] of it. */
+    private fun nearSun(o: SkyObject): Boolean {
+        val (ra, dec) = bodyPosition(ApparentPosition.SUN)
+        val sun = Pointing.rayFromPos(ra, dec, timeMillis, lat, lon)
+        return sun[2] > 0.0 && Pointing.angleBetweenDeg(sun, ray(current(o))) < SUN_KEEP_OUT_DEG
     }
 
     fun canAlignOn(o: SkyObject) = alignBlocker(o) == null
@@ -219,7 +244,7 @@ class SkyState(nowMillis: Long, lat: Double, lon: Double) {
     /** True when [o] is up but so low that centring it is harder (below [LOW_STAR_DEG]). */
     fun isLowForAlignment(o: SkyObject) = altitudeDeg(o) < LOW_STAR_DEG
 
-    /** Waits for the user to tap the star they will centre in the telescope. The old alignment stays until a new one is confirmed. */
+    /** Waits for the user to tap the object they will centre in the telescope. The old alignment stays until a new one is confirmed. */
     fun startAlign() {
         if (mode == PointingMode.FREE) mode = PointingMode.COMPASS // aligning needs the map to follow the phone
         resetAdjustment()
@@ -237,15 +262,15 @@ class SkyState(nowMillis: Long, lat: Double, lon: Double) {
 
     /** A tap on [o] while picking. Returns true when it was accepted (now centring it); otherwise a reason is shown and picking goes on. */
     fun pickStar(o: SkyObject): Boolean {
-        val why = alignBlocker(o) ?: if (checkingSecondStar && o.name == alignStar?.name) AlignNote("%s is the star you aligned on. Pick a different one.", o.name) else null
+        val why = alignBlocker(o) ?: if (checkingSecondStar && o.name == alignStar?.name) AlignNote("%s is the object you aligned on. Pick a different one.", o.name) else null
         if (why != null) { alignNote = why; return false }
         beginCentering(o)
         return true
     }
 
     /**
-     * Starts centring [o] (from picking, or straight from "Align using this star"). Nothing is calibrated yet: the user
-     * centres the star in the eyepiece, drags the map to put it under the +, and confirms.
+     * Starts centring [o] (from picking, or straight from "Align on this object"). Nothing is calibrated yet: the user
+     * centres it in the eyepiece, drags the map to put it under the +, and confirms.
      */
     fun beginCentering(o: SkyObject): Boolean {
         val why = alignBlocker(o)
@@ -255,7 +280,12 @@ class SkyState(nowMillis: Long, lat: Double, lon: Double) {
         if (!keepDrag) resetAdjustment()
         centerStar = o
         alignResult = null
-        alignNote = if (isLowForAlignment(o)) AlignNote("Low stars are harder to centre") else null
+        alignNote = when {
+            isLowForAlignment(o) -> AlignNote("Low objects are harder to centre")
+            o.name == "Moon" -> AlignNote("Centre the middle of the Moon.")
+            o.sizeArcmin > LARGE_OBJECT_ARCMIN -> AlignNote("Centre the middle of %s.", o.name)
+            else -> null
+        }
         align = AlignState.CENTER_STAR
         return true
     }
@@ -291,7 +321,7 @@ class SkyState(nowMillis: Long, lat: Double, lon: Double) {
         val again = r.check
         startAlign()
         checkingSecondStar = again
-        beginCentering(star)
+        beginCentering(current(star))
     }
 
     /** Result card "Done". */
@@ -320,9 +350,9 @@ class SkyState(nowMillis: Long, lat: Double, lon: Double) {
      * far off the calibrated app was, and refines the calibration with both stars.
      */
     fun confirmAlignment(): Boolean {
-        val star = centerStar ?: return false
+        val star = current(centerStar ?: return false) // the Moon has moved since it was picked
         if (ray(star)[2] <= 0.0) {
-            alignNote = AlignNote("%s has dropped below the horizon, so nothing was changed. Cancel and pick another star.", star.name)
+            alignNote = AlignNote("%s has dropped below the horizon, so nothing was changed. Cancel and pick another object.", star.name)
             return false
         }
         val starRay = ray(star)
@@ -338,9 +368,9 @@ class SkyState(nowMillis: Long, lat: Double, lon: Double) {
         var note: AlignNote? = null
         if (check) {
             val first = calibrationSample
-            if (first == null) note = AlignNote("Not refined: align on a star again first to refine with two stars.")
+            if (first == null) note = AlignNote("Not refined: align on an object again first to refine with two objects.")
             else if (Pointing.angleBetweenDeg(first.starRay, starRay) < Mounting.MIN_STAR_SEPARATION_DEG)
-                note = AlignNote("Not refined: the two stars are less than 10° apart. Use a star farther away to refine.")
+                note = AlignNote("Not refined: the two objects are less than 10° apart. Use an object farther away to refine.")
             else {
                 // The newest star is matched exactly: it is the freshest, and closest to where the user is heading.
                 matrix = Mounting.triad(Pointing.mvec(sample.device, axis()), Pointing.mvec(first.device, axis()), starRay, first.starRay)
@@ -475,10 +505,15 @@ class SkyState(nowMillis: Long, lat: Double, lon: Double) {
         }
     }
 
-    /** After a restart only the star's name was saved; finds the star again for drawing the ring around it. */
+    /**
+     * After a restart only the object's name was saved; finds it again for drawing the ring around it. A Moon or planet
+     * is rebuilt from its position now: a catalogue search by name could return another object ("Ghost of Jupiter").
+     */
     fun restoreAlignStar(catalog: Catalog?) {
         val name = alignStarName ?: return
-        if (alignStar == null) alignStar = resolve(name, catalog)
+        if (alignStar != null) return
+        val body = ApparentPosition.bodies.indexOf(name)
+        alignStar = if (body >= 0) bodyPosition(body).let { (ra, dec) -> SkyObject(name, ra, dec, null, "P") } else resolve(name, catalog)
     }
 
     /** Switches pointing mode: Compass <-> Free look. Free look starts where the view points now, so nothing jumps. */
@@ -648,6 +683,10 @@ class SkyState(nowMillis: Long, lat: Double, lon: Double) {
     }
 
     companion object {
+        /** An alignment object within this angle of the Sun, with the Sun above the horizon, is refused: never point a telescope near the Sun. */
+        const val SUN_KEEP_OUT_DEG = 15.0
+        /** An object bigger than this (arcminutes), and the Moon, gets a hint to centre its middle. */
+        const val LARGE_OBJECT_ARCMIN = 15.0
         /** Below this altitude an alignment star is hard to centre (thick air, low mounts): a warning is shown. */
         const val LOW_STAR_DEG = 10.0
         /** A correction bigger than this makes the result card ask whether the star really was centred. */

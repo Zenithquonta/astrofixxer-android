@@ -95,7 +95,7 @@ class AuditTest {
         Screen("sky", false, {}),
         Screen("sky-target-not-aligned", false, { it.target = catalog.find("M57") }),
         Screen("sky-picking-star", false, { it.target = catalog.find("M57"); it.startAlign() }),
-        Screen("sky-picking-star-refused", false, { it.startAlign(); it.pickStar(catalog.find("M57")!!) }),
+        Screen("sky-picking-star-refused", false, { it.startAlign(); it.pickStar(org.astrofixxer.ui.solarSystem(it).first { m -> m.obj.name == "Sun" }.obj) }),
         Screen("sky-picking-star-no-compass", false, { it.hasCompass = false; it.startAlign() }),
         Screen("sky-centering-star", false, { Fixtures.pointAt(it, catalog.find("Vega")!!); it.startAlign(); it.pickStar(catalog.find("Vega")!!) }),
         Screen("sky-centering-star-dragged", false, { s ->

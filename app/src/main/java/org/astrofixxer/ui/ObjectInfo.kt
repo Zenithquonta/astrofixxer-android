@@ -101,12 +101,12 @@ internal fun ObjectInfoSheet(state: SkyState, catalog: Catalog?, obj: SkyObject,
                     modifier = Modifier.padding(top = 16.dp).heightIn(min = 48.dp)) { Text(t("Set as target")) }
             }
             item {
-                // Stars and planets above the horizon can be used to align the app with the telescope.
+                // Any object that is up and away from the Sun can be used to align the app with the telescope.
                 if (state.canAlignOn(obj)) {
                     OutlinedButton(onClick = { state.beginCentering(obj); onClose() }, modifier = Modifier.padding(top = 8.dp).heightIn(min = 48.dp)) {
-                        Text(t("Align using this star"))
+                        Text(t("Align on this object"))
                     }
-                    if (state.isLowForAlignment(obj)) Text(t("Low stars are harder to centre"), color = c.error, fontSize = 13.sp)
+                    if (state.isLowForAlignment(obj)) Text(t("Low objects are harder to centre"), color = c.error, fontSize = 13.sp)
                 }
                 Box(Modifier.heightIn(min = 16.dp))
             }

@@ -69,9 +69,9 @@ class NewScreensTest {
         Fixtures.pointAt(state, catalog.find("Vega")!!)
         setContent { AppScreen(state) }
         onRoot().performTouchInput { longClick(center) }
-        onNode(button("Align using this star")).assertExists()
+        onNode(button("Align on this object")).assertExists()
         screenshot("new-long-press")
-        onNode(button("Align using this star")).tap()
+        onNode(button("Align on this object")).tap()
         // The menu starts centring; it never aligns by itself (the old "Align on this" assumed the telescope was centred).
         assertEquals(AlignState.CENTER_STAR, state.align)
         assertEquals("Vega", state.centerStar?.name)

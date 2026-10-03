@@ -33,14 +33,14 @@ private fun Panel(content: @Composable () -> Unit) {
     }
 }
 
-/** PICK_STAR: asks for the star that will be centred in the telescope. Tapping it starts centring; it does not align anything. */
+/** PICK_STAR: asks for the object that will be centred in the telescope. Tapping it starts centring; it does not align anything. */
 @Composable
 internal fun PickStarPanel(state: SkyState, onAlignWithPhoto: (() -> Unit)? = null) {
     val c = MaterialTheme.colorScheme
     Panel {
-        Text(t(if (state.checkingSecondStar) "Tap a second star, at least 10° from the first, to check the alignment" else "Tap the star you will centre in the telescope"),
+        Text(t(if (state.checkingSecondStar) "Tap a second object, at least 10° from the first, to check the alignment" else "Tap the object you will centre in the telescope"),
             color = c.primary, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-        Text(t("Choose a bright star or a planet that is well above the horizon."), color = c.onSurface, fontSize = 14.sp)
+        Text(t("Choose a bright star, a planet, the Moon or any object you can centre, well above the horizon."), color = c.onSurface, fontSize = 14.sp)
         if (!state.hasCompass) Text(t("This phone has no compass. Drag the map until the sky matches what you see."), color = c.onSurfaceVariant, fontSize = 13.sp)
         state.alignNote?.let { Text(it.render(), color = c.error, fontSize = 15.sp) }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {

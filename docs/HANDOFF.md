@@ -125,6 +125,23 @@ Preserve GPL and all credits; no Android imports in ui/astro/update; user-visibl
 
 Historical entries retain the evidence and instructions recorded at the time. Their **Next step** instructions are superseded by the current TAKEOVER above.
 
+### 2026-10-03: Align on any celestial object (branch, CI pending)
+
+**Owner:** "for the alignment function [it] shouldn't only be for stars ... can be for all type of celestial objects like planets moons etc".
+
+**`feature/align-any-object`** (from main `21f7e6a`):
+- `SkyState.alignBlocker` now accepts stars, the Moon and planets, deep-sky objects (Ga/Oc/Gc/Ne), comets and user objects. Still refused, each with its reason: the Sun; constellation labels (`Con`) and typed positions (`Pos`), which are not something you can centre; anything below the horizon; and, new, anything within `SUN_KEEP_OUT_DEG` = 15° of the Sun while the Sun is up (Venus or the Moon by day). Satellites are not tappable sky objects, so nothing to refuse there.
+- Correctness fix that only matters once the Moon is allowed: tapped solar-system objects are snapshots, and the Moon moves about 0.5°/h. New `SkyState.current(o)` recomputes a `P` body by name at `timeMillis`; used in `confirmAlignment`, the altitude and Sun checks, `retryAlignment`, and both rings in `SkyCanvas.drawSky`. Comets are left as snapshots (slow).
+- `restoreAlignStar`: a saved Moon or planet is rebuilt from `ApparentPosition`, not `resolve()`, which by name gives "Mars" a star and "Saturn" the Saturn Nebula (both asserted in a test).
+- Centring hint: "Centre the middle of the Moon." for the Moon, and "Centre the middle of %s." for objects over `LARGE_OBJECT_ARCMIN` = 15′ (the "Low objects ..." warning wins when both apply).
+- Wording: "star" became "object" where it was now wrong (pick panel, the "Choose an object" chip, "Align on this object" in the long-press menu and Object info, refusal and "Not refined" notes, the Aligning help topic, README step 1, BETA_GUIDE). Hindi entries for every changed English key were removed (none added). Left as they are: "Check with another star" (still good advice), the "Align on a bright star" guide tip, and the camera-calibration star list in `PlateSolveFlow` (bright stars only is right there). The .docx guide and the Claude Doc still say stars and planets; regenerate them with the next guide refresh.
+
+**Process:** a coding agent wrote the change and most tests, then stopped on a usage limit before committing. The supervisor reviewed every line, fixed the Moon note ("of the Moon"), the README step and the chip, and ran the tests.
+
+**Tests (DejaVu fonts):** AlignFlowTest 23/23 (new: deep-sky end to end with the hint; the Moon confirmed 30 min after it was tapped lands within 0.01° of its position then, more than 0.1° from the snapshot; Sun keep-out by day, but not at dusk; Mars/Saturn/Moon restored as planets), AuditTest with `AUDIT_SCREENS=sky` 140 variants no findings (after the chip rewording), LabelFitTest 3/3, NewScreensTest 9/9, JourneyTest 11 + 1 ignored (Hindi), PlateSolveFlowTest 27/27, StressTest 7/7, SettingsGearTest 5/5. ReadmeShotsTest skipped (only with `-PreadmeShots`). `AuditTest` screen `sky-picking-star-refused` now refuses the Sun (M57 is accepted now).
+
+**Next:** CI on the branch; merge into main and integration when all three jobs are green.
+
 ### 2026-10-02: Beta guide and settings gear merged to main (CI runs 50 and 51 green)
 
 CI run 50 on `feature/beta-guide` `3e5bfc4` was green and it was merged as `bcd2a0d` (main and integration). CI run 51 on `feature/settings-gear` `5c07f24` (which already contains the beta-guide branch): build, ui-check (desktop suite plus the full audit, including the two new gear screens) and secret-scan all green. Merged with `--no-ff` as `d5e5fab`; `git diff HEAD 5c07f24` is empty, so main has exactly the tree CI tested. Integration fast-forwarded to the same commit. Pushed without `[skip ci]` so main CI runs on the merge. Still open: README and guide screenshots show the top bar without the gear (re-render later).
