@@ -22,7 +22,7 @@ A running log. **Add a new entry at the top every time code is implemented or ch
 
 ## TAKEOVER: read this first (updated 2026-10-01; resume sequence step 3, docs pass)
 
-**Resumed 2026-10-01 (owner: "continue what the handoff says").** **Owner decision: Hindi switched off for now and no Hindi work at all; W7 is parked (step 1 is replaced by the Hindi switch-off, merged). Phase 7b is on main (`e76d8e7`, CI run 43 green) and the W8 README showcase is merged (CI run 42 green). Resume steps 1–5 are done. Open items need the owner or a real device: field test (docs/FIELD_TEST.md), v0.2.0 tag after the Play signing secrets are confirmed, Hindi later (W7 parked), the preview signing-key Secrets and private vulnerability reporting (owner). The Newtonian eyepiece rule, the live-view hint wording, the beta tester guide and the settings gear are on main (CI runs 47, 50, 51); see the newest entries.** W7 (`feature/tsap-w7`, WIP `16195d9`) stays parked and unmerged. Nothing is merged to main yet. The next session must read this entire handoff, especially the newest entries, plan section 7b, POLICY, PRIVACY, SECURITY, CONTRIBUTING, NOTICE, README and CHANGELOG before acting.
+**Resumed 2026-10-01 (owner: "continue what the handoff says").** **Owner decision: Hindi switched off for now and no Hindi work at all; W7 is parked (step 1 is replaced by the Hindi switch-off, merged). Phase 7b is on main (`e76d8e7`, CI run 43 green) and the W8 README showcase is merged (CI run 42 green). Resume steps 1–5 are done. Open items need the owner or a real device: field test (docs/FIELD_TEST.md), v0.2.0 tag after the Play signing secrets are confirmed, Hindi later (W7 parked), the preview signing-key Secrets and private vulnerability reporting (owner). The Newtonian eyepiece rule, the live-view hint wording, the beta tester guide, the settings gear and align-on-any-object are on main (CI runs 47, 50, 51, 56); see the newest entries.** W7 (`feature/tsap-w7`, WIP `16195d9`) stays parked and unmerged. Nothing is merged to main yet. The next session must read this entire handoff, especially the newest entries, plan section 7b, POLICY, PRIVACY, SECURITY, CONTRIBUTING, NOTICE, README and CHANGELOG before acting.
 
 ### 1. Pushed branches and checkout ownership
 
@@ -125,7 +125,7 @@ Preserve GPL and all credits; no Android imports in ui/astro/update; user-visibl
 
 Historical entries retain the evidence and instructions recorded at the time. Their **Next step** instructions are superseded by the current TAKEOVER above.
 
-### 2026-10-03: Align on any celestial object (branch, CI pending)
+### 2026-10-03: Align on any celestial object (merged to main, CI run 56 green)
 
 **Owner:** "for the alignment function [it] shouldn't only be for stars ... can be for all type of celestial objects like planets moons etc".
 
@@ -140,7 +140,7 @@ Historical entries retain the evidence and instructions recorded at the time. Th
 
 **Tests (DejaVu fonts):** AlignFlowTest 23/23 (new: deep-sky end to end with the hint; the Moon confirmed 30 min after it was tapped lands within 0.01° of its position then, more than 0.1° from the snapshot; Sun keep-out by day, but not at dusk; Mars/Saturn/Moon restored as planets), AuditTest with `AUDIT_SCREENS=sky` 140 variants no findings (after the chip rewording), LabelFitTest 3/3, NewScreensTest 9/9, JourneyTest 11 + 1 ignored (Hindi), PlateSolveFlowTest 27/27, StressTest 7/7, SettingsGearTest 5/5. ReadmeShotsTest skipped (only with `-PreadmeShots`). `AuditTest` screen `sky-picking-star-refused` now refuses the Sun (M57 is accepted now).
 
-**Next:** CI on the branch; merge into main and integration when all three jobs are green.
+**Merged:** CI run 56 (`37102570852`) on `c42a223`: build, ui-check (desktop suite plus the full audit) and secret-scan green. Merged `--no-ff` as `5633dab`; its tree equals `c42a223`. Integration fast-forwarded to the same commit. Follow-ups: refresh the Word guide and the Claude Doc copy of the beta guide (they still say stars and planets); README/guide screenshots without the gear.
 
 ### 2026-10-02: Beta guide and settings gear merged to main (CI runs 50 and 51 green)
 
